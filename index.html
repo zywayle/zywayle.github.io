@@ -3,636 +3,1254 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>zywayle — tiny · fast AI from scratch</title>
-<link rel="preload" href="https://i.ibb.co/t5Gs8Ss/logowhale.png" as="image" fetchpriority="high">
-<script src="https://cdn.tailwindcss.com"></script>
+<title>zywayle</title>
+<link rel="preload" href="logo.png" as="image" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
 :root {
-  --bg:      #050810;
-  --surface: #0d1117;
-  --border:  #1e2d3d;
-  --blue:    #0ea5e9;
-  --cyan:    #22d3ee;
-  --glow:    #0ea5e940;
-  --text:    #e2e8f0;
-  --muted:   #64748b;
-  --green:   #4ade80;
+  --bg: #06080f;
+  --bg2: #0b0e18;
+  --surface: #0f1220;
+  --border: #1c2236;
+  --border-bright: #273047;
+  --blue: #3b82f6;
+  --blue-dim: rgba(59,130,246,.12);
+  --cyan: #06b6d4;
+  --green: #10b981;
+  --green-dim: rgba(16,185,129,.1);
+  --yellow: #f59e0b;
+  --red: #ef4444;
+  --text: #f1f5f9;
+  --text-2: #94a3b8;
+  --text-3: #4b5563;
+  --white: #ffffff;
+  --radius: 4px;
 }
-*,*::before,*::after{box-sizing:border-box;}
-html{scroll-behavior:smooth;}
-body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;}
-.mono{font-family:'IBM Plex Mono',monospace;}
 
-/* grid texture */
-body::before{content:'';position:fixed;inset:0;
-  background-image:linear-gradient(rgba(14,165,233,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(14,165,233,.04) 1px,transparent 1px);
-  background-size:44px 44px;pointer-events:none;z-index:0;}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
 
-/* orbs */
-.orb{position:absolute;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0;}
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
 
-/* routing */
-.page{display:none;}.page.active{display:block;}
+/* ── Grain overlay ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 20% -10%, rgba(59,130,246,.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 110%, rgba(6,182,212,.04) 0%, transparent 60%);
+  pointer-events: none; z-index: 0;
+}
 
-/* canvas */
-#particles-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:1;opacity:.6;pointer-events:none;}
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
 
-/* nav */
-nav{background:rgba(5,8,16,.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+/* ── Mono util ── */
+.mono { font-family: 'JetBrains Mono', monospace; }
 
-/* nav links */
-.nav-link{position:relative;color:var(--muted);transition:color 200ms;cursor:pointer;}
-.nav-link:hover{color:var(--text);}
-.nav-link::after{content:'';position:absolute;width:0;height:1px;bottom:-3px;left:0;background:var(--blue);transition:width 220ms ease;}
-.nav-link:hover::after{width:100%;}
+/* ── Animations ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulseRing {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.8); opacity: 0; }
+}
+@keyframes scanline {
+  0%   { top: -60px; }
+  100% { top: 100%; }
+}
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(6px); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 
-/* buttons */
-button,.btn{border-radius:0!important;cursor:pointer;transition:all 180ms ease;}
-.btn-primary{background:var(--blue);color:#fff;font-weight:600;letter-spacing:.04em;}
-.btn-primary:hover{background:#0284c7;box-shadow:0 0 28px var(--glow);}
-.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
-.btn-ghost:hover{border-color:var(--blue);color:var(--blue);}
+.fade-up   { animation: fadeUp .6s ease both; }
+.fade-up-1 { animation: fadeUp .6s .12s ease both; }
+.fade-up-2 { animation: fadeUp .6s .24s ease both; }
+.fade-up-3 { animation: fadeUp .6s .36s ease both; }
 
-/* cards */
-.card{background:var(--surface);border:1px solid var(--border);transition:border-color 200ms;}
-.card:hover{border-color:rgba(14,165,233,.3);}
+/* ── Layout ── */
+.page-wrap { position: relative; z-index: 1; }
+.container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+@media (min-width: 640px) { .container { padding: 0 2rem; } }
+@media (min-width: 1024px) { .container { padding: 0 2.5rem; } }
 
-/* terminal line */
-.tline{display:flex;align-items:center;gap:.5rem;font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--muted);}
-.tline::before{content:'>';color:var(--cyan);font-weight:600;}
+/* ── Nav ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(6,8,15,.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 0;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: .55rem;
+  cursor: pointer; text-decoration: none; user-select: none;
+}
+.nav-logo img {
+  width: 30px; height: 30px; object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(59,130,246,.3));
+}
+.nav-logo-text {
+  font-size: 1.2rem; font-weight: 700;
+  color: var(--white); letter-spacing: -.3px;
+}
+.nav-links { display: none; gap: 2rem; align-items: center; }
+@media (min-width: 768px) { .nav-links { display: flex; } }
 
-/* section label */
-.slabel{font-family:'IBM Plex Mono',monospace;font-size:.65rem;letter-spacing:.15em;color:var(--blue);text-transform:uppercase;display:flex;align-items:center;gap:.5rem;}
-.slabel::before{content:'';display:inline-block;width:20px;height:1px;background:var(--blue);}
-.slabel.green{color:var(--green);}.slabel.green::before{background:var(--green);}
+.nav-link {
+  font-size: .82rem; font-weight: 500; color: var(--white);
+  cursor: pointer; border: none; background: none;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: .01em;
+  transition: color .2s ease, opacity .2s ease;
+  padding: .25rem 0; position: relative;
+  opacity: .75;
+}
+.nav-link::after {
+  content: ''; position: absolute; bottom: -2px; left: 0;
+  width: 0; height: 1px;
+  background: var(--white);
+  transition: width .25s ease;
+}
+.nav-link:hover { color: var(--white); opacity: 1; }
+.nav-link:hover::after { width: 100%; }
+.nav-link.accent { color: var(--green); opacity: 1; }
+.nav-link.accent::after { background: var(--green); }
+.nav-link.accent:hover { color: var(--green); opacity: .85; }
 
-/* glow text */
-.glow-text{background:linear-gradient(135deg,#fff 0%,var(--cyan) 55%,var(--blue) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.nav-right { display: flex; align-items: center; gap: .75rem; }
 
-/* badge */
-.badge{display:inline-flex;align-items:center;gap:.4rem;font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.2rem .6rem;border:1px solid var(--border);color:var(--muted);background:var(--surface);}
+.nav-badge {
+  display: none; align-items: center; gap: .45rem;
+  background: var(--blue-dim);
+  border: 1px solid rgba(59,130,246,.2);
+  padding: .3rem .7rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .65rem; color: var(--text-2);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color .2s;
+}
+.nav-badge:hover { border-color: var(--blue); color: var(--text); }
+@media (min-width: 640px) { .nav-badge { display: flex; } }
 
-/* pulse dot */
-@keyframes pulse-scale{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.6);opacity:.5;}}
-.pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse-scale 2s ease-in-out infinite;display:inline-block;flex-shrink:0;}
+/* hamburger */
+.hamburger {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); cursor: pointer;
+  transition: border-color .2s;
+}
+.hamburger:hover { border-color: var(--border-bright); }
+@media (min-width: 768px) { .hamburger { display: none; } }
 
-/* download card */
-.dl-card{background:linear-gradient(135deg,rgba(14,165,233,.08),rgba(34,211,238,.04));border:1px solid rgba(14,165,233,.3);position:relative;overflow:hidden;}
-.dl-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--blue),transparent);}
+.mobile-menu {
+  border-top: 1px solid var(--border);
+  background: rgba(6,8,15,.97);
+  animation: fadeIn .15s ease;
+}
+.mob-link {
+  display: flex; align-items: center;
+  padding: .9rem 1.25rem;
+  border-bottom: 1px solid rgba(28,34,54,.6);
+  font-size: .9rem; font-weight: 500; color: var(--text-2);
+  cursor: pointer;
+  transition: color .15s, background .15s;
+}
+.mob-link:hover { color: var(--white); background: rgba(59,130,246,.04); }
+.mob-link.accent { color: var(--green); }
 
-/* contribute card */
-.contrib-card{background:linear-gradient(135deg,rgba(74,222,128,.05),rgba(14,165,233,.04));border:1px solid rgba(74,222,128,.22);position:relative;overflow:hidden;}
-.contrib-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--green),transparent);}
+/* ── Hero ── */
+.hero {
+  position: relative; min-height: 100vh;
+  display: flex; align-items: center;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+#particles-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  z-index: 1; opacity: .45;
+  pointer-events: none;
+}
 
-/* stat box */
-.stat-box{border:1px solid var(--border);padding:1.25rem 1.5rem;background:rgba(13,17,23,.8);}
+.hero-title {
+  font-size: clamp(4rem, 11vw, 8rem);
+  font-weight: 800;
+  line-height: .9;
+  letter-spacing: -4px;
+  margin-bottom: 1.75rem;
+  text-align: left;
+}
+@media (max-width: 480px) {
+  .hero-title { font-size: clamp(3.2rem, 16vw, 5rem); letter-spacing: -2px; }
+}
 
-/* scan line */
-@keyframes scanline{0%{top:0;}100%{top:100%;}}
-.scan-wrap{position:relative;overflow:hidden;}
-.scan-wrap::after{content:'';position:absolute;left:0;right:0;height:40px;background:linear-gradient(to bottom,transparent,rgba(14,165,233,.03),transparent);animation:scanline 5s linear infinite;pointer-events:none;}
+.gradient-text {
+  background: linear-gradient(135deg, #fff 0%, #93c5fd 40%, var(--cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
-/* github btn */
-.github-btn{display:inline-flex;align-items:center;gap:.6rem;background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.35);color:var(--green);padding:.75rem 1.5rem;font-size:.8rem;font-family:'IBM Plex Mono',monospace;letter-spacing:.05em;transition:all 200ms;text-decoration:none;}
-.github-btn:hover{background:rgba(74,222,128,.18);box-shadow:0 0 20px rgba(74,222,128,.12);}
+.hero-sub {
+  font-size: 1.1rem; color: var(--text-2);
+  line-height: 1.85; max-width: 34rem;
+  margin-bottom: 2.25rem;
+  font-weight: 400;
+  text-align: left;
+}
 
-/* mobile */
-#mobile-menu{background:rgba(5,8,16,.98);border-top:1px solid var(--border);}
-.mob-link{display:block;padding:.9rem 1.5rem;border-bottom:1px solid var(--border);font-size:.9rem;color:var(--muted);cursor:pointer;transition:color 150ms,background 150ms;}
-.mob-link:hover{color:var(--text);background:rgba(14,165,233,.05);}
+.hero-actions {
+  display: flex; flex-wrap: wrap; gap: .65rem;
+  margin-bottom: 2.5rem;
+}
 
-/* toast */
-#toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(140%);background:#0f172a;border:1px solid var(--border);color:var(--text);padding:.8rem 1.5rem;font-size:.8rem;font-family:'IBM Plex Mono',monospace;z-index:9999;display:flex;align-items:center;gap:.6rem;transition:transform 320ms cubic-bezier(.34,1.56,.64,1);white-space:nowrap;box-shadow:0 0 30px rgba(0,0,0,.6);}
-#toast.show{transform:translateX(-50%) translateY(0);}
+.scroll-hint {
+  position: absolute; bottom: 2rem; left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: .3rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .55rem; letter-spacing: .2em; color: var(--text-3);
+}
+.bounce { animation: bounce 2s ease-in-out infinite; }
 
-/* bounce */
-@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
-.bounce{animation:bounce 1.6s ease-in-out infinite;}
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: .45rem;
+  cursor: pointer; border: none; outline: none;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600; letter-spacing: .03em;
+  font-size: .82rem;
+  border-radius: var(--radius);
+  transition: all .2s ease;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--blue); color: #fff;
+  padding: .8rem 1.6rem;
+  box-shadow: 0 0 0 rgba(59,130,246,0);
+}
+.btn-primary:hover {
+  background: #2563eb;
+  box-shadow: 0 0 28px rgba(59,130,246,.3);
+  transform: translateY(-1px);
+}
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--text-2); padding: .8rem 1.6rem;
+}
+.btn-ghost:hover {
+  border-color: var(--blue); color: var(--blue);
+  background: var(--blue-dim);
+}
+.btn-full { width: 100%; justify-content: center; }
+.btn-sm { padding: .5rem 1rem; font-size: .78rem; }
 
-/* material icons */
-.material-icons{font-family:'Material Icons';font-weight:normal;font-style:normal;font-size:24px;line-height:1;display:inline-block;white-space:nowrap;direction:ltr;vertical-align:middle;-webkit-font-smoothing:antialiased;}
+/* ── Terminal line ── */
+.tline {
+  display: flex; align-items: center; gap: .5rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .7rem; color: var(--text-3);
+}
+.tline::before {
+  content: '›'; color: var(--cyan);
+  font-weight: 600; flex-shrink: 0;
+}
 
-/* responsive */
-@media(max-width:767px){
-  .hero-title{font-size:clamp(3rem,13vw,5.5rem)!important;}
-  .hero-btn{width:100%;justify-content:center;}
-  .models-grid{grid-template-columns:1fr!important;}
-  .stats-grid{grid-template-columns:1fr 1fr!important;}
-  .about-grid{grid-template-columns:1fr!important;}
-  .dl-meta{flex-direction:column;align-items:flex-start;}
-  .contrib-cta{flex-direction:column;align-items:flex-start;}
-  .steps-grid{grid-template-columns:1fr!important;}
+/* ── Pulse dot ── */
+.pulse-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  position: relative; flex-shrink: 0;
+}
+.pulse-dot::after {
+  content: ''; position: absolute; inset: 0;
+  border-radius: 50%; background: var(--green);
+  animation: pulseRing 2.2s ease-in-out infinite;
+}
+
+/* ── Badge ── */
+.badge {
+  display: inline-flex; align-items: center; gap: .35rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .62rem; color: var(--text-2);
+  padding: .18rem .55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+/* ── Cards ── */
+.card {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color .25s;
+}
+.card:hover { border-color: var(--border-bright); }
+
+.card-green {
+  background: linear-gradient(135deg, rgba(16,185,129,.05), rgba(59,130,246,.03));
+  border: 1px solid rgba(16,185,129,.18);
+  border-radius: var(--radius);
+  position: relative; overflow: hidden;
+}
+.card-green::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(16,185,129,.45), transparent);
+}
+
+/* scan effect */
+.scan-wrap { position: relative; overflow: hidden; }
+.scan-wrap::after {
+  content: ''; position: absolute;
+  left: 0; right: 0; height: 60px;
+  background: linear-gradient(to bottom, transparent, rgba(59,130,246,.02), transparent);
+  animation: scanline 6s linear infinite;
+  pointer-events: none;
+}
+
+/* ── Section spacing ── */
+.section { padding: 5.5rem 0; }
+
+/* ── Models grid ── */
+.models-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.model-cell {
+  background: var(--surface);
+  padding: 1.75rem;
+  display: flex; flex-direction: column;
+  transition: background .2s;
+}
+.model-cell:hover { background: var(--bg2); }
+
+/* ── About grid ── */
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 4rem; align-items: center;
+}
+@media (max-width: 768px) { .about-grid { gap: 2.5rem; } }
+
+/* ── Info boxes ── */
+.info-box {
+  padding: 1.1rem 1.25rem;
+  border-radius: var(--radius);
+  display: flex; align-items: flex-start; gap: .65rem;
+}
+.info-box.blue {
+  background: rgba(59,130,246,.05);
+  border: 1px solid rgba(59,130,246,.15);
+}
+.info-box.yellow {
+  background: rgba(245,158,11,.04);
+  border: 1px solid rgba(245,158,11,.15);
+}
+.info-box.red {
+  background: rgba(239,68,68,.04);
+  border: 1px solid rgba(239,68,68,.14);
+}
+.info-box p { font-size: .82rem; color: var(--text-2); line-height: 1.7; }
+
+/* ── Steps grid ── */
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+/* ── Code block ── */
+.code-block {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 1rem;
+  flex-wrap: wrap;
+}
+.code-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .8rem; color: var(--cyan);
+  word-break: break-all;
+}
+
+/* ── GitHub button ── */
+.github-btn {
+  display: inline-flex; align-items: center; gap: .55rem;
+  background: var(--green-dim);
+  border: 1px solid rgba(16,185,129,.25);
+  color: var(--green); padding: .75rem 1.35rem;
+  font-size: .78rem; font-family: 'JetBrains Mono', monospace;
+  letter-spacing: .04em; transition: all .2s;
+  text-decoration: none; border-radius: var(--radius);
+  font-weight: 500;
+}
+.github-btn:hover {
+  background: rgba(16,185,129,.15);
+  box-shadow: 0 0 20px rgba(16,185,129,.12);
+}
+
+/* ── Copy button ── */
+.copy-btn {
+  display: inline-flex; align-items: center; gap: .35rem;
+  background: rgba(59,130,246,.08);
+  border: 1px solid var(--border);
+  color: var(--text-2); padding: .35rem .75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .68rem; cursor: pointer;
+  border-radius: var(--radius); transition: all .2s;
+  white-space: nowrap;
+}
+.copy-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 1.75rem; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--surface);
+  border: 1px solid var(--border-bright);
+  color: var(--text);
+  padding: .7rem 1.3rem;
+  font-size: .78rem;
+  font-family: 'JetBrains Mono', monospace;
+  z-index: 9999;
+  display: flex; align-items: center; gap: .55rem;
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s ease;
+  white-space: nowrap;
+  box-shadow: 0 8px 40px rgba(0,0,0,.5);
+  border-radius: var(--radius);
+  opacity: 0;
+  pointer-events: none;
+}
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Back link ── */
+.back-link {
+  display: inline-flex; align-items: center; gap: .4rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .7rem; color: var(--text-3);
+  cursor: pointer; margin-bottom: 2.5rem;
+  transition: color .15s; background: none; border: none;
+}
+.back-link:hover { color: var(--text-2); }
+
+/* ── Footer ── */
+footer {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 2.5rem 0;
+}
+.footer-inner {
+  display: flex; flex-wrap: wrap;
+  justify-content: space-between; align-items: center;
+  gap: 1.5rem;
+}
+
+/* ── Download grid with clearly defined lines & perfect width ── */
+.dl-grid {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+.dl-header-row, .dl-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) 1fr 1fr 1fr 1fr 120px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.dl-row:last-child {
+  border-bottom: none;
+}
+.dl-header-row {
+  background: var(--surface);
+  cursor: default;
+}
+.dl-row {
+  background: var(--bg);
+  transition: background .2s;
+}
+.dl-row:hover {
+  background: var(--bg2);
+}
+.dl-row.active {
+  background: var(--bg2);
+  border-left: 2px solid var(--blue);
+}
+.dl-cell {
+  padding: 1.25rem 1.5rem;
+  border-right: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+}
+.dl-header-row .dl-cell {
+  padding: .8rem 1.5rem;
+}
+.dl-cell:last-child {
+  border-right: none;
+  justify-content: flex-end;
+}
+
+/* Hide specific columns cleanly on mobile */
+@media (max-width: 900px) {
+  .dl-header-row, .dl-row {
+    grid-template-columns: 1fr auto auto; /* Fold layout */
+  }
+  .dl-hide-mobile {
+    display: none !important;
+  }
+  .dl-cell {
+    padding: 1rem;
+  }
+}
+
+.dl-col-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .58rem; color: var(--text-3);
+  letter-spacing: .12em; text-transform: uppercase;
+}
+.dl-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .78rem; color: var(--text);
+  font-weight: 600; word-break: break-all;
+}
+.dl-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .82rem; color: var(--text-2);
+}
+.dl-size {
+  font-size: 1rem; font-weight: 700;
+  color: var(--white); letter-spacing: -.02em;
+  font-family: 'Outfit', sans-serif;
+}
+.dl-btn-inline {
+  display: inline-flex; align-items: center; gap: .4rem;
+  background: var(--blue); color: #fff;
+  padding: .55rem 1.1rem;
+  font-size: .75rem; font-weight: 600;
+  font-family: 'Outfit', sans-serif;
+  border: none; border-radius: var(--radius);
+  cursor: pointer; white-space: nowrap;
+  transition: background .2s, box-shadow .2s;
+}
+.dl-btn-inline:hover {
+  background: #2563eb;
+  box-shadow: 0 0 20px rgba(59,130,246,.3);
+}
+
+/* ── Responsive text ── */
+@media (max-width: 640px) {
+  .section { padding: 4rem 0; }
+  .hero-sub { font-size: 1rem; }
 }
 </style>
 </head>
 <body>
+<div id="root"></div>
 
-<!-- ══════════════ NAVBAR ══════════════ -->
-<nav class="sticky top-0 z-50">
-  <div class="max-w-screen-xl mx-auto px-5 md:px-10 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-x-3 shrink-0 cursor-pointer" onclick="switchPage('main-page')">
-      <img src="https://i.ibb.co/t5Gs8Ss/logowhale.png" alt="zywayle" style="width:38px;height:38px;object-fit:contain;filter:drop-shadow(0 0 8px rgba(14,165,233,.4))">
-      <span style="font-size:1.4rem;font-weight:700;color:var(--blue);font-family:'Space Grotesk',sans-serif;letter-spacing:-0.5px">zywayle</span>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ── DATA: Edit models here directly ── */
+const MODELS_DATA = [
+  {
+    id: "zyy-0.016B",
+    name: "zywayle zyy",
+    version: "v0.016B",
+    filename: "zywayle-zyy-0.016B.safetensors",
+    format: "safetensors",
+    parameters: "16 M",
+    exactParameters: "16,124,512",
+    releaseDate: "Mar 2026",
+    size: "~32 MB",
+    isLatest: true,
+    license: "Closed source · private use"
+  }
+  // Add more versions as objects below when expanding
+];
+
+/* ── Icons ── */
+const IconDownload = () => (
+  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+  </svg>
+);
+const IconData = () => (
+  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+  </svg>
+);
+const IconArrow = ({dir='left'}) => (
+  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    {dir==='left'
+      ? <path d="M19 12H5M12 5l-7 7 7 7"/>
+      : <path d="M5 12h14M12 5l7 7-7 7"/>
+    }
+  </svg>
+);
+const IconGithub = ({size=16}) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+  </svg>
+);
+const IconCheck = () => (
+  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+    <path d="M20 6L9 17l-5-5"/>
+  </svg>
+);
+const IconInfo = () => (
+  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+  </svg>
+);
+const IconLock = () => (
+  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+  </svg>
+);
+const IconMenu = () => (
+  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M3 12h18M3 6h18M3 18h18"/>
+  </svg>
+);
+const IconClose = () => (
+  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M18 6L6 18M6 6l12 12"/>
+  </svg>
+);
+const IconCopy = () => (
+  <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+  </svg>
+);
+const IconExternal = () => (
+  <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
+  </svg>
+);
+const IconAlert = () => (
+  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+  </svg>
+);
+const IconCodeFork = () => (
+  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/>
+    <path d="M6 9v2c0 2 2 3 4 3h4c2 0 4-1 4-3V9"/><path d="M12 15v-1"/>
+  </svg>
+);
+
+/* ── Particle Canvas ── */
+function ParticleCanvas() {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let W = 0, H = 0, pts = [], raf;
+
+    class Pt {
+      constructor(init) {
+        this.x = Math.random() * W;
+        this.y = init ? Math.random() * H : H + 8;
+        this.r = Math.random() * 1.5 + .3;
+        this.vx = (Math.random() - .5) * .3;
+        this.vy = -(Math.random() * .5 + .15);
+        this.hue = 200 + Math.random() * 40;
+        this.a = Math.random() * .35 + .1;
+      }
+      step() {
+        this.x += this.vx; this.y += this.vy;
+        if (this.y < -8 || this.x < -8 || this.x > W + 8) Object.assign(this, new Pt(false));
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${this.hue},85%,68%,${this.a})`;
+        ctx.fill();
+      }
+    }
+
+    function resize() {
+      const hero = canvas.parentElement;
+      W = canvas.width = hero.offsetWidth;
+      H = canvas.height = hero.offsetHeight;
+      const n = Math.min(Math.floor(W * H / 16000), 70);
+      while (pts.length < n) pts.push(new Pt(true));
+      pts.length = Math.min(pts.length, n);
+    }
+
+    function frame() {
+      ctx.clearRect(0, 0, W, H);
+      for (let i = 0; i < pts.length; i++) {
+        for (let j = i + 1; j < pts.length; j++) {
+          const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+          const d = Math.sqrt(dx*dx + dy*dy);
+          if (d < 90) {
+            ctx.beginPath();
+            ctx.moveTo(pts[i].x, pts[i].y);
+            ctx.lineTo(pts[j].x, pts[j].y);
+            ctx.strokeStyle = `rgba(59,130,246,${.07*(1-d/90)})`;
+            ctx.lineWidth = .5;
+            ctx.stroke();
+          }
+        }
+      }
+      pts.forEach(p => { p.step(); p.draw(); });
+      raf = requestAnimationFrame(frame);
+    }
+
+    window.addEventListener('resize', resize);
+    resize(); frame();
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', resize); };
+  }, []);
+  return <canvas ref={canvasRef} id="particles-canvas" />;
+}
+
+/* ── Toast ── */
+function Toast({ msg, visible }) {
+  return (
+    <div className={`toast${visible ? ' show' : ''}`}>
+      <span style={{color:'var(--green)'}}><IconCheck /></span>
+      <span>{msg}</span>
     </div>
+  );
+}
 
-    <div class="hidden md:flex items-center gap-x-8 text-sm font-medium">
-      <a onclick="switchPage('main-page')" class="nav-link">Home</a>
-      <a onclick="switchPage('downloads-page')" class="nav-link">Downloads</a>
-      <a onclick="switchPage('contribute-page')" class="nav-link" style="color:var(--green);opacity:.9">Contribute Data</a>
-      <a onclick="goToAbout()" class="nav-link">About</a>
-    </div>
+/* ── Navbar ── */
+function Navbar({ page, setPage }) {
+  const [open, setOpen] = useState(false);
+  const goAbout = () => { setPage('main'); setOpen(false); setTimeout(() => document.getElementById('about-section')?.scrollIntoView({behavior:'smooth'}), 60); };
 
-    <div class="flex items-center gap-x-3">
-      <div onclick="switchPage('downloads-page')"
-           class="hidden sm:flex items-center gap-x-2 cursor-pointer badge hover:border-blue-400 transition-all"
-           style="padding:.35rem .85rem">
-        <span class="pulse-dot"></span>
-        <span style="font-size:.65rem">zyy 0.016B · safetensors</span>
-      </div>
-      <button onclick="toggleMobileMenu()" class="md:hidden w-10 h-10 flex items-center justify-center btn"
-              style="background:var(--surface);border:1px solid var(--border)">
-        <span id="mobile-icon" class="material-icons text-xl" style="color:var(--muted);font-size:20px">menu</span>
-      </button>
-    </div>
-  </div>
+  return (
+    <nav>
+      <div className="container">
+        <div className="nav-inner">
+          <div className="nav-logo" onClick={() => { setPage('main'); setOpen(false); window.scrollTo({top:0,behavior:'smooth'}); }}>
+            <img src="logo.png" alt="zywayle" />
+            <span className="nav-logo-text">zywayle</span>
+          </div>
 
-  <div id="mobile-menu" class="hidden md:hidden">
-    <a onclick="switchPage('main-page');closeMobileMenu()" class="mob-link">Home</a>
-    <a onclick="switchPage('downloads-page');closeMobileMenu()" class="mob-link">Downloads</a>
-    <a onclick="switchPage('contribute-page');closeMobileMenu()" class="mob-link" style="color:var(--green)">Contribute Data</a>
-    <a onclick="goToAbout();closeMobileMenu()" class="mob-link">About</a>
-  </div>
-</nav>
+          <div className="nav-links">
+            <button className="nav-link" onClick={() => { setPage('main'); window.scrollTo({top:0,behavior:'smooth'}); }}>Home</button>
+            <button className="nav-link" onClick={() => setPage('downloads')}>Downloads</button>
+            <button className="nav-link accent" onClick={() => setPage('contribute')}>Contribute</button>
+            <button className="nav-link" onClick={goAbout}>About</button>
+          </div>
 
-
-<!-- ══════════════ MAIN PAGE ══════════════ -->
-<div id="main-page" class="page active" style="position:relative;z-index:1">
-
-  <!-- HERO -->
-  <header style="position:relative;min-height:100vh;display:flex;align-items:center;overflow:hidden">
-    <div class="orb" style="width:700px;height:700px;background:rgba(14,165,233,.1);top:-250px;left:-200px"></div>
-    <div class="orb" style="width:450px;height:450px;background:rgba(34,211,238,.07);top:45%;right:-120px"></div>
-    <canvas id="particles-canvas"></canvas>
-
-    <div class="max-w-screen-xl mx-auto px-5 md:px-10 w-full py-32 md:py-0" style="position:relative;z-index:2">
-      <div style="max-width:38rem">
-        <div class="slabel mb-6">experimental AI · built from zero</div>
-
-        <h1 class="hero-title font-bold" style="font-size:clamp(4rem,9vw,7.5rem);line-height:.92;letter-spacing:-3px;margin-bottom:1.5rem">
-          <span class="glow-text">Tiny.</span><br>
-          <span style="color:var(--text)">Fast.</span>
-        </h1>
-
-        <p style="font-size:1.05rem;color:var(--muted);max-width:26rem;line-height:1.75;margin-bottom:2rem">
-          Experimental AI from a small team. We train every model from scratch on consumer hardware. No fine-tuning. No shortcuts.
-        </p>
-
-        <div style="display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:3rem">
-          <button onclick="switchPage('downloads-page')"
-                  class="hero-btn btn btn-primary flex items-center gap-x-2 px-7 py-4 text-sm">
-            <span class="material-icons text-base">download</span>
-            GET zyy 0.016B
-          </button>
-          <button onclick="switchPage('contribute-page')"
-                  class="hero-btn btn btn-ghost flex items-center gap-x-2 px-7 py-4 text-sm">
-            <span class="material-icons text-base" style="color:var(--green)">data_object</span>
-            Contribute Data
-          </button>
-        </div>
-
-        <div style="display:flex;flex-direction:column;gap:.5rem">
-          <div class="tline">model: zywayle-zyy-0.016B.safetensors</div>
-          <div class="tline">params: 16,000,000 · min ram: 512mb</div>
-          <div class="tline">trained on: consumer laptops · no cloud</div>
-        </div>
-      </div>
-    </div>
-
-    <div style="position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);z-index:2;
-                display:flex;flex-direction:column;align-items:center;gap:.25rem;
-                font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:.15em;color:var(--muted)">
-      SCROLL
-      <span class="material-icons bounce" style="color:var(--muted);font-size:20px">expand_more</span>
-    </div>
-  </header>
-
-  <!-- STATS BAR -->
-  <div style="border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--surface)">
-    <div class="max-w-screen-xl mx-auto px-5 md:px-10 py-6">
-      <div class="grid stats-grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="stat-box"><div class="mono text-xs mb-1" style="color:var(--blue)">PARAMS</div><div style="font-size:1.6rem;font-weight:700">16M</div></div>
-        <div class="stat-box"><div class="mono text-xs mb-1" style="color:var(--blue)">MIN RAM</div><div style="font-size:1.6rem;font-weight:700">512MB</div></div>
-        <div class="stat-box"><div class="mono text-xs mb-1" style="color:var(--blue)">FILE SIZE</div><div style="font-size:1.6rem;font-weight:700">~32MB</div></div>
-        <div class="stat-box"><div class="mono text-xs mb-1" style="color:var(--blue)">FORMAT</div><div style="font-size:1.4rem;font-weight:700">safetensors</div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODELS -->
-  <section class="max-w-screen-xl mx-auto px-5 md:px-10 py-24">
-    <div class="slabel mb-4">our models</div>
-    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:1.5rem;margin-bottom:3rem">
-      <h2 style="font-size:clamp(1.8rem,4vw,2.6rem);font-weight:700;max-width:26rem;line-height:1.15">Models tiny by design</h2>
-      <p style="max-width:22rem;color:var(--muted);font-size:.9rem;line-height:1.7">Built from zero. No corporate datasets. Raw, fast intelligence you can run anywhere.</p>
-    </div>
-
-    <div class="grid models-grid md:grid-cols-3 gap-5">
-      <!-- Model card -->
-      <div class="card scan-wrap p-7 flex flex-col" style="border-color:rgba(14,165,233,.3)">
-        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1.25rem">
-          <span class="pulse-dot"></span>
-          <span class="mono text-xs" style="color:var(--green)">LATEST RELEASE</span>
-        </div>
-        <h3 style="font-size:1.6rem;font-weight:700;margin-bottom:.25rem">zywayle zyy</h3>
-        <p class="mono text-sm" style="color:var(--blue)">v0.016B · safetensors</p>
-        <div style="border-top:1px solid var(--border);margin:1.5rem 0;padding-top:1.5rem;display:flex;gap:2rem">
-          <div><div class="mono text-xs" style="color:var(--blue)">FAST</div><p style="font-size:.75rem;color:var(--muted);margin-top:.2rem">512MB RAM min</p></div>
-          <div><div class="mono text-xs" style="color:var(--blue)">TINY</div><p style="font-size:.75rem;color:var(--muted);margin-top:.2rem">16M parameters</p></div>
-        </div>
-        <button onclick="switchPage('downloads-page')"
-                class="btn btn-primary mt-auto w-full py-4 text-sm flex items-center justify-center gap-x-2">
-          <span class="material-icons text-base">download</span>
-          DOWNLOAD
-        </button>
-      </div>
-
-      <!-- Philosophy -->
-      <div class="card p-7 flex flex-col justify-between">
-        <div>
-          <div class="mono text-xs mb-3" style="color:var(--muted)">// philosophy</div>
-          <p style="font-size:1.2rem;font-weight:600;line-height:1.45">We don't scale up.<br>We make models that fit in your pocket.</p>
-        </div>
-        <div style="border-top:1px solid var(--border);margin-top:2rem;padding-top:1.5rem;display:flex;flex-direction:column;gap:.5rem">
-          <div class="tline">no base models</div>
-          <div class="tline">no fine-tuning</div>
-          <div class="tline">pure zywayle architecture</div>
-        </div>
-      </div>
-
-      <!-- Contribute teaser -->
-      <div class="contrib-card p-7 flex flex-col justify-between cursor-pointer" onclick="switchPage('contribute-page')">
-        <div>
-          <div class="mono text-xs mb-3" style="color:var(--green)">// community</div>
-          <p style="font-size:1.2rem;font-weight:600;line-height:1.45">Help train the next version.</p>
-          <p style="color:var(--muted);font-size:.9rem;margin-top:.75rem;line-height:1.6">Contribute to our open training dataset on GitHub. Anyone can commit.</p>
-        </div>
-        <div style="margin-top:1.5rem;display:flex;align-items:center;gap:.5rem;font-size:.85rem;color:var(--green)">
-          <span class="material-icons text-base">arrow_forward</span>
-          Contribute data →
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ABOUT -->
-  <section id="about-section" style="background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
-    <div class="max-w-screen-xl mx-auto px-5 md:px-10 py-24">
-      <div class="grid about-grid md:grid-cols-2 gap-16 items-center">
-        <div>
-          <div class="slabel mb-5">who we are</div>
-          <h2 style="font-size:clamp(1.8rem,3.5vw,2.5rem);font-weight:700;line-height:1.15;margin-bottom:1.5rem">A small team<br>reworking AI.</h2>
-          <p style="color:var(--muted);line-height:1.85;font-size:.95rem;margin-bottom:2rem">
-            Zywayle is a tiny group of developers rebuilding AI the way it should be — small, fast, and honest. We train every model on ordinary laptops. The result is something that feels alive but weighs less than a photo.
-          </p>
-          <div class="tline" style="padding:1rem;background:rgba(14,165,233,.05);border:1px solid var(--border)">
-            training + compiling from scratch takes hours — updates arrive when ready
+          <div className="nav-right">
+            <div className="nav-badge" onClick={() => setPage('downloads')}>
+              <span className="pulse-dot" style={{width:'5px',height:'5px'}} />
+              {MODELS_DATA[0].version}
+            </div>
+            <button className="hamburger" onClick={() => setOpen(o => !o)}>
+              {open ? <IconClose /> : <IconMenu />}
+            </button>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:1rem">
-          <div class="stat-box" style="background:rgba(14,165,233,.04)">
-            <div class="mono text-xs mb-1" style="color:var(--blue)">HARDWARE</div>
-            <div style="font-weight:600;margin-bottom:.25rem">Consumer laptops only</div>
-            <div style="font-size:.8rem;color:var(--muted)">No cloud. No TPUs. No datacenter.</div>
-          </div>
-          <div class="stat-box" style="background:rgba(74,222,128,.04)">
-            <div class="mono text-xs mb-1" style="color:var(--green)">DATA</div>
-            <div style="font-weight:600;margin-bottom:.25rem">Community-driven + handcrafted</div>
-            <div style="font-size:.8rem;color:var(--muted)">Open GitHub dataset. Anyone can contribute.</div>
-          </div>
-          <div class="stat-box">
-            <div class="mono text-xs mb-1" style="color:var(--cyan)">ARCHITECTURE</div>
-            <div style="font-weight:600;margin-bottom:.25rem">From scratch, always</div>
-            <div style="font-size:.8rem;color:var(--muted)">Custom tokenizer. Custom training loop.</div>
-          </div>
-        </div>
       </div>
-    </div>
-  </section>
-</div><!-- /main-page -->
 
+      {open && (
+        <div className="mobile-menu">
+          <div className="mob-link" onClick={() => { setPage('main'); setOpen(false); window.scrollTo({top:0}); }}>Home</div>
+          <div className="mob-link" onClick={() => { setPage('downloads'); setOpen(false); }}>Downloads</div>
+          <div className="mob-link accent" onClick={() => { setPage('contribute'); setOpen(false); }}>Contribute Data</div>
+          <div className="mob-link" onClick={goAbout}>About</div>
+        </div>
+      )}
+    </nav>
+  );
+}
 
-<!-- ══════════════ DOWNLOADS PAGE ══════════════ -->
-<div id="downloads-page" class="page" style="position:relative;z-index:1">
-  <div class="max-w-screen-xl mx-auto px-5 md:px-10 py-14" style="min-height:100vh">
-    <div onclick="switchPage('main-page')" class="inline-flex items-center gap-x-2 cursor-pointer mb-10 mono text-xs" style="color:var(--muted)">
-      <span class="material-icons text-base">arrow_back</span>BACK TO HOME
-    </div>
+/* ── Main Page ── */
+function MainPage({ setPage, showToast }) {
+  const primaryModel = MODELS_DATA[0];
 
-    <div class="slabel mb-4">downloads</div>
-    <h1 style="font-size:clamp(2.5rem,6vw,4rem);font-weight:700;margin-bottom:.75rem;letter-spacing:-1px">Get zywayle zyy</h1>
-    <p style="color:var(--muted);font-size:.95rem;margin-bottom:3rem">One model. Safetensors format. Trained from scratch on consumer hardware.</p>
+  return (
+    <div className="page-wrap">
 
-    <!-- ALWAYS VISIBLE DOWNLOAD CARD -->
-    <div class="dl-card p-8 md:p-10 mb-6 scan-wrap">
-      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1.5rem" class="dl-meta">
-        <div style="display:flex;align-items:center;gap:1.5rem">
-          <div style="width:60px;height:60px;background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.3);
-                      display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <span class="material-icons" style="color:var(--blue);font-size:30px">folder_zip</span>
-          </div>
-          <div>
-            <div class="mono text-xs mb-1" style="color:var(--muted)">FILENAME</div>
-            <div class="mono" style="color:var(--text);font-size:.9rem;font-weight:600;word-break:break-all">zywayle-zyy-0.016B.safetensors</div>
-            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;margin-top:.6rem">
-              <span style="font-size:1.6rem;font-weight:700">~32 MB</span>
-              <span class="badge" style="font-size:.65rem">safetensors</span>
-              <span class="badge" style="font-size:.65rem;border-color:rgba(74,222,128,.3);color:var(--green)">
-                <span class="pulse-dot" style="width:5px;height:5px"></span>LATEST
-              </span>
+      {/* HERO */}
+      <header className="hero">
+        <ParticleCanvas />
+        <div className="container" style={{position:'relative',zIndex:2,paddingTop:'8rem',paddingBottom:'8rem'}}>
+          <div style={{maxWidth:'38rem'}}>
+            <h1 className="hero-title fade-up">
+              <span className="gradient-text">AI but</span><br />
+              <span style={{color:'var(--white)'}}>made Accessible</span><br />
+            </h1>
+
+            <p className="hero-sub fade-up-1">
+              Intelligent AI built on a community-driven dataset. We scale our proprietary algorithms using public contributions, giving you models that are efficient, sharp, and entirely local.
+            </p>
+
+            <div className="hero-actions fade-up-2">
+              <button className="btn btn-primary" onClick={() => setPage('downloads')}>
+                <IconDownload /> Get {primaryModel.name}
+              </button>
+              <button className="btn btn-ghost" onClick={() => setPage('contribute')}>
+                <IconData /> Contribute Data
+              </button>
+            </div>
+
+            <div className="hero-meta fade-up-3">
+              <div className="tline">model: {primaryModel.filename}</div>
+              <div className="tline">{primaryModel.parameters} parameters · {primaryModel.size} · {primaryModel.format}</div>
             </div>
           </div>
         </div>
-        <button onclick="performDownload()"
-                class="btn btn-primary flex items-center justify-center gap-x-2 text-sm"
-                style="padding:.9rem 2.5rem;min-width:200px">
-          <span class="material-icons text-base">download</span>
-          DOWNLOAD NOW
+
+        <div className="scroll-hint">
+          SCROLL
+          <svg className="bounce" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{color:'var(--text-3)'}}>
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </div>
+      </header>
+
+      {/* MODELS */}
+      <section className="section">
+        <div className="container">
+          <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'flex-end',gap:'1.5rem',marginBottom:'2.5rem'}}>
+            <h2 style={{fontSize:'clamp(1.8rem,4vw,2.5rem)',fontWeight:700,lineHeight:1.1,letterSpacing:'-.03em'}}>
+              Sharp and efficient
+            </h2>
+            <p style={{maxWidth:'24rem',color:'var(--text-2)',fontSize:'.88rem',lineHeight:1.75}}>
+              Built on solid foundations and trained on our public community dataset. Fast, capable, and scalable design.
+            </p>
+          </div>
+
+          <div className="models-grid">
+            {/* Model card mapped dynamically */}
+            {MODELS_DATA.map((model, i) => (
+              <div key={model.id} className="model-cell scan-wrap" style={{borderRight:'1px solid var(--border)',background: i === 0 ? 'linear-gradient(135deg,rgba(59,130,246,.06),rgba(11,14,24,.8))' : 'var(--surface)'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'.5rem',marginBottom:'1.25rem'}}>
+                  {model.isLatest && <><span className="pulse-dot" /> <span className="mono" style={{fontSize:'.62rem',color:'var(--green)',letterSpacing:'.1em'}}>LATEST RELEASE</span></>}
+                </div>
+                <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'.62rem',color:'var(--text-3)',marginBottom:'.35rem',letterSpacing:'.08em'}}>MODEL</div>
+                <h3 style={{fontSize:'1.55rem',fontWeight:700,marginBottom:'.2rem',letterSpacing:'-.02em'}}>{model.name}</h3>
+                <p className="mono" style={{fontSize:'.75rem',color:'var(--blue)',marginBottom:'1.5rem'}}>{model.version} · {model.format}</p>
+                <div style={{borderTop:'1px solid var(--border)',paddingTop:'1.1rem',marginBottom:'1.5rem'}}>
+                  <div style={{fontSize:'.78rem',color:'var(--text-2)',lineHeight:1.7}}>{model.parameters} parameters · {model.size}</div>
+                  <div style={{fontSize:'.78rem',color:'var(--text-3)'}}>{model.license}</div>
+                </div>
+                <button className="btn btn-primary btn-full" style={{marginTop:'auto'}} onClick={() => setPage('downloads')}>
+                  <IconDownload /> Download
+                </button>
+              </div>
+            ))}
+
+            {/* Philosophy */}
+            <div className="model-cell" style={{borderRight:'1px solid var(--border)'}}>
+              <div className="mono" style={{fontSize:'.62rem',color:'var(--text-3)',marginBottom:'.85rem',letterSpacing:'.08em'}}>// PHILOSOPHY</div>
+              <p style={{fontSize:'1.1rem',fontWeight:600,lineHeight:1.5,marginBottom:'1.5rem'}}>
+                Public models but anyone can help.<br />
+              </p>
+              <div style={{borderTop:'1px solid var(--border)',paddingTop:'1.1rem',display:'flex',flexDirection:'column',gap:'.35rem',marginTop:'auto'}}>
+                <div className="tline">Built for efficiency</div>
+                <div className="tline">Community-driven dataset</div>
+                <div className="tline">Closed source AI program</div>
+              </div>
+            </div>
+
+            {/* Contribute */}
+            <div className="model-cell" style={{cursor:'pointer'}} onClick={() => setPage('contribute')}>
+              <div className="mono" style={{fontSize:'.62rem',color:'var(--green)',marginBottom:'.85rem',letterSpacing:'.08em'}}>// COMMUNITY</div>
+              <p style={{fontSize:'1.1rem',fontWeight:600,lineHeight:1.5,marginBottom:'.65rem'}}>
+                Help shape the ecosystem.
+              </p>
+              <p style={{color:'var(--text-2)',fontSize:'.85rem',lineHeight:1.65,marginBottom:'1.5rem'}}>
+                Contribute to our public training dataset on GitHub. Anyone can commit directly.
+              </p>
+              <div style={{marginTop:'auto',display:'flex',alignItems:'center',gap:'.4rem',fontSize:'.82rem',color:'var(--green)',fontWeight:600}}>
+                Contribute data <IconArrow dir="right" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ABOUT */}
+      <section id="about-section" style={{background:'var(--bg2)',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)'}}>
+        <div className="container section">
+          <div className="about-grid">
+            <div>
+              <h2 style={{fontSize:'clamp(1.7rem,3.5vw,2.4rem)',fontWeight:700,lineHeight:1.15,letterSpacing:'-.03em',marginBottom:'1.25rem'}}>
+                Building a scalable<br />AI ecosystem.
+              </h2>
+              <p style={{color:'var(--text-2)',lineHeight:1.85,fontSize:'.9rem',marginBottom:'1rem'}}>
+                Zywayle is an engineering group focused on efficient, sharp models. We start tiny and public with our own closed AI program.
+              </p>
+              <p style={{color:'var(--text-2)',lineHeight:1.85,fontSize:'.9rem',marginBottom:'1.5rem'}}>
+                By building on strong architectural foundations and utilizing our fully public dataset, we create scalable models engineered for precision and performance.
+              </p>
+              <div style={{display:'flex',flexDirection:'column',gap:'.5rem'}}>
+                <div className="tline" style={{padding:'.65rem 1rem',background:'rgba(59,130,246,.04)',border:'1px solid var(--border)',borderRadius:'4px'}}>
+                  starting lean, scaling sharp
+                </div>
+                <div className="tline" style={{padding:'.65rem 1rem',background:'rgba(16,185,129,.03)',border:'1px solid rgba(16,185,129,.1)',borderRadius:'4px'}}>
+                  engineered for reliability
+                </div>
+              </div>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:'1px',background:'var(--border)',border:'1px solid var(--border)',borderRadius:'4px',overflow:'hidden'}}>
+              {[
+                {label:'ARCHITECTURE',color:'var(--blue)',title:'Scalable efficiency',desc:'Engineered to run efficiently on core hardware before scaling seamlessly to production environments.'},
+                {label:'DATA',color:'var(--green)',title:'Public database',desc:'Community-driven data stored securely. The dataset is open, while the core model algorithms are proprietary.'},
+                {label:'BASE',color:'var(--cyan)',title:'Robust foundations',desc:'Leveraging strong foundational licenses like SmolLM · Apache 2.0 to scale properly and responsibly.'},
+                {label:'PROGRAM',color:'var(--yellow)',title:'Closed source AI',desc:'The trained model weights and specific internal architectures remain private as part of our closed AI program.'},
+              ].map(s => (
+                <div key={s.label} style={{background:'var(--surface)',padding:'1.1rem 1.25rem',transition:'background .2s'}}
+                     onMouseOver={e=>e.currentTarget.style.background='var(--bg2)'}
+                     onMouseOut={e=>e.currentTarget.style.background='var(--surface)'}>
+                  <div className="mono" style={{fontSize:'.6rem',color:s.color,marginBottom:'.3rem',letterSpacing:'.1em'}}>{s.label}</div>
+                  <div style={{fontWeight:600,marginBottom:'.25rem',fontSize:'.95rem'}}>{s.title}</div>
+                  <div style={{fontSize:'.78rem',color:'var(--text-2)',lineHeight:1.6}}>{s.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <SiteFooter setPage={setPage} />
+    </div>
+  );
+}
+
+/* ── Downloads Page ── */
+function DownloadsPage({ setPage, showToast }) {
+  const [activeModel, setActiveModel] = useState(MODELS_DATA[0]);
+
+  const copyUsage = () => {
+    navigator.clipboard.writeText(`from safetensors import safe_open\nf = safe_open("${activeModel.filename}", framework="pt")\ntensor = f.get_tensor("model.embed_tokens.weight")`)
+      .then(() => showToast('Code snippet copied!'))
+      .catch(() => showToast('Please copy the code manually'));
+  };
+
+  return (
+    <div className="page-wrap">
+      <div className="container" style={{minHeight:'100vh',paddingTop:'3.5rem',paddingBottom:'5rem'}}>
+        <button className="back-link" onClick={() => { setPage('main'); window.scrollTo({top:0}); }}>
+          <IconArrow dir="left" /> Back to Home
         </button>
-      </div>
 
-      <div style="border-top:1px solid var(--border);margin-top:2rem;padding-top:1.5rem;display:flex;flex-wrap:wrap;gap:1.5rem">
-        <div class="tline">format: safetensors</div>
-        <div class="tline">params: 16,000,000</div>
-        <div class="tline">min ram: 512 mb</div>
-        <div class="tline">trained on: consumer hardware</div>
-        <div class="tline">license: zywayle proprietary</div>
-      </div>
-    </div>
+        <h1 style={{fontSize:'clamp(2.2rem,6vw,3.5rem)',fontWeight:800,marginBottom:'.6rem',letterSpacing:'-.04em',lineHeight:1.05}}>
+          Model Downloads
+        </h1>
+        <p style={{color:'var(--text-2)',fontSize:'.92rem',marginBottom:'2.5rem',lineHeight:1.75,maxWidth:'32rem'}}>
+          Access the latest iterations of our closed AI program. All models are served efficiently and engineered to run locally. Select a model to view its details.
+        </p>
 
-    <!-- Usage -->
-    <div class="card p-7 mb-6">
-      <div class="mono text-xs mb-4" style="color:var(--blue)">// USAGE EXAMPLE</div>
-      <div style="display:flex;flex-direction:column;gap:.6rem">
-        <div class="tline">from safetensors import safe_open</div>
-        <div class="tline">f = safe_open("zywayle-zyy-0.016B.safetensors", framework="pt")</div>
-        <div class="tline">tensor = f.get_tensor("model.embed_tokens.weight")</div>
-      </div>
-    </div>
-
-    <p class="mono text-xs" style="color:var(--muted);text-align:center;padding-top:.5rem">
-      one version · trained from scratch · no corporate data · updates when ready
-    </p>
-  </div>
-</div>
-
-
-<!-- ══════════════ CONTRIBUTE PAGE ══════════════ -->
-<div id="contribute-page" class="page" style="position:relative;z-index:1">
-  <div class="max-w-screen-xl mx-auto px-5 md:px-10 py-14" style="min-height:100vh">
-    <div onclick="switchPage('main-page')" class="inline-flex items-center gap-x-2 cursor-pointer mb-10 mono text-xs" style="color:var(--muted)">
-      <span class="material-icons text-base">arrow_back</span>BACK TO HOME
-    </div>
-
-    <div class="slabel green mb-4">// community data</div>
-    <h1 style="font-size:clamp(2.5rem,6vw,4rem);font-weight:700;margin-bottom:1rem;letter-spacing:-1px">
-      Contribute to <span style="color:var(--green)">zyydata</span>
-    </h1>
-    <p style="color:var(--muted);font-size:.95rem;max-width:36rem;line-height:1.75;margin-bottom:3rem">
-      We train our models on a community-built dataset hosted on GitHub. Anyone can commit data — the more diverse the data, the better our models become.
-    </p>
-
-    <!-- GitHub CTA -->
-    <div class="contrib-card p-8 md:p-10 mb-6">
-      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:2rem" class="contrib-cta">
-        <div>
-          <div class="mono text-xs mb-3" style="color:var(--green)">OPEN DATASET · GITHUB</div>
-          <h2 style="font-size:1.6rem;font-weight:700;margin-bottom:.75rem">zywayle / zyydata</h2>
-          <p style="color:var(--muted);font-size:.9rem;max-width:28rem;line-height:1.7">
-            Our public training dataset. Commit text, examples, or structured data. All contributions help shape the next version of zywayle zyy.
+        {/* License notice */}
+        <div className="info-box blue" style={{marginBottom:'1.5rem'}}>
+          <span style={{color:'var(--blue)',flexShrink:0,marginTop:'1px'}}><IconInfo /></span>
+          <p>
+            <strong style={{color:'var(--text)'}}>License:</strong>{' '}Built on open foundations. The final zywayle weights are <strong style={{color:'var(--text)'}}>closed source</strong> — personal private use only. No selling, sublicensing, or redistribution.
           </p>
         </div>
-        <a href="https://github.com/zywayle/zyydata" target="_blank" rel="noopener" class="github-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
-          </svg>
-          OPEN ON GITHUB
-          <span class="material-icons text-base">open_in_new</span>
-        </a>
-      </div>
 
-      <!-- Clone command -->
-      <div style="border-top:1px solid rgba(74,222,128,.2);margin-top:2rem;padding-top:1.5rem">
-        <div class="mono text-xs mb-2" style="color:var(--muted)">CLONE REPO</div>
-        <div style="background:var(--bg);border:1px solid var(--border);padding:.85rem 1.25rem;
-                    display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-          <span class="mono text-sm" style="color:var(--cyan)">git clone https://github.com/zywayle/zyydata.git</span>
-          <button onclick="copyClone()" class="btn mono text-xs"
-                  style="background:rgba(14,165,233,.1);border:1px solid var(--border);padding:.3rem .9rem;color:var(--muted)">
-            COPY
-          </button>
+        {/* Dynamic Download Grid */}
+        <div className="dl-grid">
+          {/* Header row */}
+          <div className="dl-header-row">
+            <div className="dl-cell"><span className="dl-col-label">Model</span></div>
+            <div className="dl-cell dl-hide-mobile"><span className="dl-col-label">Format</span></div>
+            <div className="dl-cell dl-hide-mobile"><span className="dl-col-label">Params</span></div>
+            <div className="dl-cell dl-hide-mobile"><span className="dl-col-label">Release Date</span></div>
+            <div className="dl-cell"><span className="dl-col-label">Size</span></div>
+            <div className="dl-cell"><span className="dl-col-label">Action</span></div>
+          </div>
+
+          {/* Loop over models.json data */}
+          {MODELS_DATA.map((model) => (
+            <div
+              className={`dl-row ${activeModel.id === model.id ? 'active' : ''}`}
+              key={model.id}
+              onClick={() => setActiveModel(model)}
+            >
+              <div className="dl-cell" style={{flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center'}}>
+                <div className="dl-name">{model.filename}</div>
+                <div style={{display:'flex',gap:'.4rem',marginTop:'.4rem',flexWrap:'wrap'}}>
+                  {model.isLatest && (
+                    <span className="badge" style={{borderColor:'rgba(16,185,129,.25)',color:'var(--green)'}}>
+                      <span className="pulse-dot" style={{width:'5px',height:'5px'}} /> LATEST
+                    </span>
+                  )}
+                  <span className="badge">{model.version}</span>
+                </div>
+              </div>
+              <div className="dl-cell dl-hide-mobile"><span className="dl-val">{model.format}</span></div>
+              <div className="dl-cell dl-hide-mobile"><span className="dl-val">{model.parameters}</span></div>
+              <div className="dl-cell dl-hide-mobile"><span className="dl-val">{model.releaseDate}</span></div>
+              <div className="dl-cell"><span className="dl-size">{model.size}</span></div>
+              <div className="dl-cell">
+                <button className="dl-btn-inline" onClick={(e) => { e.stopPropagation(); showToast(`Starting download for ${model.name}…`); }}>
+                  <IconDownload /> Download
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Dynamic Metadata strip matching active row */}
+        <div className="card" style={{padding:'1.25rem 1.5rem',marginBottom:'1.25rem'}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:'1rem'}}>
+            {[
+              {label:'Format',value:activeModel.format},
+              {label:'Parameters',value:activeModel.exactParameters},
+              {label:'File size',value:activeModel.size},
+              {label:'License',value:activeModel.license},
+            ].map(m => (
+              <div key={m.label}>
+                <div className="mono" style={{fontSize:'.58rem',color:'var(--text-3)',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'.3rem'}}>{m.label}</div>
+                <div className="mono" style={{fontSize:'.78rem',color:'var(--text-2)'}}>{m.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Usage */}
+        <div className="card" style={{padding:'1.75rem',marginBottom:'1.25rem'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'1rem',marginBottom:'1.1rem',flexWrap:'wrap'}}>
+            <div className="mono" style={{fontSize:'.62rem',color:'var(--blue)',letterSpacing:'.1em'}}>// USAGE EXAMPLE</div>
+            <button className="copy-btn" onClick={copyUsage}><IconCopy /> Copy</button>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:'.35rem'}}>
+            <div className="tline">from safetensors import safe_open</div>
+            <div className="tline">f = safe_open("{activeModel.filename}", framework="pt")</div>
+            <div className="tline">tensor = f.get_tensor("model.embed_tokens.weight")</div>
+          </div>
+        </div>
+
+        {/* Closed source notice */}
+        <div className="info-box red" style={{marginBottom:'1.5rem'}}>
+          <span style={{color:'var(--red)',flexShrink:0,marginTop:'1px'}}><IconLock /></span>
+          <p>
+            <strong style={{color:'var(--text)'}}>Closed source program:</strong> The model weights and architecture are part of our proprietary AI program. The training dataset is public and open —{' '}
+            <a href="https://github.com/zywayle/zyydata#readme" target="_blank" rel="noopener" style={{color:'var(--blue)'}}>read dataset terms →</a>
+          </p>
         </div>
       </div>
+      <SiteFooter setPage={setPage} />
     </div>
+  );
+}
 
-    <!-- Steps -->
-    <div class="card p-8 mb-6">
-      <div class="mono text-xs mb-6" style="color:var(--blue)">// HOW TO CONTRIBUTE</div>
-      <div class="grid steps-grid md:grid-cols-3 gap-6">
-        <div>
-          <div class="mono" style="font-size:2rem;font-weight:700;color:var(--blue);margin-bottom:.5rem">01</div>
-          <div style="font-weight:600;margin-bottom:.5rem">Fork the repo</div>
-          <p style="font-size:.85rem;color:var(--muted);line-height:1.6">Head to GitHub and fork the zyydata repository to your own account.</p>
+/* ── Contribute Page ── */
+function ContributePage({ setPage, showToast }) {
+  const copyClone = () => {
+    navigator.clipboard.writeText('git clone https://github.com/zywayle/zyydata.git')
+      .then(() => showToast('Clone command copied!'))
+      .catch(() => showToast('Copy the command manually'));
+  };
+
+  return (
+    <div className="page-wrap">
+      <div className="container" style={{minHeight:'100vh',paddingTop:'3.5rem',paddingBottom:'5rem'}}>
+        <button className="back-link" onClick={() => { setPage('main'); window.scrollTo({top:0}); }}>
+          <IconArrow dir="left" /> Back to Home
+        </button>
+
+        <h1 style={{fontSize:'clamp(2.2rem,6vw,3.5rem)',fontWeight:800,marginBottom:'.75rem',letterSpacing:'-.04em',lineHeight:1.05}}>
+          Contribute to <span style={{color:'var(--green)'}}>zyydata</span>
+        </h1>
+        <p style={{color:'var(--text-2)',fontSize:'.92rem',maxWidth:'36rem',lineHeight:1.8,marginBottom:'2.5rem'}}>
+          We rely on a robust, community-driven database hosted on GitHub to scale. Anyone can commit directly—the deeper the data pool, the sharper the final model.
+        </p>
+
+        {/* GitHub CTA */}
+        <div className="card-green" style={{padding:'2rem',marginBottom:'1.25rem'}}>
+          <div style={{display:'flex',flexWrap:'wrap',justifyContent:'space-between',alignItems:'flex-start',gap:'1.5rem',marginBottom:'1.75rem'}}>
+            <div>
+              <div className="mono" style={{fontSize:'.62rem',color:'var(--green)',marginBottom:'.6rem',letterSpacing:'.1em'}}>OPEN DATABASE · GITHUB</div>
+              <h2 style={{fontSize:'1.45rem',fontWeight:700,marginBottom:'.55rem',letterSpacing:'-.02em'}}>zywayle / zyydata</h2>
+              <p style={{color:'var(--text-2)',fontSize:'.87rem',maxWidth:'28rem',lineHeight:1.7}}>
+                Our public training dataset. Commit text, parameters, or structured data entries to fuel our scaled algorithm iterations.
+              </p>
+            </div>
+            <a href="https://github.com/zywayle/zyydata" target="_blank" rel="noopener" className="github-btn">
+              <IconGithub size={16} /> Open on GitHub <IconExternal />
+            </a>
+          </div>
+
+          <div style={{borderTop:'1px solid rgba(16,185,129,.15)',paddingTop:'1.25rem'}}>
+            <div className="mono" style={{fontSize:'.6rem',color:'var(--text-3)',marginBottom:'.5rem',letterSpacing:'.08em'}}>CLONE REPO</div>
+            <div className="code-block">
+              <span className="code-text">git clone https://github.com/zywayle/zyydata.git</span>
+              <button className="copy-btn" onClick={copyClone}><IconCopy /> Copy</button>
+            </div>
+          </div>
         </div>
-        <div>
-          <div class="mono" style="font-size:2rem;font-weight:700;color:var(--blue);margin-bottom:.5rem">02</div>
-          <div style="font-weight:600;margin-bottom:.5rem">Add your data</div>
-          <p style="font-size:.85rem;color:var(--muted);line-height:1.6">Check the README for format guidelines. Add text, Q&amp;A pairs, or structured entries.</p>
+
+        {/* Steps */}
+        <div className="card" style={{padding:'1.75rem',marginBottom:'1.25rem'}}>
+          <div className="steps-grid" style={{marginBottom: '1.5rem'}}>
+            {[
+              {n:'01',title:'Fork the repo',body:'Head to GitHub and fork the zyydata repository to your own account.'},
+              {n:'02',title:'Add your data',body:"Check the README for formatting. Structure entries cleanly to maintain data integrity."},
+              {n:'03',title:'Open a PR',body:'Submit a pull request. We merge validated data directly into the central training structure.'},
+            ].map(s => (
+              <div key={s.n} style={{padding:'1.1rem',background:'var(--bg2)',borderRadius:'4px',border:'1px solid var(--border)'}}>
+                <div className="mono" style={{fontSize:'1.6rem',fontWeight:700,color:'var(--blue)',marginBottom:'.4rem',letterSpacing:'-.03em'}}>{s.n}</div>
+                <div style={{fontWeight:600,marginBottom:'.4rem',fontSize:'.95rem'}}>{s.title}</div>
+                <p style={{fontSize:'.82rem',color:'var(--text-2)',lineHeight:1.65}}>{s.body}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Web interface alternative */}
+          <div style={{padding:'1.1rem 1.25rem', background:'var(--blue-dim)', border:'1px dashed rgba(59,130,246,0.3)', borderRadius:'var(--radius)', display:'flex', alignItems:'center', gap:'1rem', flexWrap:'wrap'}}>
+            <div style={{color:'var(--blue)'}}><IconCodeFork /></div>
+            <p style={{color:'var(--text)', fontSize:'.88rem', margin:0, flex:1}}>
+              <strong style={{fontWeight:600}}>Alternative:</strong> Use the GitHub web interface and directly push your code into our database without cloning locally.
+            </p>
+            <a href="https://github.com/zywayle/zyydata" target="_blank" rel="noopener" className="btn btn-sm btn-primary">
+              Web Interface <IconArrow dir="right" />
+            </a>
+          </div>
         </div>
-        <div>
-          <div class="mono" style="font-size:2rem;font-weight:700;color:var(--blue);margin-bottom:.5rem">03</div>
-          <div style="font-weight:600;margin-bottom:.5rem">Open a PR</div>
-          <p style="font-size:.85rem;color:var(--muted);line-height:1.6">Submit a pull request. If it meets quality standards, it gets merged and trained on.</p>
+
+        {/* Data ownership */}
+        <div className="info-box yellow">
+          <span style={{color:'var(--yellow)',flexShrink:0,marginTop:'1px'}}><IconAlert /></span>
+          <p>
+            <strong style={{color:'var(--text)'}}>Data ownership:</strong> The dataset itself is public and openly licensed. Contributed data is merged into the zywayle public foundation structure. The trained <em>model weights</em> remain closed source and part of our proprietary AI program.{' '}
+            <a href="https://github.com/zywayle/zyydata#readme" target="_blank" rel="noopener" style={{color:'var(--blue)'}}>Read full terms →</a>
+          </p>
         </div>
       </div>
+      <SiteFooter setPage={setPage} />
     </div>
+  );
+}
 
-    <!-- Ownership notice -->
-    <div style="background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.2);padding:1.25rem 1.5rem;display:flex;gap:.75rem;align-items:flex-start">
-      <span class="material-icons text-base" style="color:#f59e0b;flex-shrink:0;margin-top:.1rem">info</span>
-      <p style="font-size:.82rem;color:var(--muted);line-height:1.65">
-        <strong style="color:var(--text)">Data ownership:</strong> All contributions become part of the Zywayle training dataset and are owned by Zywayle, as described in the repository README. Contributing is open to anyone — but ownership of the compiled dataset remains with Zywayle.
-        <a href="https://github.com/zywayle/zyydata#readme" target="_blank" rel="noopener"
-           style="color:var(--blue);margin-left:.4rem;text-decoration:underline">Read full terms →</a>
-      </p>
-    </div>
-  </div>
-</div>
+/* ── Footer ── */
+function SiteFooter({ setPage }) {
+  return (
+    <footer>
+      <div className="container">
+        <div className="footer-inner">
+          <div>
+            <div style={{display:'flex',alignItems:'center',gap:'.5rem',marginBottom:'.35rem'}}>
+              <img src="logo.png" alt="zywayle" style={{width:'22px',height:'22px',objectFit:'contain'}} />
+              <span style={{fontSize:'1rem',fontWeight:700,color:'var(--white)'}}>zywayle</span>
+            </div>
+            <p className="mono" style={{fontSize:'.65rem',color:'var(--text-3)'}}>scalable algorithm program</p>
+          </div>
 
+          <div style={{display:'flex',flexWrap:'wrap',gap:'1.5rem',alignItems:'center'}}>
+            {[
+              {href:'https://x.com/zywayle',label:'𝕏 / @zywayle'},
+            ].map(l => (
+              <a key={l.href} href={l.href} target="_blank" rel="noopener"
+                 style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'.7rem',color:'var(--text-3)',display:'flex',alignItems:'center',gap:'.3rem',textDecoration:'none',transition:'color .15s'}}
+                 onMouseOver={e=>e.currentTarget.style.color='var(--text)'}
+                 onMouseOut={e=>e.currentTarget.style.color='var(--text-3)'}>
+                {l.label}
+              </a>
+            ))}
+            <a href="https://github.com/zywayle/zyydata" target="_blank" rel="noopener"
+               style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'.7rem',color:'var(--text-3)',display:'flex',alignItems:'center',gap:'.35rem',textDecoration:'none',transition:'color .15s'}}
+               onMouseOver={e=>e.currentTarget.style.color='var(--text)'}
+               onMouseOut={e=>e.currentTarget.style.color='var(--text-3)'}>
+              <IconGithub size={13} /> database
+            </a>
+            <button className="mono" style={{fontSize:'.7rem',color:'var(--green)',background:'none',border:'none',cursor:'pointer',transition:'opacity .15s'}}
+                    onMouseOver={e=>e.currentTarget.style.opacity='.7'}
+                    onMouseOut={e=>e.currentTarget.style.opacity='1'}
+                    onClick={() => setPage('contribute')}>
+              contribute logic
+            </button>
+          </div>
 
-<!-- ══════════════ FOOTER ══════════════ -->
-<footer style="background:var(--surface);border-top:1px solid var(--border)">
-  <div class="max-w-screen-xl mx-auto px-5 md:px-10 py-12">
-    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:2rem">
-      <div>
-        <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem">
-          <img src="https://i.ibb.co/t5Gs8Ss/logowhale.png" alt="zywayle" style="width:26px;height:26px;object-fit:contain">
-          <span style="font-size:1.05rem;font-weight:700;color:var(--text);font-family:'Space Grotesk',sans-serif">zywayle</span>
+          <div className="mono" style={{fontSize:'.65rem',color:'var(--text-3)'}}>© 2026 zywayle program</div>
         </div>
-        <p class="mono text-xs" style="color:var(--muted)">tiny · fast · from scratch</p>
       </div>
-
-      <div style="display:flex;flex-wrap:wrap;gap:1.5rem;align-items:center">
-        <a href="https://x.com/zywayle" target="_blank" rel="noopener"
-           class="mono text-xs flex items-center gap-x-1 transition-colors" style="color:var(--muted)"
-           onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--muted)'">
-          <span class="material-icons" style="font-size:15px">share</span>X / @zywayle
-        </a>
-        <a href="https://github.com/zywayle/zyydata" target="_blank" rel="noopener"
-           class="mono text-xs flex items-center gap-x-1" style="color:var(--muted)"
-           onmouseover="this.style.color='white'" onmouseout="this.style.color='var(--muted)'">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="display:inline-block;vertical-align:middle">
-            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
-          </svg>
-          github / zyydata
-        </a>
-        <a onclick="switchPage('contribute-page')" class="mono text-xs cursor-pointer" style="color:var(--green)"
-           onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">
-          contribute data
-        </a>
-      </div>
-
-      <div class="mono text-xs" style="color:var(--muted)">© 2026 zywayle</div>
-    </div>
-  </div>
-</footer>
-
-<!-- Toast -->
-<div id="toast">
-  <span class="material-icons text-sm" style="color:var(--green);font-size:16px">check_circle</span>
-  <span id="toast-msg">download starting…</span>
-</div>
-
-<script>
-/* ─── Routing ─── */
-function switchPage(id){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  const t=document.getElementById(id);
-  if(t){t.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});}
+    </footer>
+  );
 }
 
-/* ─── Mobile menu ─── */
-let menuOpen=false;
-function toggleMobileMenu(){
-  menuOpen=!menuOpen;
-  document.getElementById('mobile-menu').classList.toggle('hidden',!menuOpen);
-  document.getElementById('mobile-icon').textContent=menuOpen?'close':'menu';
-}
-function closeMobileMenu(){
-  menuOpen=false;
-  document.getElementById('mobile-menu').classList.add('hidden');
-  document.getElementById('mobile-icon').textContent='menu';
-}
+/* ── App ── */
+function App() {
+  const [page, setPage] = useState('main');
+  const [toast, setToast] = useState({visible:false,msg:''});
+  const timer = useRef(null);
 
-/* ─── About scroll ─── */
-function goToAbout(){
-  switchPage('main-page');
-  setTimeout(()=>{
-    const el=document.getElementById('about-section');
-    if(el)el.scrollIntoView({behavior:'smooth'});
-  },60);
-}
+  const showToast = useCallback(msg => {
+    setToast({visible:true,msg});
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setToast(t => ({...t,visible:false})), 3000);
+  }, []);
 
-/* ─── Download ─── */
-function performDownload(){
-  showToast('download starting… check your downloads folder');
-  // Add real URL here when ready:
-  // const a=Object.assign(document.createElement('a'),
-  //   {href:'https://your-host.com/zywayle-zyy-0.016B.safetensors',download:''});
-  // document.body.appendChild(a);a.click();a.remove();
+  const navigate = useCallback(p => {
+    setPage(p);
+    window.scrollTo({top:0,behavior:'smooth'});
+  }, []);
+
+  return (
+    <>
+      <Navbar page={page} setPage={navigate} />
+      {page === 'main'       && <MainPage      setPage={navigate} showToast={showToast} />}
+      {page === 'downloads'  && <DownloadsPage setPage={navigate} showToast={showToast} />}
+      {page === 'contribute' && <ContributePage setPage={navigate} showToast={showToast} />}
+      <Toast msg={toast.msg} visible={toast.visible} />
+    </>
+  );
 }
 
-/* ─── Copy clone ─── */
-function copyClone(){
-  navigator.clipboard.writeText('git clone https://github.com/zywayle/zyydata.git')
-    .then(()=>showToast('clone command copied!'))
-    .catch(()=>showToast('copy the command manually'));
-}
-
-/* ─── Toast ─── */
-function showToast(msg){
-  const toast=document.getElementById('toast');
-  document.getElementById('toast-msg').textContent=msg;
-  toast.classList.add('show');
-  clearTimeout(toast._t);
-  toast._t=setTimeout(()=>toast.classList.remove('show'),3400);
-}
-
-/* ─── Particles ─── */
-(function(){
-  const canvas=document.getElementById('particles-canvas');
-  if(!canvas)return;
-  const ctx=canvas.getContext('2d');
-  let W=0,H=0,pts=[];
-
-  class Pt{
-    constructor(init){
-      this.x=Math.random()*W;
-      this.y=init?Math.random()*H:H+8;
-      this.r=Math.random()*2.5+.5;
-      this.vx=(Math.random()-.5)*.5;
-      this.vy=-(Math.random()*.7+.25);
-      this.hue=190+Math.random()*30;
-      this.a=Math.random()*.55+.2;
-    }
-    step(){
-      this.x+=this.vx;this.y+=this.vy;
-      if(this.y<-8||this.x<-8||this.x>W+8)Object.assign(this,new Pt(false));
-    }
-    draw(){
-      ctx.beginPath();
-      ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
-      ctx.fillStyle=`hsla(${this.hue},90%,65%,${this.a})`;
-      ctx.fill();
-    }
-  }
-
-  function resize(){
-    const hero=canvas.parentElement;
-    W=canvas.width=hero.offsetWidth;
-    H=canvas.height=hero.offsetHeight;
-    const n=Math.min(Math.floor(W*H/12000),100);
-    while(pts.length<n)pts.push(new Pt(true));
-    pts.length=Math.min(pts.length,n);
-  }
-
-  function frame(){
-    ctx.clearRect(0,0,W,H);
-    for(let i=0;i<pts.length;i++){
-      for(let j=i+1;j<pts.length;j++){
-        const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y;
-        const d=Math.sqrt(dx*dx+dy*dy);
-        if(d<110){
-          ctx.beginPath();
-          ctx.moveTo(pts[i].x,pts[i].y);
-          ctx.lineTo(pts[j].x,pts[j].y);
-          ctx.strokeStyle=`rgba(14,165,233,${.1*(1-d/110)})`;
-          ctx.lineWidth=.7;
-          ctx.stroke();
-        }
-      }
-    }
-    pts.forEach(p=>{p.step();p.draw();});
-    requestAnimationFrame(frame);
-  }
-
-  window.addEventListener('resize',resize);
-  resize();
-  frame();
-})();
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>
