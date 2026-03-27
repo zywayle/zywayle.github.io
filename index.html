@@ -39,6 +39,10 @@
 
 html, body, #root { width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
 body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: antialiased; }
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background: radial-gradient(ellipse 80% 50% at 50% 0%, rgba(139,92,246,0.04) 0%, transparent 70%);
+}
 
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
@@ -59,7 +63,6 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   background: var(--bg2); border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
   overflow: hidden; z-index: 50;
-  transition: width 0.25s ease;
 }
 
 @media (max-width: 768px) {
@@ -98,13 +101,13 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 .new-btn {
   display: flex; align-items: center; gap: 9px;
   width: 100%; padding: 10px 13px; border-radius: var(--r);
-  background: transparent; border: 1px dashed var(--border2);
-  color: var(--text2); font-family: var(--font); font-size: 14px;
+  background: var(--accentbg); border: 1px solid var(--accentbd);
+  color: var(--accent); font-family: var(--font); font-size: 14px; font-weight: 500;
   cursor: pointer; transition: all 0.2s; margin-bottom: 10px;
 }
 .new-btn:hover {
-  background: var(--bg3); color: var(--text); border-style: solid;
-  transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  background: rgba(139,92,246,0.2); color: var(--text); border-color: var(--accent);
+  transform: translateY(-1px); box-shadow: 0 4px 14px rgba(139,92,246,0.2);
 }
 .new-btn:active { transform: translateY(0); }
 
@@ -157,8 +160,9 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 /* ── TOPBAR ── */
 .topbar {
   display: flex; align-items: center; gap: 10px;
-  padding: 13px 20px; border-bottom: 1px solid var(--border);
-  background: var(--bg2); flex-shrink: 0;
+  padding: 12px 20px; border-bottom: 1px solid var(--border);
+  background: rgba(26,26,24,0.85); backdrop-filter: blur(16px);
+  flex-shrink: 0; position: sticky; top: 0; z-index: 10;
 }
 .menu-btn {
   display: none; align-items: center; justify-content: center;
@@ -316,7 +320,9 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
   font-family: var(--mono); font-size: 10px; font-weight: 500;
   letter-spacing: 0.3px; margin-top: 2px;
   transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  overflow: hidden;
 }
+.avatar img { width: 100%; height: 100%; object-fit: contain; }
 .avatar:hover { transform: scale(1.12); }
 .avatar.ai   { background: var(--accentbg); border: 1px solid var(--accentbd); color: var(--accent); }
 .avatar.user { background: var(--bg4); border: 1px solid var(--border); color: var(--text2); }
@@ -328,28 +334,30 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 
 .bubble {
   max-width: 85%; display: inline-block;
-  padding: 12px 16px; border-radius: 6px;
-  font-size: 15px; line-height: 1.7; word-break: break-word;
+  padding: 13px 17px; border-radius: 8px;
+  font-size: 15px; line-height: 1.75; word-break: break-word;
   transition: box-shadow 0.2s;
 }
 .msg-group.ai .bubble {
   background: var(--bg3); border: 1px solid var(--border);
-  border-top-left-radius: 0; color: var(--text);
+  border-top-left-radius: 2px; color: var(--text);
 }
-.msg-group.ai .bubble:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+.msg-group.ai .bubble:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.22); }
 .msg-group.user .bubble {
-  background: var(--userbg); border: 1px solid var(--border);
-  border-top-right-radius: 0; color: var(--text);
+  background: linear-gradient(135deg, #2e2c28, #323030); border: 1px solid var(--border2);
+  border-top-right-radius: 2px; color: var(--text);
 }
-.msg-group.user .bubble:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+.msg-group.user .bubble:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.22); }
 @media (max-width: 480px) { .bubble { max-width: 95%; } }
 
 .conf-tag {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 11px; color: var(--text3); font-family: var(--mono);
-  margin-top: 6px; padding: 2px 0;
+  margin-top: 7px; padding: 3px 8px;
+  background: var(--bg4); border-radius: var(--r-pill);
+  border: 1px solid var(--border);
 }
-.conf-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent2); }
+.conf-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent2); box-shadow: 0 0 4px var(--accent2); }
 
 .typing {
   display: flex; align-items: center; gap: 6px;
@@ -369,46 +377,49 @@ body { font-family: var(--font); color: var(--text); -webkit-font-smoothing: ant
 
 /* ── INPUT AREA ── */
 .input-wrap {
-  flex-shrink: 0; padding: 14px 20px 18px;
+  flex-shrink: 0; padding: 16px 20px 20px;
   border-top: 1px solid var(--border); background: var(--bg2);
+  backdrop-filter: blur(12px);
 }
 .input-inner {
   max-width: 780px; margin: 0 auto;
   display: flex; align-items: flex-end; gap: 10px;
-  background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 10px; padding: 12px 14px;
-  transition: border-color 0.25s, box-shadow 0.25s;
+  background: var(--bg3); border: 1.5px solid var(--border);
+  border-radius: 14px; padding: 10px 10px 10px 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 .input-inner:focus-within {
-  border-color: rgba(139,92,246,0.5);
-  box-shadow: 0 0 0 3px rgba(139,92,246,0.08), 0 4px 20px rgba(0,0,0,0.2);
+  border-color: rgba(139,92,246,0.6);
+  box-shadow: 0 0 0 4px rgba(139,92,246,0.07), 0 8px 32px rgba(0,0,0,0.25);
 }
 .input-inner textarea {
   flex: 1; background: transparent; border: none; outline: none;
   color: var(--text); font-family: var(--font); font-size: 15px;
-  line-height: 1.55; resize: none;
-  min-height: 24px; max-height: 180px;
-  overflow-y: auto;
+  line-height: 1.6; resize: none;
+  min-height: 26px; max-height: 180px;
+  overflow-y: auto; padding: 4px 0;
+  scrollbar-width: thin;
 }
 .input-inner textarea::placeholder { color: var(--text3); }
 .send-btn {
-  width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
   background: var(--accent); border: none; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  color: #fff; font-size: 18px;
+  color: #fff; font-size: 17px;
   transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
-  box-shadow: 0 2px 8px rgba(139,92,246,0.35);
+  box-shadow: 0 2px 10px rgba(139,92,246,0.4);
 }
 .send-btn:hover:not(:disabled) {
   background: var(--accent-h);
-  transform: scale(1.1);
-  box-shadow: 0 4px 16px rgba(139,92,246,0.5);
+  transform: scale(1.08);
+  box-shadow: 0 4px 18px rgba(139,92,246,0.55);
 }
-.send-btn:active:not(:disabled) { transform: scale(0.95); }
-.send-btn:disabled { opacity: 0.3; cursor: not-allowed; box-shadow: none; }
+.send-btn:active:not(:disabled) { transform: scale(0.93); }
+.send-btn:disabled { opacity: 0.25; cursor: not-allowed; box-shadow: none; }
 .input-hint {
-  text-align: center; font-size: 12px; color: var(--text3);
-  margin-top: 9px; max-width: 780px; margin-left: auto; margin-right: auto;
+  text-align: center; font-size: 11.5px; color: var(--text3);
+  margin-top: 10px; max-width: 780px; margin-left: auto; margin-right: auto;
+  letter-spacing: 0.1px;
 }
 
 /* ── MODAL ── */
@@ -697,10 +708,10 @@ function inferResponse(input, history, model) {
   }
 
   const fallbacks=[
-    "That's an interesting question! I'm not trained on that topic yet. Try training me with more data in the Trainer.",
-    "I don't have a confident answer for that. My knowledge is limited to my training data.",
-    "I'm not sure about that one. You can expand my knowledge by adding training data in the Neural Trainer.",
-    "Hmm, that's outside my current training. Could you rephrase, or try the Trainer to teach me more?",
+    "I don't quite understand that. Could you rephrase or ask something different?",
+    "I'm not sure I follow. Try asking in a different way?",
+    "I don't understand the question. You can also train me with more data in the Neural Trainer.",
+    "That's outside my current training — I don't have a good answer for that.",
   ];
   return {text:fallbacks[Math.floor(Math.random()*fallbacks.length)], conf:0, method:'fallback'};
 }
@@ -871,8 +882,10 @@ function App() {
   const onKey=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}};
   const resize=e=>{
     const ta=e.target;
-    ta.style.height='auto';
-    ta.style.height=Math.min(ta.scrollHeight,180)+'px';
+    requestAnimationFrame(()=>{
+      ta.style.height='auto';
+      ta.style.height=Math.min(ta.scrollHeight,180)+'px';
+    });
   };
 
   const curModel=ghModels.find(m=>m.id===selModelId)||null;
@@ -920,7 +933,6 @@ function App() {
         </div>
 
         <div className="sidebar-footer">
-          <a className="nav-row" href="trainer.html"><span className="icon">◈</span> Neural Trainer</a>
           <div className="nav-row" onClick={()=>{setShowPlans(true);setSidebarOpen(false);}}><span className="icon">◇</span> Plans &amp; Pricing</div>
         </div>
       </div>
@@ -983,14 +995,14 @@ function App() {
               <>
                 {activeChat.messages.map(msg=>(
                   <div key={msg.id} className={`msg-group ${msg.role}`}>
-                    <div className={`avatar ${msg.role}`}>{msg.role==='ai'?'ZYY':'YOU'}</div>
+                    <div className={`avatar ${msg.role}`}>{msg.role==='ai'?<LogoImage size={32} radius={4}/>:'YOU'}</div>
                     <div className="msg-inner">
                       <div className="msg-sender">{msg.role==='ai'?(curModel?.name||'ZYY'):'You'}</div>
                       <div className="bubble">{msg.text}</div>
                       {msg.role==='ai'&&msg.conf>0&&(
                         <div className="conf-tag">
                           <div className="conf-dot"/>
-                          {msg.method} · {(msg.conf*100).toFixed(0)}%
+                          Accuracy: {(msg.conf*100).toFixed(0)}%
                         </div>
                       )}
                     </div>
@@ -998,7 +1010,7 @@ function App() {
                 ))}
                 {typing&&(
                   <div className="msg-group ai">
-                    <div className="avatar ai">ZYY</div>
+                    <div className="avatar ai"><LogoImage size={32} radius={4}/></div>
                     <div className="msg-inner">
                       <div className="msg-sender">{curModel?.name||'ZYY'}</div>
                       <div className="typing">
@@ -1027,7 +1039,7 @@ function App() {
             <button className="send-btn" onClick={send} disabled={!input.trim()||typing||modelLoading||!hasModel}>↑</button>
           </div>
           <div className="input-hint">
-            ZYY uses a real feedforward neural network with TF-IDF retrieval ·{' '}
+            ZYY runs a real neural network entirely in your browser ·{' '}
             <span style={{color:'var(--accent)',cursor:'pointer'}} onClick={()=>setShowPicker(true)}>Switch model</span>
           </div>
         </div>
