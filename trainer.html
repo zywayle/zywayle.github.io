@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZYY Neural Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#141412;--bg2:#1c1c1a;--bg3:#242422;--bg4:#2e2e2c;--bg5:#383836;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#f0ede8;--text2:#9a9590;--text3:#5a5550;--text4:#3a3a38;
+  --accent:#8b5cf6;--accent-h:#7c3aed;--accent2:#4a9e8a;--accent3:#e0704a;
+  --accentbg:rgba(139,92,246,0.1);--accentbd:rgba(139,92,246,0.28);
+  --green:#4a9e8a;--greenbg:rgba(74,158,138,0.12);--greenbd:rgba(74,158,138,0.3);
+  --red:#e07070;--redbg:rgba(224,112,112,0.1);
+  --r:3px;--font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+html,body{min-height:100vh;background:var(--bg);font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:2px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* TOPBAR */
+.topbar{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 24px;border-bottom:1px solid var(--border);
+  background:var(--bg2);position:sticky;top:0;z-index:20;
+}
+.logo-wrap{display:flex;align-items:center;gap:10px;}
+.logo-img{width:28px;height:28px;border-radius:3px;object-fit:contain;flex-shrink:0;}
+.logo-fb{width:28px;height:28px;border-radius:3px;background:var(--accent);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:10px;color:#fff;flex-shrink:0;}
+.logo-title{font-size:15px;font-weight:600;}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+.topbar-gap{flex:1;}
+.back-link{
+  display:flex;align-items:center;gap:6px;padding:6px 12px;
+  border:1px solid var(--border2);border-radius:var(--r);
+  font-size:13px;color:var(--text2);text-decoration:none;transition:all 0.15s;
+}
+.back-link:hover{background:var(--bg3);color:var(--text);text-decoration:none;}
+
+/* LAYOUT */
+.page{max-width:1200px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:20px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:860px){.row2{grid-template-columns:1fr;}}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;}
+@media(max-width:860px){.row3{grid-template-columns:1fr;}}
+
+/* CARD */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.card-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;border-bottom:1px solid var(--border);
+}
+.card-title{font-size:13px;font-weight:600;letter-spacing:0.2px;}
+.card-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.card-body{padding:18px;}
+.card-badge{
+  font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:2px;
+  background:var(--bg4);border:1px solid var(--border);color:var(--text2);
+}
+.card-badge.green{background:var(--greenbg);border-color:var(--greenbd);color:var(--green);}
+.card-badge.purple{background:var(--accentbg);border-color:var(--accentbd);color:var(--accent);}
+
+/* FORM ELEMENTS */
+label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:500;}
+input[type=text],input[type=number],select,textarea{
+  width:100%;padding:8px 10px;border-radius:var(--r);
+  background:var(--bg3);border:1px solid var(--border2);
+  color:var(--text);font-family:var(--font);font-size:13px;
+  outline:none;transition:border-color 0.15s;
+}
+input[type=text]:focus,input[type=number]:focus,select:focus,textarea:focus{
+  border-color:var(--accentbd);
+}
+select{cursor:pointer;}
+select option{background:var(--bg3);}
+textarea{resize:vertical;min-height:60px;line-height:1.5;}
+.form-row{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;}
+.form-row:last-child{margin-bottom:0;}
+.form-row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.form-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
+.hint{font-size:11px;color:var(--text3);margin-top:3px;line-height:1.4;}
+input[type=range]{
+  width:100%;height:4px;background:var(--bg5);border-radius:2px;
+  -webkit-appearance:none;cursor:pointer;border:none;padding:0;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--accent);cursor:pointer;
+}
+.range-row{display:flex;align-items:center;gap:10px;}
+.range-val{
+  font-family:var(--mono);font-size:12px;color:var(--accent);
+  min-width:40px;text-align:right;
+}
+
+/* BUTTONS */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:9px 16px;border-radius:var(--r);border:1px solid var(--border2);
+  font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;
+  transition:all 0.15s;background:transparent;color:var(--text2);
+}
+.btn:hover{background:var(--bg3);color:var(--text);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn.primary:hover{background:var(--accent-h);}
+.btn.primary:disabled{opacity:0.4;cursor:not-allowed;}
+.btn.success{background:var(--green);border-color:var(--green);color:#fff;}
+.btn.success:hover{filter:brightness(0.9);}
+.btn.danger{background:var(--redbg);border-color:rgba(224,112,112,0.3);color:var(--red);}
+.btn.danger:hover{background:rgba(224,112,112,0.2);}
+.btn.sm{padding:5px 10px;font-size:12px;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* DATA AREA */
+.data-textarea{
+  width:100%;min-height:200px;max-height:380px;resize:vertical;
+  background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);
+  color:var(--text);font-family:var(--mono);font-size:12px;line-height:1.7;
+  padding:12px;outline:none;transition:border-color 0.15s;
+}
+.data-textarea:focus{border-color:var(--accentbd);}
+.data-textarea::placeholder{color:var(--text4);}
+
+/* STATS ROW */
+.stats-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
+.stat-item{display:flex;flex-direction:column;gap:3px;}
+.stat-val{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--text);}
+.stat-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;}
+.stat-item.accent .stat-val{color:var(--accent);}
+.stat-item.green .stat-val{color:var(--green);}
+
+/* LAYER BUILDER */
+.layer-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.layer-row{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--r);
+}
+.layer-label{font-size:11px;font-family:var(--mono);color:var(--text3);width:60px;flex-shrink:0;}
+.layer-neurons{width:80px;flex-shrink:0;}
+.layer-act{flex:1;}
+.layer-del{
+  width:24px;height:24px;border:none;border-radius:2px;
+  background:transparent;color:var(--text3);cursor:pointer;font-size:15px;
+  display:flex;align-items:center;justify-content:center;transition:all 0.1s;
+}
+.layer-del:hover{background:var(--redbg);color:var(--red);}
+
+/* PROGRESS */
+.progress-wrap{margin-bottom:14px;}
+.progress-track{
+  width:100%;height:6px;background:var(--bg4);border-radius:2px;overflow:hidden;
+}
+.progress-bar{
+  height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border-radius:2px;transition:width 0.3s ease;
+}
+.progress-info{display:flex;justify-content:space-between;margin-top:5px;}
+.progress-label{font-size:11px;color:var(--text3);}
+.progress-pct{font-size:11px;font-family:var(--mono);color:var(--accent);}
+
+/* LOSS CHART */
+#lossCanvas{
+  width:100%;height:160px;border-radius:2px;
+  background:var(--bg3);border:1px solid var(--border);display:block;
+}
+
+/* METRIC TILES */
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.metric-tile{
+  padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);
+}
+.metric-tile-val{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--text);}
+.metric-tile-val.accent{color:var(--accent);}
+.metric-tile-val.green{color:var(--green);}
+.metric-tile-label{font-size:11px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:0.7px;}
+
+/* LOG */
+.log-box{
+  background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);
+  font-family:var(--mono);font-size:11px;color:var(--text2);line-height:1.7;
+  padding:10px 12px;max-height:120px;overflow-y:auto;
+}
+.log-line-ok{color:var(--green);}
+.log-line-err{color:var(--red);}
+.log-line-info{color:var(--text3);}
+
+/* STATUS BAR */
+.status-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;border-radius:var(--r);
+  font-size:12px;
+}
+.status-bar.idle{background:var(--bg3);color:var(--text3);}
+.status-bar.training{background:var(--accentbg);color:var(--accent);border:1px solid var(--accentbd);}
+.status-bar.done{background:var(--greenbg);color:var(--green);border:1px solid var(--greenbd);}
+.status-bar.error{background:var(--redbg);color:var(--red);}
+.pulse{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)}}
+
+/* ARCH DIAGRAM */
+.arch-diagram{
+  display:flex;align-items:center;gap:6px;
+  padding:12px;background:var(--bg3);border:1px solid var(--border);
+  border-radius:var(--r);overflow-x:auto;margin-bottom:10px;
+}
+.arch-layer{
+  display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;
+}
+.arch-neurons{
+  display:flex;flex-direction:column;gap:3px;
+}
+.arch-neuron{
+  width:12px;height:12px;border-radius:50%;
+  background:var(--bg4);border:1px solid var(--border2);
+}
+.arch-neuron.accent{background:var(--accentbg);border-color:var(--accentbd);}
+.arch-neuron.green{background:var(--greenbg);border-color:var(--greenbd);}
+.arch-label{font-size:9px;font-family:var(--mono);color:var(--text3);}
+.arch-arrow{color:var(--text4);font-size:14px;flex-shrink:0;}
+
+/* TAGS */
+.tag{
+  display:inline-block;font-size:10px;font-family:var(--mono);
+  padding:2px 7px;border-radius:999px;
+  background:var(--bg4);border:1px solid var(--border);color:var(--text2);
+}
+.tag.accent{background:var(--accentbg);border-color:var(--accentbd);color:var(--accent);}
+
+/* IMPORT ZONE */
+.import-zone{
+  border:2px dashed var(--border2);border-radius:var(--r);
+  padding:20px;text-align:center;cursor:pointer;
+  transition:all 0.15s;color:var(--text3);font-size:13px;
+}
+.import-zone:hover,.import-zone.dragover{border-color:var(--accentbd);background:var(--accentbg);color:var(--accent);}
+.import-zone p{margin-top:6px;font-size:12px;}
+
+/* EXPORT SECTION */
+.export-panel{
+  background:var(--greenbg);border:1px solid var(--greenbd);
+  border-radius:var(--r);padding:16px;
+}
+.export-panel h3{font-size:13px;font-weight:600;color:var(--green);margin-bottom:10px;}
+
+/* SECTION HEADER */
+.section-header{
+  display:flex;align-items:center;gap:10px;margin-bottom:16px;
+}
+.section-icon{
+  width:28px;height:28px;border-radius:2px;
+  background:var(--accentbg);border:1px solid var(--accentbd);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;
+}
+.section-title{font-size:14px;font-weight:600;}
+.section-sub{font-size:12px;color:var(--text3);}
+
+/* TOOLTIP */
+.tooltip-wrap{position:relative;display:inline-flex;align-items:center;}
+.tooltip-icon{
+  width:14px;height:14px;border-radius:50%;
+  background:var(--bg4);border:1px solid var(--border2);
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:9px;color:var(--text3);cursor:help;margin-left:5px;
+}
+.tooltip-text{
+  display:none;position:absolute;bottom:calc(100% + 6px);left:50%;
+  transform:translateX(-50%);background:var(--bg5);border:1px solid var(--border2);
+  color:var(--text2);font-size:11px;padding:6px 9px;border-radius:3px;
+  white-space:nowrap;z-index:99;font-family:var(--font);line-height:1.4;
+  pointer-events:none;max-width:220px;white-space:normal;
+}
+.tooltip-wrap:hover .tooltip-text{display:block;}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);filter:blur(6px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}
+.card{animation:fadeUp 0.35s cubic-bezier(0.16,1,0.3,1) both;}
+.card:nth-child(1){animation-delay:0.0s}
+.card:nth-child(2){animation-delay:0.04s}
+.card:nth-child(3){animation-delay:0.08s}
+.card:nth-child(4){animation-delay:0.12s}
+.card:nth-child(5){animation-delay:0.16s}
+.card:nth-child(6){animation-delay:0.2s}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo-wrap">
+    <img src="logo.png" class="logo-img" alt="ZYY"
+      onerror="this.style.display='none';document.getElementById('logo-fb').style.display='flex'">
+    <div class="logo-fb" id="logo-fb" style="display:none">ZY</div>
+    <div>
+      <div class="logo-title">ZYY Neural Trainer</div>
+      <div class="logo-sub">Train · Evaluate · Export</div>
+    </div>
+  </div>
+  <div class="topbar-gap"></div>
+  <a href="index.html" class="back-link">← Back to Chat</a>
+</div>
+
+<div class="page">
+
+  <!-- ROW 1: Data + Architecture -->
+  <div class="row2">
+
+    <!-- Training Data -->
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">📊 Training Data</div>
+          <div class="card-sub">Q|A pairs — one per line</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="card-badge" id="pair-count-badge">0 pairs</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="stats-row" id="data-stats" style="display:none">
+          <div class="stat-item accent"><span class="stat-val" id="stat-pairs">0</span><span class="stat-label">Pairs</span></div>
+          <div class="stat-item"><span class="stat-val" id="stat-vocab">0</span><span class="stat-label">Vocab</span></div>
+          <div class="stat-item green"><span class="stat-val" id="stat-avg">0</span><span class="stat-label">Avg tokens</span></div>
+        </div>
+
+        <textarea class="data-textarea" id="data-input"
+          placeholder="Enter Q|A training pairs, one per line. Example:&#10;&#10;what is python | Python is a high-level, versatile programming language used in AI, web dev, and automation.&#10;what is machine learning | ML is a type of AI where systems learn from data without being explicitly programmed.&#10;&#10;Tip: More pairs = smarter model. Aim for 50+ pairs on related topics."></textarea>
+
+        <div style="margin-top:10px">
+          <div class="import-zone" id="import-zone" onclick="document.getElementById('file-input').click()">
+            <div style="font-size:20px">📂</div>
+            <p>Drop a .zyy model file to import its training data</p>
+            <p style="font-size:11px;color:var(--text4);margin-top:3px">or click to browse</p>
+          </div>
+          <input type="file" id="file-input" accept=".zyy,.json" style="display:none" onchange="importModel(this)">
+        </div>
+
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn sm" onclick="loadSample()">Load sample data</button>
+          <button class="btn sm" onclick="clearData()">Clear</button>
+          <button class="btn sm" onclick="sortData()">Sort A→Z</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Architecture -->
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">🧠 Network Architecture</div>
+          <div class="card-sub">Hidden layers & neurons</div>
+        </div>
+        <span class="card-badge purple" id="arch-params">0 params</span>
+      </div>
+      <div class="card-body">
+
+        <div class="arch-diagram" id="arch-diagram"></div>
+
+        <div class="form-row">
+          <label>Input vector size
+            <span class="tooltip-wrap">
+              <span class="tooltip-icon">?</span>
+              <span class="tooltip-text">Size of the text-to-vector embedding. Larger = more features captured, slower training. 64–128 recommended.</span>
+            </span>
+          </label>
+          <select id="input-size" onchange="updateArch()">
+            <option value="32">32</option>
+            <option value="64" selected>64</option>
+            <option value="128">128</option>
+            <option value="256">256</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label>Hidden layers</label>
+          <div class="layer-list" id="layer-list"></div>
+          <button class="btn sm" onclick="addLayer()" style="width:100%">+ Add hidden layer</button>
+        </div>
+
+        <div class="form-row" style="margin-top:12px">
+          <label>Output activation</label>
+          <select id="out-act">
+            <option value="softmax" selected>Softmax (classification)</option>
+            <option value="sigmoid">Sigmoid (binary)</option>
+          </select>
+          <div class="hint">Softmax is best for Q&A classification tasks</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ROW 2: Hyperparameters + Training Settings -->
+  <div class="row2">
+
+    <!-- Hyperparameters -->
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">⚙️ Hyperparameters</div>
+          <div class="card-sub">Learning rate, epochs, batch size</div>
+        </div>
+      </div>
+      <div class="card-body">
+
+        <div class="form-row">
+          <label>
+            Learning rate
+            <span class="tooltip-wrap">
+              <span class="tooltip-icon">?</span>
+              <span class="tooltip-text">Controls how fast the network learns. Too high = unstable; too low = slow convergence. 0.001–0.01 is usually best.</span>
+            </span>
+          </label>
+          <div class="range-row">
+            <input type="range" id="lr-range" min="-4" max="-1" step="0.1" value="-2.5"
+              oninput="document.getElementById('lr-val').textContent=Math.pow(10,+this.value).toFixed(4);updateConfigBadge()">
+            <span class="range-val" id="lr-val">0.0032</span>
+          </div>
+          <div class="btn-row" style="margin-top:6px">
+            <button class="btn sm" onclick="setLR(-1)">0.1</button>
+            <button class="btn sm" onclick="setLR(-2)">0.01</button>
+            <button class="btn sm" onclick="setLR(-3)">0.001</button>
+            <button class="btn sm" onclick="setLR(-4)">0.0001</button>
+          </div>
+        </div>
+
+        <div class="form-row2">
+          <div>
+            <label>
+              Epochs
+              <span class="tooltip-wrap">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-text">Number of full passes through the training data. More epochs = more training time but better convergence.</span>
+              </span>
+            </label>
+            <select id="epochs" onchange="updateConfigBadge()">
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+              <option value="500" selected>500</option>
+              <option value="1000">1000</option>
+              <option value="2000">2000</option>
+              <option value="5000">5000</option>
+            </select>
+          </div>
+          <div>
+            <label>
+              Batch size
+              <span class="tooltip-wrap">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-text">How many samples to process per update. Smaller batches = noisier but sometimes better generalization.</span>
+              </span>
+            </label>
+            <select id="batch-size" onchange="updateConfigBadge()">
+              <option value="1">1 (online)</option>
+              <option value="4">4</option>
+              <option value="8" selected>8</option>
+              <option value="16">16</option>
+              <option value="32">32</option>
+              <option value="64">64</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row2">
+          <div>
+            <label>
+              Optimizer
+              <span class="tooltip-wrap">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-text">Adam is generally fastest and most reliable. SGD with momentum is simpler. RMSprop is good for noisy gradients.</span>
+              </span>
+            </label>
+            <select id="optimizer">
+              <option value="adam" selected>Adam</option>
+              <option value="sgd">SGD + Momentum</option>
+              <option value="rmsprop">RMSprop</option>
+            </select>
+          </div>
+          <div>
+            <label>
+              Activation
+              <span class="tooltip-wrap">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-text">Hidden layer activation function. ReLU is fastest; tanh is smoother; leaky ReLU avoids dying neurons.</span>
+              </span>
+            </label>
+            <select id="activation">
+              <option value="relu" selected>ReLU</option>
+              <option value="leaky">Leaky ReLU</option>
+              <option value="tanh">Tanh</option>
+              <option value="sigmoid">Sigmoid</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row2">
+          <div>
+            <label>
+              Dropout
+              <span class="tooltip-wrap">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-text">Randomly disables neurons during training to prevent overfitting. 0 = disabled. 0.2–0.4 for regularization.</span>
+              </span>
+            </label>
+            <div class="range-row">
+              <input type="range" id="dropout-range" min="0" max="0.7" step="0.05" value="0"
+                oninput="document.getElementById('dropout-val').textContent=(+this.value).toFixed(2)">
+              <span class="range-val" id="dropout-val">0.00</span>
+            </div>
+          </div>
+          <div>
+            <label>
+              Val split %
+              <span class="tooltip-wrap">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-text">Percentage of data held out for validation. Use 0 to train on all data.</span>
+              </span>
+            </label>
+            <div class="range-row">
+              <input type="range" id="val-range" min="0" max="30" step="5" value="10"
+                oninput="document.getElementById('val-val').textContent=this.value+'%'">
+              <span class="range-val" id="val-val">10%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>
+            Weight initialisation
+            <span class="tooltip-wrap">
+              <span class="tooltip-icon">?</span>
+              <span class="tooltip-text">He init is best for ReLU networks. Xavier works well for tanh. Random normal for general use.</span>
+            </span>
+          </label>
+          <select id="weight-init">
+            <option value="he" selected>He (Kaiming) — best for ReLU</option>
+            <option value="xavier">Xavier / Glorot — for tanh</option>
+            <option value="small">Small random — general</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label>
+            LR scheduler
+            <span class="tooltip-wrap">
+              <span class="tooltip-icon">?</span>
+              <span class="tooltip-text">Gradually reduces learning rate over training. Cosine annealing often gives the best final accuracy.</span>
+            </span>
+          </label>
+          <select id="lr-schedule">
+            <option value="none">None — constant LR</option>
+            <option value="step">Step decay (÷2 every 30%)</option>
+            <option value="cosine" selected>Cosine annealing</option>
+            <option value="exp">Exponential decay</option>
+          </select>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Model Info -->
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">🏷️ Model Information</div>
+          <div class="card-sub">Name, description, export metadata</div>
+        </div>
+      </div>
+      <div class="card-body">
+
+        <div class="form-row2">
+          <div>
+            <label>Model name</label>
+            <input type="text" id="model-name" value="My ZYY Model" placeholder="e.g. ZYY Custom v1">
+          </div>
+          <div>
+            <label>
+              Size label
+              <span class="tooltip-wrap">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-text">Human-readable parameter size displayed in the model picker. This is a label only (e.g. 0.2B, 1.5B).</span>
+              </span>
+            </label>
+            <input type="text" id="model-size" value="0.1B" placeholder="e.g. 0.2B">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label>Description</label>
+          <textarea id="model-desc" style="min-height:50px" placeholder="Describe what this model knows and can do…">Custom trained ZYY model</textarea>
+        </div>
+
+        <div class="form-row">
+          <label>Tags (comma separated)</label>
+          <input type="text" id="model-tags" value="Chat,Custom" placeholder="Chat, Science, NLP, …">
+        </div>
+
+        <div class="form-row">
+          <label>Version</label>
+          <input type="text" id="model-version" value="1.0" placeholder="e.g. 1.0">
+        </div>
+
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-top:6px;">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.8px;">Model Info Preview</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px" id="info-preview">
+            <span class="tag accent" id="preview-name">My ZYY Model</span>
+            <span class="tag" id="preview-size">0.1B</span>
+            <span class="tag" id="preview-version">v1.0</span>
+          </div>
+          <div style="font-size:12px;color:var(--text2);margin-top:8px;line-height:1.5" id="preview-desc">Custom trained ZYY model</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px" id="preview-params">— parameters</div>
+        </div>
+
+        <div style="margin-top:14px;padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.8px;">meta.txt entry</div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--text2);line-height:1.8;word-break:break-all" id="meta-preview">
+            model.zyy | My ZYY Model | 0.1B | Custom trained ZYY model | Chat,Custom
+          </div>
+          <button class="btn sm" style="margin-top:8px" onclick="copyMetaEntry()">Copy entry</button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ROW 3: Training + Metrics + Log -->
+  <div class="row3">
+
+    <!-- Training control -->
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">🚀 Training Control</div>
+          <div class="card-sub">Start, stop, monitor</div>
+        </div>
+        <span class="card-badge" id="train-state-badge">Idle</span>
+      </div>
+      <div class="card-body">
+
+        <div class="status-bar idle" id="status-bar">
+          <div class="pulse" id="status-pulse" style="display:none"></div>
+          <span id="status-text">Ready to train. Add data and press Train.</span>
+        </div>
+
+        <div class="progress-wrap" style="margin-top:14px">
+          <div class="progress-track">
+            <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+          </div>
+          <div class="progress-info">
+            <span class="progress-label" id="progress-label">Epoch 0 / 0</span>
+            <span class="progress-pct" id="progress-pct">0%</span>
+          </div>
+        </div>
+
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn primary" id="train-btn" onclick="startTraining()" style="flex:1">▶ Train</button>
+          <button class="btn danger" id="stop-btn" onclick="stopTraining()" style="display:none;flex:1">■ Stop</button>
+          <button class="btn" onclick="resetModel()" id="reset-btn">↺</button>
+        </div>
+
+        <div style="margin-top:14px">
+          <label style="margin-bottom:6px;display:block">Loss curve</label>
+          <canvas id="lossCanvas"></canvas>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">📈 Training Metrics</div>
+          <div class="card-sub">Real-time performance</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="metric-grid">
+          <div class="metric-tile">
+            <div class="metric-tile-val accent" id="m-loss">—</div>
+            <div class="metric-tile-label">Current loss</div>
+          </div>
+          <div class="metric-tile">
+            <div class="metric-tile-val green" id="m-best">—</div>
+            <div class="metric-tile-label">Best loss</div>
+          </div>
+          <div class="metric-tile">
+            <div class="metric-tile-val" id="m-epoch">0</div>
+            <div class="metric-tile-label">Epoch</div>
+          </div>
+          <div class="metric-tile">
+            <div class="metric-tile-val" id="m-acc">—</div>
+            <div class="metric-tile-label">Train accuracy</div>
+          </div>
+        </div>
+
+        <div class="metric-grid">
+          <div class="metric-tile">
+            <div class="metric-tile-val" id="m-val-loss">—</div>
+            <div class="metric-tile-label">Val loss</div>
+          </div>
+          <div class="metric-tile">
+            <div class="metric-tile-val" id="m-params">—</div>
+            <div class="metric-tile-label">Parameters</div>
+          </div>
+          <div class="metric-tile">
+            <div class="metric-tile-val" id="m-time">—</div>
+            <div class="metric-tile-label">Train time</div>
+          </div>
+          <div class="metric-tile">
+            <div class="metric-tile-val" id="m-lr">—</div>
+            <div class="metric-tile-label">Learning rate</div>
+          </div>
+        </div>
+
+        <div style="margin-top:6px">
+          <label style="margin-bottom:5px;display:block">Quick test</label>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="test-input" placeholder="Ask the model something…" style="flex:1"
+              onkeydown="if(event.key==='Enter')testModel()">
+            <button class="btn sm" onclick="testModel()">Ask</button>
+          </div>
+          <div id="test-output" style="margin-top:8px;min-height:30px;font-size:13px;color:var(--text2);line-height:1.5;display:none;
+            background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Log + Export -->
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">📋 Log &amp; Export</div>
+          <div class="card-sub">Training log and model export</div>
+        </div>
+      </div>
+      <div class="card-body">
+
+        <div style="margin-bottom:14px">
+          <label style="margin-bottom:5px;display:block">Training log</label>
+          <div class="log-box" id="log-box">
+            <div class="log-line-info">ZYY Trainer ready. Add data and configure your network.</div>
+          </div>
+          <div class="btn-row" style="margin-top:6px">
+            <button class="btn sm" onclick="clearLog()">Clear log</button>
+          </div>
+        </div>
+
+        <div class="export-panel" id="export-panel" style="display:none">
+          <h3>✓ Model ready to export</h3>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.5">
+            Download the trained model as a <code style="font-family:var(--mono)">.zyy</code> file and place it in your GitHub Pages <code style="font-family:var(--mono)">/Models/</code> folder.
+          </div>
+          <div class="btn-row">
+            <button class="btn success" onclick="exportModel()">⬇ Download .zyy</button>
+            <button class="btn sm" onclick="copyModelJSON()">Copy JSON</button>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:12px;color:var(--text2);line-height:1.7">
+          <div style="font-weight:600;color:var(--text);margin-bottom:6px;">Deploy to GitHub Pages</div>
+          <ol style="padding-left:18px">
+            <li>Train &amp; download the <code style="font-family:var(--mono)">.zyy</code> file</li>
+            <li>Upload to your repo's <code style="font-family:var(--mono)">/Models/</code> folder</li>
+            <li>Update <code style="font-family:var(--mono)">Models/meta.txt</code> with the entry shown in Model Info</li>
+            <li>Push and GitHub Pages will serve it automatically</li>
+          </ol>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+// ── ZYY ENGINE (inline) ──
+const ZYY={
+  randn(s=0.1){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)*s;},
+  zeros(r,c){return Array.from({length:r},()=>new Float32Array(c));},
+  dot(a,b){const o=new Float32Array(b[0].length);for(let j=0;j<b[0].length;j++)for(let k=0;k<a.length;k++)o[j]+=a[k]*b[k][j];return o;},
+  relu(x){return Math.max(0,x);},leaky(x){return x>0?x:0.01*x;},
+  tanh_(x){return Math.tanh(x);},sigmoid(x){return 1/(1+Math.exp(-x));},
+  softmax(v){const m=Math.max(...v),e=v.map(x=>Math.exp(x-m)),s=e.reduce((a,b)=>a+b,0);return e.map(x=>x/s);},
+  tokenize(t){return t.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean);},
+  buildVocab(pairs){const v={};let i=0;for(const[q]of pairs)for(const t of ZYY.tokenize(q))if(!(t in v))v[t]=i++;return v;},
+  textToVec(text,vocab,size){
+    const vec=new Float32Array(size);
+    for(const t of ZYY.tokenize(text))if(t in vocab)vec[vocab[t]%size]+=1;
+    const mag=Math.sqrt(vec.reduce((s,v)=>s+v*v,0));
+    if(mag>0)for(let i=0;i<vec.length;i++)vec[i]/=mag;
+    return vec;
+  },
+  countParams(layers){return layers.reduce((s,l)=>s+l.W.length*l.W[0].length+l.b.length,0);},
+};
+
+class TFIDFRetriever {
+  constructor(pairs){
+    this.pairs=pairs;this.df={};this.N=pairs.length;
+    this.docs=pairs.map(([q])=>ZYY.tokenize(q));
+    for(const doc of this.docs)for(const t of new Set(doc))this.df[t]=(this.df[t]||0)+1;
+    this.idf={};
+    for(const[t,df]of Object.entries(this.df))this.idf[t]=Math.log((this.N+1)/(df+1))+1;
+  }
+  vec(tokens){const tf={};for(const t of tokens)tf[t]=(tf[t]||0)+1;const len=tokens.length||1;const v={};for(const[t,c]of Object.entries(tf))if(this.idf[t])v[t]=(c/len)*this.idf[t];return v;}
+  cosine(a,b){let dot=0,ma=0,mb=0;const keys=new Set([...Object.keys(a),...Object.keys(b)]);for(const k of keys){const av=a[k]||0,bv=b[k]||0;dot+=av*bv;ma+=av*av;mb+=bv*bv;}return ma&&mb?dot/(Math.sqrt(ma)*Math.sqrt(mb)):0;}
+  query(text,k=1){const qv=this.vec(ZYY.tokenize(text));const scores=this.docs.map((doc,i)=>({i,score:this.cosine(qv,this.vec(doc))}));scores.sort((a,b)=>b.score-a.score);return scores.slice(0,k).filter(s=>s.score>0).map(s=>({pair:this.pairs[s.i],score:s.score}));}
+}
+
+// Network with backprop
+class Net {
+  constructor(sizes, act='relu', initType='he'){
+    this.sizes=sizes; this.act=act; this.layers=[]; this.t=0;
+    for(let i=0;i<sizes.length-1;i++){
+      const fin=sizes[i], fout=sizes[i+1];
+      let s; if(initType==='he')s=Math.sqrt(2/fin); else if(initType==='xavier')s=Math.sqrt(1/fin); else s=0.1;
+      const W=Array.from({length:fin},()=>Array.from({length:fout},()=>ZYY.randn(s)));
+      const b=new Float32Array(fout);
+      this.layers.push({W,b,dW:ZYY.zeros(fin,fout),db:new Float32Array(fout),
+        mW:ZYY.zeros(fin,fout),mb:new Float32Array(fout),vW:ZYY.zeros(fin,fout),vb:new Float32Array(fout)});
+    }
+  }
+
+  actFn(x){
+    const f=this.act;
+    if(f==='tanh')return Math.tanh(x);if(f==='sigmoid')return ZYY.sigmoid(x);if(f==='leaky')return ZYY.leaky(x);return ZYY.relu(x);
+  }
+  actGrad(x){
+    const f=this.act;
+    if(f==='tanh'){const t=Math.tanh(x);return 1-t*t;}
+    if(f==='sigmoid'){const s=ZYY.sigmoid(x);return s*(1-s);}
+    if(f==='leaky')return x>0?1:0.01;
+    return x>0?1:0;
+  }
+
+  forward(input, dropout=0){
+    this._cache=[{a:Float32Array.from(input)}]; let a=Float32Array.from(input);
+    for(let i=0;i<this.layers.length;i++){
+      const{W,b}=this.layers[i]; const z=ZYY.dot(a,W);
+      for(let j=0;j<z.length;j++)z[j]+=b[j];
+      const isLast=i===this.layers.length-1;
+      let na;
+      if(isLast){na=z;}
+      else{
+        na=Float32Array.from(z.map(v=>this.actFn(v)));
+        if(dropout>0){const mask=Float32Array.from({length:na.length},()=>Math.random()<dropout?0:1/(1-dropout));for(let k=0;k<na.length;k++)na[k]*=mask[k];}
+      }
+      this._cache.push({a:na,z:Float32Array.from(z)}); a=na;
+    }return a;
+  }
+
+  backward(target, lr, optim='adam', beta1=0.9, beta2=0.999, eps=1e-8){
+    this.t++;
+    const L=this.layers.length;
+    let delta;
+    // Softmax + cross-entropy gradient
+    const out=this._cache[L].a;
+    const sm=ZYY.softmax(out);
+    delta=Float32Array.from(sm); delta[target]-=1;
+
+    for(let i=L-1;i>=0;i--){
+      const{W,b,dW,db,mW,mb,vW,vb}=this.layers[i];
+      const aIn=this._cache[i].a;
+      const z=this._cache[i+1].z;
+
+      // Compute gradients
+      for(let j=0;j<W.length;j++)for(let k=0;k<W[0].length;k++)dW[j][k]=aIn[j]*delta[k];
+      for(let k=0;k<b.length;k++)db[k]=delta[k];
+
+      // Backprop through activation
+      let deltaNext=new Float32Array(W.length);
+      for(let j=0;j<W.length;j++){
+        let s=0;for(let k=0;k<W[0].length;k++)s+=W[j][k]*delta[k];
+        if(i>0)s*=this.actGrad(z[j]||0);
+        deltaNext[j]=s;
+      }
+      delta=deltaNext;
+
+      // Optimizer update
+      if(optim==='adam'){
+        for(let j=0;j<W.length;j++){
+          for(let k=0;k<W[0].length;k++){
+            const g=dW[j][k];
+            mW[j][k]=beta1*mW[j][k]+(1-beta1)*g;
+            vW[j][k]=beta2*vW[j][k]+(1-beta2)*g*g;
+            const mh=mW[j][k]/(1-Math.pow(beta1,this.t));
+            const vh=vW[j][k]/(1-Math.pow(beta2,this.t));
+            W[j][k]-=lr*mh/(Math.sqrt(vh)+eps);
+          }
+        }
+        for(let k=0;k<b.length;k++){
+          const g=db[k];
+          mb[k]=beta1*mb[k]+(1-beta1)*g;
+          vb[k]=beta2*vb[k]+(1-beta2)*g*g;
+          const mh=mb[k]/(1-Math.pow(beta1,this.t));
+          const vh=vb[k]/(1-Math.pow(beta2,this.t));
+          b[k]-=lr*mh/(Math.sqrt(vh)+eps);
+        }
+      } else if(optim==='sgd'){
+        const momentum=0.9;
+        for(let j=0;j<W.length;j++)for(let k=0;k<W[0].length;k++){
+          mW[j][k]=momentum*mW[j][k]+lr*dW[j][k]; W[j][k]-=mW[j][k];
+        }
+        for(let k=0;k<b.length;k++){mb[k]=momentum*mb[k]+lr*db[k];b[k]-=mb[k];}
+      } else { // rmsprop
+        for(let j=0;j<W.length;j++)for(let k=0;k<W[0].length;k++){
+          vW[j][k]=0.9*vW[j][k]+0.1*dW[j][k]*dW[j][k]; W[j][k]-=lr*dW[j][k]/(Math.sqrt(vW[j][k])+eps);
+        }
+        for(let k=0;k<b.length;k++){vb[k]=0.9*vb[k]+0.1*db[k]*db[k];b[k]-=lr*db[k]/(Math.sqrt(vb[k])+eps);}
+      }
+    }
+  }
+
+  predict(input){return this.forward(input);}
+
+  loss(input, target){
+    const out=this.predict(input);
+    const sm=ZYY.softmax(out);
+    return -Math.log(Math.max(sm[target],1e-10));
+  }
+
+  serialize(){
+    return{sizes:this.sizes,act:this.act,t:this.t,
+      layers:this.layers.map(l=>({W:l.W.map(r=>r.map(v=>+v.toFixed(5))),b:[...l.b].map(v=>+v.toFixed(5))}))};
+  }
+}
+
+// ── TRAINER STATE ──
+let trainNet=null, trainPairs=[], trainVocab={}, trainRunning=false, trainStop=false;
+let lossHistory=[], valLossHistory=[], bestLoss=Infinity, trainStartTime=0;
+const lossCanvas=document.getElementById('lossCanvas');
+const lossCtx=lossCanvas.getContext('2d');
+
+// ── LAYERS CONFIG ──
+let hiddenLayers=[{neurons:128,act:'relu'},{neurons:64,act:'relu'}];
+
+function renderLayers(){
+  const list=document.getElementById('layer-list');
+  list.innerHTML='';
+  hiddenLayers.forEach((l,i)=>{
+    const row=document.createElement('div');row.className='layer-row';
+    row.innerHTML=`
+      <span class="layer-label">Layer ${i+1}</span>
+      <input type="number" class="layer-neurons" value="${l.neurons}" min="4" max="1024"
+        onchange="hiddenLayers[${i}].neurons=+this.value;updateArch();" style="width:80px">
+      <select class="layer-act" onchange="hiddenLayers[${i}].act=this.value">
+        ${['relu','leaky','tanh','sigmoid'].map(a=>`<option value="${a}"${l.act===a?' selected':''}>${a}</option>`).join('')}
+      </select>
+      <button class="layer-del" onclick="removeLayer(${i})">×</button>`;
+    list.appendChild(row);
+  });
+  updateArch();
+}
+
+function addLayer(){
+  hiddenLayers.push({neurons:64,act:'relu'});
+  renderLayers();
+}
+function removeLayer(i){
+  hiddenLayers.splice(i,1);
+  renderLayers();
+}
+
+function getArchSizes(){
+  const inputSize=+document.getElementById('input-size').value;
+  const nPairs=parsePairs().length||1;
+  return [inputSize,...hiddenLayers.map(l=>l.neurons),nPairs];
+}
+
+function updateArch(){
+  const sizes=getArchSizes();
+  const params=sizes.reduce((s,_,i)=>i>0?s+(sizes[i-1]+1)*sizes[i]:s,0);
+  document.getElementById('arch-params').textContent=params.toLocaleString()+' params';
+  document.getElementById('preview-params').textContent=params.toLocaleString()+' parameters';
+  renderArchDiagram(sizes);
+}
+
+function renderArchDiagram(sizes){
+  const diag=document.getElementById('arch-diagram');
+  diag.innerHTML='';
+  const maxShow=6;
+  sizes.forEach((n,li)=>{
+    const show=Math.min(n,maxShow);
+    const wrap=document.createElement('div'); wrap.className='arch-layer';
+    const nr=document.createElement('div'); nr.className='arch-neurons';
+    for(let i=0;i<show;i++){
+      const nd=document.createElement('div');
+      nd.className='arch-neuron'+(li===0?' accent':li===sizes.length-1?' green':'');
+      nr.appendChild(nd);
+    }
+    if(n>maxShow){const dots=document.createElement('div');dots.style.cssText='font-size:8px;color:var(--text4);text-align:center;line-height:1';dots.textContent='···';nr.appendChild(dots);}
+    const lbl=document.createElement('div'); lbl.className='arch-label';
+    lbl.textContent=li===0?`In ${n}`:li===sizes.length-1?`Out ${n}`:`H${li} ${n}`;
+    wrap.appendChild(nr); wrap.appendChild(lbl); diag.appendChild(wrap);
+    if(li<sizes.length-1){const arr=document.createElement('div');arr.className='arch-arrow';arr.textContent='→';diag.appendChild(arr);}
+  });
+}
+
+// ── DATA PARSING ──
+function parsePairs(){
+  const text=document.getElementById('data-input').value;
+  const lines=text.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('#'));
+  const pairs=[];
+  for(const line of lines){
+    const sep=line.indexOf('|');
+    if(sep>0){
+      const q=line.slice(0,sep).trim();
+      const a=line.slice(sep+1).trim();
+      if(q&&a) pairs.push([q,a]);
+    }
+  }
+  return pairs;
+}
+
+function updateDataStats(){
+  const pairs=parsePairs();
+  const vocab=ZYY.buildVocab(pairs);
+  const avgTok=pairs.length?Math.round(pairs.reduce((s,[q])=>s+ZYY.tokenize(q).length,0)/pairs.length):0;
+  document.getElementById('stat-pairs').textContent=pairs.length;
+  document.getElementById('stat-vocab').textContent=Object.keys(vocab).length;
+  document.getElementById('stat-avg').textContent=avgTok;
+  document.getElementById('pair-count-badge').textContent=pairs.length+' pairs';
+  if(pairs.length>0)document.getElementById('data-stats').style.display='flex';
+  updateArch();
+}
+document.getElementById('data-input').addEventListener('input',updateDataStats);
+
+// ── TRAINING ──
+async function startTraining(){
+  const pairs=parsePairs();
+  if(pairs.length<2){alert('Add at least 2 Q|A pairs to train.');return;}
+
+  trainStop=false;
+  trainRunning=true;
+  lossHistory=[]; valLossHistory=[]; bestLoss=Infinity;
+  trainStartTime=Date.now();
+
+  const inputSize=+document.getElementById('input-size').value;
+  const epochs=+document.getElementById('epochs').value;
+  const batchSize=+document.getElementById('batch-size').value;
+  const optimizer=document.getElementById('optimizer').value;
+  const activation=document.getElementById('activation').value;
+  const dropout=+document.getElementById('dropout-range').value;
+  const valSplit=+document.getElementById('val-range').value/100;
+  const initType=document.getElementById('weight-init').value;
+  const lrSchedule=document.getElementById('lr-schedule').value;
+  const baseLR=Math.pow(10,+document.getElementById('lr-range').value);
+
+  // Split train/val
+  const shuffled=[...pairs].sort(()=>Math.random()-0.5);
+  const valN=Math.floor(shuffled.length*valSplit);
+  const valPairs=shuffled.slice(0,valN);
+  const trPairs=shuffled.slice(valN);
+
+  trainVocab=ZYY.buildVocab(pairs);
+  const sizes=[inputSize,...hiddenLayers.map(l=>l.neurons),trPairs.length||pairs.length];
+  trainNet=new Net(sizes,activation,initType);
+
+  const params=ZYY.countParams(trainNet.layers);
+  document.getElementById('m-params').textContent=params.toLocaleString();
+
+  setStatus('training','Training…');
+  document.getElementById('train-btn').style.display='none';
+  document.getElementById('stop-btn').style.display='flex';
+  document.getElementById('train-state-badge').textContent='Training';
+  document.getElementById('export-panel').style.display='none';
+
+  log(`Starting training: ${trPairs.length} train pairs, ${valN} val pairs`);
+  log(`Architecture: [${sizes.join(' → ')}] | ${activation} | ${optimizer} | LR=${baseLR.toFixed(5)}`);
+  log(`Epochs: ${epochs} | Batch: ${batchSize} | Dropout: ${dropout}`);
+
+  const updateInterval=Math.max(1,Math.floor(epochs/200));
+
+  for(let ep=0;ep<epochs;ep++){
+    if(trainStop) break;
+
+    // LR schedule
+    let lr=baseLR;
+    const prog=ep/epochs;
+    if(lrSchedule==='cosine') lr=baseLR*0.5*(1+Math.cos(Math.PI*prog));
+    else if(lrSchedule==='step') lr=baseLR*Math.pow(0.5,Math.floor(prog/0.3));
+    else if(lrSchedule==='exp') lr=baseLR*Math.exp(-3*prog);
+
+    // Shuffle and batch
+    const shuffTr=[...trPairs].sort(()=>Math.random()-0.5);
+    let totalLoss=0, correct=0;
+
+    for(let b=0;b<shuffTr.length;b+=batchSize){
+      const batch=shuffTr.slice(b,b+batchSize);
+      for(let s=0;s<batch.length;s++){
+        const [q,a]=batch[s];
+        const inp=ZYY.textToVec(q,trainVocab,inputSize);
+        const target=trPairs.findIndex(([qq])=>qq===q);
+        if(target<0)continue;
+        trainNet.forward(inp,dropout>0&&ep<epochs*0.9?dropout:0);
+        trainNet.backward(target,lr,optimizer);
+        totalLoss+=trainNet.loss(inp,target);
+        const out=trainNet.predict(inp);
+        const sm=ZYY.softmax(out);
+        if(sm.indexOf(Math.max(...sm))===target)correct++;
+      }
+    }
+
+    const avgLoss=totalLoss/trPairs.length;
+    const acc=correct/trPairs.length;
+
+    // Validation loss
+    let valLoss=0;
+    if(valPairs.length>0){
+      for(const [q] of valPairs){
+        const inp=ZYY.textToVec(q,trainVocab,inputSize);
+        const target=pairs.findIndex(([qq])=>qq===q);
+        if(target>=0) valLoss+=trainNet.loss(inp,target%sizes[sizes.length-1]);
+      }
+      valLoss/=valPairs.length;
+    }
+
+    if(avgLoss<bestLoss) bestLoss=avgLoss;
+    lossHistory.push(avgLoss);
+    if(valPairs.length>0) valLossHistory.push(valLoss);
+
+    if(ep%updateInterval===0){
+      const pct=Math.round((ep+1)/epochs*100);
+      const elapsed=((Date.now()-trainStartTime)/1000).toFixed(1);
+      document.getElementById('progress-bar').style.width=pct+'%';
+      document.getElementById('progress-label').textContent=`Epoch ${ep+1} / ${epochs}`;
+      document.getElementById('progress-pct').textContent=pct+'%';
+      document.getElementById('m-loss').textContent=avgLoss.toFixed(4);
+      document.getElementById('m-best').textContent=bestLoss.toFixed(4);
+      document.getElementById('m-epoch').textContent=ep+1;
+      document.getElementById('m-acc').textContent=(acc*100).toFixed(1)+'%';
+      document.getElementById('m-lr').textContent=lr.toFixed(5);
+      document.getElementById('m-time').textContent=elapsed+'s';
+      if(valPairs.length>0)document.getElementById('m-val-loss').textContent=valLoss.toFixed(4);
+      drawLossChart();
+      await new Promise(r=>setTimeout(r,0));
+    }
+  }
+
+  trainRunning=false;
+  const elapsed=((Date.now()-trainStartTime)/1000).toFixed(1);
+  setStatus('done',`Training complete in ${elapsed}s — best loss: ${bestLoss.toFixed(4)}`);
+  document.getElementById('train-btn').style.display='flex';
+  document.getElementById('stop-btn').style.display='none';
+  document.getElementById('train-state-badge').textContent='Done';
+  document.getElementById('export-panel').style.display='block';
+  document.getElementById('progress-bar').style.width='100%';
+  document.getElementById('m-time').textContent=elapsed+'s';
+  log(`✓ Training complete! Best loss: ${bestLoss.toFixed(4)} | Time: ${elapsed}s`);
+  drawLossChart();
+}
+
+function stopTraining(){
+  trainStop=true;
+  setStatus('idle','Stopped by user.');
+  document.getElementById('train-btn').style.display='flex';
+  document.getElementById('stop-btn').style.display='none';
+  log('Training stopped by user.');
+}
+
+function resetModel(){
+  trainNet=null; lossHistory=[]; valLossHistory=[]; bestLoss=Infinity;
+  setStatus('idle','Model reset.');
+  document.getElementById('progress-bar').style.width='0%';
+  document.getElementById('progress-label').textContent='Epoch 0 / 0';
+  document.getElementById('progress-pct').textContent='0%';
+  ['m-loss','m-best','m-epoch','m-acc','m-val-loss','m-time','m-lr'].forEach(id=>document.getElementById(id).textContent='—');
+  document.getElementById('export-panel').style.display='none';
+  drawLossChart();
+  log('Model reset.');
+}
+
+// ── LOSS CHART ──
+function drawLossChart(){
+  const canvas=lossCanvas;
+  const dpr=window.devicePixelRatio||1;
+  const rect=canvas.getBoundingClientRect();
+  canvas.width=rect.width*dpr; canvas.height=rect.height*dpr;
+  const ctx=lossCtx; ctx.scale(dpr,dpr);
+  const W=rect.width,H=rect.height;
+  ctx.clearRect(0,0,W,H);
+
+  const bg=getComputedStyle(document.documentElement).getPropertyValue('--bg3').trim();
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  if(lossHistory.length<2){
+    ctx.fillStyle='rgba(255,255,255,0.1)';ctx.font='12px DM Mono,monospace';
+    ctx.textAlign='center';ctx.fillText('No data yet',W/2,H/2); return;
+  }
+
+  const pad={t:10,r:10,b:24,l:45};
+  const cW=W-pad.l-pad.r, cH=H-pad.t-pad.b;
+  const allLoss=[...lossHistory,...valLossHistory];
+  const maxL=Math.max(...allLoss)*1.1||1;
+  const minL=Math.min(...allLoss)*0.9;
+
+  const toX=i=>pad.l+i/(lossHistory.length-1)*cW;
+  const toY=v=>pad.t+(1-(v-minL)/(maxL-minL))*cH;
+
+  // Grid
+  ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=pad.t+i/4*cH;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cW,y);ctx.stroke();
+    const v=maxL-(i/4)*(maxL-minL);
+    ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font='9px DM Mono,monospace';ctx.textAlign='right';
+    ctx.fillText(v.toFixed(3),pad.l-4,y+3);
+  }
+
+  // Val loss (dotted)
+  if(valLossHistory.length>1){
+    ctx.beginPath();ctx.strokeStyle='rgba(74,158,138,0.6)';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+    valLossHistory.forEach((v,i)=>{const x=toX(Math.floor(i*lossHistory.length/valLossHistory.length));const y=toY(v);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+    ctx.stroke();ctx.setLineDash([]);
+  }
+
+  // Train loss
+  ctx.beginPath();ctx.strokeStyle='rgba(139,92,246,0.9)';ctx.lineWidth=2;
+  lossHistory.forEach((v,i)=>{const x=toX(i),y=toY(v);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.stroke();
+
+  // Fill
+  ctx.beginPath();ctx.moveTo(toX(0),toY(lossHistory[0]));
+  lossHistory.forEach((v,i)=>{ctx.lineTo(toX(i),toY(v));});
+  ctx.lineTo(toX(lossHistory.length-1),pad.t+cH);ctx.lineTo(toX(0),pad.t+cH);ctx.closePath();
+  const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+cH);
+  grad.addColorStop(0,'rgba(139,92,246,0.2)');grad.addColorStop(1,'rgba(139,92,246,0)');
+  ctx.fillStyle=grad;ctx.fill();
+
+  // Legend
+  ctx.fillStyle='rgba(139,92,246,0.8)';ctx.fillRect(pad.l,H-14,20,3);
+  ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='9px DM Mono,monospace';ctx.textAlign='left';
+  ctx.fillText('train',pad.l+24,H-11);
+  if(valLossHistory.length>1){
+    ctx.fillStyle='rgba(74,158,138,0.7)';ctx.fillRect(pad.l+70,H-14,20,3);
+    ctx.fillStyle='rgba(255,255,255,0.4)';ctx.fillText('val',pad.l+94,H-11);
+  }
+}
+
+// Resize canvas on window resize
+const ro=new ResizeObserver(()=>drawLossChart());
+ro.observe(lossCanvas);
+
+// ── UTILS ──
+function setStatus(type,msg){
+  const bar=document.getElementById('status-bar');
+  const pulse=document.getElementById('status-pulse');
+  const text=document.getElementById('status-text');
+  bar.className='status-bar '+type;
+  text.textContent=msg;
+  pulse.style.display=type==='training'?'block':'none';
+}
+
+function log(msg,type=''){
+  const box=document.getElementById('log-box');
+  const line=document.createElement('div');
+  line.className='log-line'+(type?'-'+type:'');
+  line.textContent='['+new Date().toLocaleTimeString()+'] '+msg;
+  box.appendChild(line);
+  box.scrollTop=box.scrollHeight;
+}
+function clearLog(){document.getElementById('log-box').innerHTML='<div class="log-line-info">Log cleared.</div>';}
+
+function setLR(exp){
+  document.getElementById('lr-range').value=exp;
+  document.getElementById('lr-val').textContent=Math.pow(10,exp).toFixed(exp<-2?5:4);
+}
+
+function updateConfigBadge(){
+  const lr=Math.pow(10,+document.getElementById('lr-range').value).toFixed(5);
+  document.getElementById('m-lr').textContent=lr;
+}
+
+function updateInfoPreview(){
+  const name=document.getElementById('model-name').value||'My Model';
+  const size=document.getElementById('model-size').value||'0.1B';
+  const ver=document.getElementById('model-version').value||'1.0';
+  const desc=document.getElementById('model-desc').value||'';
+  const tags=document.getElementById('model-tags').value||'';
+  const fname=(name.replace(/\s+/g,'-').toLowerCase()||'model')+'.zyy';
+  document.getElementById('preview-name').textContent=name;
+  document.getElementById('preview-size').textContent=size;
+  document.getElementById('preview-version').textContent='v'+ver;
+  document.getElementById('preview-desc').textContent=desc;
+  document.getElementById('meta-preview').textContent=`${fname} | ${name} | ${size} | ${desc} | ${tags}`;
+}
+['model-name','model-size','model-version','model-desc','model-tags'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',updateInfoPreview);
+});
+
+function copyMetaEntry(){
+  const text=document.getElementById('meta-preview').textContent;
+  navigator.clipboard.writeText(text).then(()=>alert('Copied to clipboard!'));
+}
+
+// ── EXPORT ──
+function buildModelData(){
+  if(!trainNet) return null;
+  const pairs=parsePairs();
+  const name=document.getElementById('model-name').value||'My ZYY Model';
+  const size=document.getElementById('model-size').value||'0.1B';
+  const ver=document.getElementById('model-version').value||'1.0';
+  const desc=document.getElementById('model-desc').value||'';
+  const tags=document.getElementById('model-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const qaMap={};for(const[q,a]of pairs)qaMap[q.toLowerCase()]=a;
+  return{
+    net:trainNet.serialize(), vocab:trainVocab, qaMap, pairs,
+    meta:{name,size,version:ver,desc,tags,sizes:trainNet.sizes,activation:trainNet.act,optimizer:document.getElementById('optimizer').value}
+  };
+}
+
+function exportModel(){
+  const data=buildModelData();
+  if(!data){alert('Train a model first.');return;}
+  const name=(data.meta.name||'model').replace(/\s+/g,'-').toLowerCase();
+  const json=JSON.stringify(data,null,0);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=name+'.zyy';a.click();
+  URL.revokeObjectURL(url);
+  log('✓ Exported: '+name+'.zyy ('+Math.round(json.length/1024)+' KB)','ok');
+}
+
+function copyModelJSON(){
+  const data=buildModelData();
+  if(!data){alert('Train a model first.');return;}
+  navigator.clipboard.writeText(JSON.stringify(data)).then(()=>alert('Model JSON copied to clipboard!'));
+}
+
+// ── IMPORT ──
+function importModel(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      const pairs=data.pairs||[];
+      if(pairs.length===0){alert('No training pairs found in this file.');return;}
+      const lines=pairs.map(([q,a])=>`${q} | ${a}`).join('\n');
+      document.getElementById('data-input').value=lines;
+      if(data.meta?.name)document.getElementById('model-name').value=data.meta.name;
+      if(data.meta?.size)document.getElementById('model-size').value=data.meta.size;
+      if(data.meta?.desc)document.getElementById('model-desc').value=data.meta.desc;
+      if(data.meta?.tags)document.getElementById('model-tags').value=data.meta.tags.join(', ');
+      updateDataStats();
+      log(`✓ Imported ${pairs.length} pairs from ${file.name}`,'ok');
+    }catch(err){
+      log('✗ Failed to import: '+err.message,'err');
+      alert('Could not parse .zyy file: '+err.message);
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+// Drag & drop for import zone
+const zone=document.getElementById('import-zone');
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover');});
+zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
+zone.addEventListener('drop',e=>{
+  e.preventDefault();zone.classList.remove('dragover');
+  const file=e.dataTransfer.files[0];
+  if(file){
+    const inp=document.getElementById('file-input');
+    const dt=new DataTransfer();dt.items.add(file);
+    inp.files=dt.files;importModel(inp);
+  }
+});
+
+// ── TEST MODEL ──
+function testModel(){
+  const q=document.getElementById('test-input').value.trim();
+  if(!q)return;
+  const out=document.getElementById('test-output');
+  out.style.display='block';
+
+  if(!trainNet){out.textContent='⚠ No model trained yet. Train a model first.';return;}
+  const pairs=parsePairs();
+  if(!pairs.length){out.textContent='No training data.';return;}
+
+  const lower=q.toLowerCase();
+  const qaMap={};for(const[qq,a]of pairs)qaMap[qq.toLowerCase()]=a;
+  if(qaMap[lower]){out.innerHTML=`<span style="color:var(--green)">Exact match</span>: ${qaMap[lower]}`;return;}
+
+  const retriever=new TFIDFRetriever(pairs);
+  const hits=retriever.query(lower,1);
+  if(hits.length&&hits[0].score>0.25){
+    out.innerHTML=`<span style="color:var(--accent2)">Retrieval (${(hits[0].score*100).toFixed(0)}%)</span>: ${hits[0].pair[1]}`;return;
+  }
+
+  const inp=ZYY.textToVec(lower,trainVocab,+document.getElementById('input-size').value);
+  const raw=trainNet.predict(inp);
+  const sm=ZYY.softmax(raw);
+  const maxP=Math.max(...sm);
+  const idx=sm.indexOf(maxP)%pairs.length;
+  out.innerHTML=`<span style="color:var(--accent)">Neural (${(maxP*100).toFixed(0)}%)</span>: ${pairs[idx][1]}`;
+}
+document.getElementById('test-input').addEventListener('keydown',e=>{if(e.key==='Enter')testModel();});
+
+// ── SAMPLE DATA ──
+function loadSample(){
+  const sample=`what is python | Python is a high-level, versatile programming language known for readability. It's dominant in AI, data science, web development, and automation.
+what is javascript | JavaScript is the primary language of the web, running in browsers and Node.js servers. It enables interactive interfaces and full-stack development.
+what is machine learning | Machine learning is a type of AI where systems learn patterns from data without explicit programming. It includes supervised, unsupervised, and reinforcement learning.
+what is a neural network | A neural network is a computing system inspired by the brain, composed of layers of interconnected neurons. It learns by adjusting weights through backpropagation.
+what is html | HTML (HyperText Markup Language) is the standard markup language for creating web pages. It structures content using elements like headings, links, and images.
+what is css | CSS (Cascading Style Sheets) controls the visual presentation of HTML documents — colors, fonts, layouts, and responsive design.
+what is an api | An API (Application Programming Interface) is a set of rules that allows different software applications to communicate with each other.
+what is git | Git is a distributed version control system that tracks changes in source code. It enables collaboration and maintains a full history of every project change.
+what is docker | Docker is a platform for packaging applications into containers — lightweight, portable environments that run consistently across different systems.
+what is a database | A database is an organized collection of structured data, managed by a DBMS. Types include relational (SQL) and non-relational (NoSQL) databases.
+what is sql | SQL (Structured Query Language) is a language for managing and querying relational databases. Core commands include SELECT, INSERT, UPDATE, DELETE, and JOIN.
+what is the cloud | Cloud computing delivers computing services — servers, storage, databases, and software — over the internet, enabling scalable, on-demand resources.
+what is open source | Open source software has publicly available source code that anyone can view, modify, and distribute. Examples include Linux, Python, React, and VS Code.
+what is an algorithm | An algorithm is a step-by-step procedure for solving a problem. Algorithms are analyzed for time complexity (Big O notation) and space efficiency.
+hello | Hello! I'm a custom ZYY model. How can I help you today?
+hi | Hi there! Ask me anything about technology, programming, or anything I've been trained on.
+thank you | You're welcome! Feel free to ask me anything else.
+goodbye | Goodbye! Come back whenever you have more questions.`;
+  document.getElementById('data-input').value=sample;
+  updateDataStats();
+  log('Loaded sample training data (15 pairs).');
+}
+
+function clearData(){
+  document.getElementById('data-input').value='';
+  updateDataStats();
+  log('Training data cleared.');
+}
+
+function sortData(){
+  const pairs=parsePairs();
+  pairs.sort((a,b)=>a[0].localeCompare(b[0]));
+  document.getElementById('data-input').value=pairs.map(([q,a])=>`${q} | ${a}`).join('\n');
+  updateDataStats();
+  log('Data sorted A→Z.');
+}
+
+// ── INIT ──
+renderLayers();
+updateDataStats();
+updateInfoPreview();
+drawLossChart();
+</script>
+</body>
+</html>
