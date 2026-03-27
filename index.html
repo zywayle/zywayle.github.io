@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>ZYY — Neural AI Chat</title>
+<title>Zywayle App</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -799,7 +799,7 @@ function App() {
         <div className="sidebar-header">
           <LogoImage size={32} radius={6}/>
           <div>
-            <div className="logo-text">ZYY Neural</div>
+            <div className="logo-text">Zywayle</div>
             <div className="logo-sub">AI Chat</div>
           </div>
         </div>
@@ -810,7 +810,7 @@ function App() {
             {today.map(c=>(
               <div key={c.id} className={`chat-row ${c.id===activeId?'active':''}`}
                 onClick={()=>{setActiveId(c.id);setSidebarOpen(false);}}>
-                <span className="chat-row-text">{c.title||'Untitled'}</span>
+                <span className="chat-row-text">{c.title||'U früher Schau kurz zurückntitled'}</span>
                 <button className="chat-del" onClick={e=>delChat(c.id,e)}>×</button>
               </div>
             ))}
