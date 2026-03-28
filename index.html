@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
 <title>Zywayle · AI Chat</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -18,7 +19,7 @@
   --bg2:#111111;
   --bg3:#181818;
   --bg4:#202020;
-  --bg5:#282828;
+  --bg5:#2a2a2a;
   --border:rgba(255,255,255,0.07);
   --border2:rgba(255,255,255,0.12);
   --border3:rgba(255,255,255,0.2);
@@ -35,15 +36,37 @@
   --sidebar-w:260px;
   --font:'Space Grotesk',sans-serif;
   --mono:'JetBrains Mono',monospace;
+  /* Mobile keyboard safe area */
+  --kb-safe:env(keyboard-inset-height, 0px);
 }
-html,body,#root{width:100%;height:100%;overflow:hidden;background:var(--bg);}
-body{font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiased;}
+
+/* ── RESET & BASE ── */
+html{height:100%;height:-webkit-fill-available;}
+body{
+  font-family:var(--font);color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  background:var(--bg);
+  /* Prevent layout shift when keyboard opens */
+  height:100%;height:-webkit-fill-available;
+  overflow:hidden;
+}
+#root{width:100%;height:100%;display:flex;flex-direction:column;}
+
 ::-webkit-scrollbar{width:2px;height:2px}
 ::-webkit-scrollbar-thumb{background:var(--bg5);}
 ::-webkit-scrollbar-track{background:transparent;}
 
-/* ── LAYOUT ── */
-.app{display:flex;height:100vh;overflow:hidden;}
+/* Material Icons size normalization */
+.material-icons-round{font-size:18px;line-height:1;vertical-align:middle;user-select:none;}
+
+/* ── APP LAYOUT — key: use dvh so keyboard shrinks the viewport ── */
+.app{
+  display:flex;
+  width:100%;
+  height:100dvh; /* dynamic viewport height = shrinks with keyboard */
+  overflow:hidden;
+}
+
 .sidebar-overlay{display:none;position:fixed;inset:0;z-index:40;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);}
 .sidebar-overlay.open{display:block;}
 
@@ -52,106 +75,102 @@ body{font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiase
   width:var(--sidebar-w);flex-shrink:0;
   background:var(--bg2);border-right:1px solid var(--border);
   display:flex;flex-direction:column;overflow:hidden;z-index:50;
-  position:relative;
-}
-.sidebar::after{
-  content:'';position:absolute;top:0;right:0;bottom:0;width:1px;
-  background:linear-gradient(to bottom,transparent,rgba(155,125,255,0.15) 30%,rgba(155,125,255,0.15) 70%,transparent);
-  pointer-events:none;
 }
 @media(max-width:768px){
-  .sidebar{position:fixed;left:0;top:0;height:100%;transform:translateX(-100%);transition:transform 0.24s cubic-bezier(0.16,1,0.3,1);box-shadow:8px 0 48px rgba(0,0,0,0.6);}
+  .sidebar{
+    position:fixed;left:0;top:0;height:100%;
+    transform:translateX(-100%);
+    transition:transform 0.22s cubic-bezier(0.16,1,0.3,1);
+    box-shadow:8px 0 48px rgba(0,0,0,0.6);
+  }
   .sidebar.open{transform:translateX(0);}
 }
 
-/* Sidebar header */
 .sidebar-header{
-  padding:18px 16px 16px;
-  border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:11px;flex-shrink:0;
+  padding:14px 14px 12px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
 }
-.logo-mark{
+.logo-img{
+  width:32px;height:32px;flex-shrink:0;object-fit:contain;
+  image-rendering:crisp-edges;
+}
+.logo-img-fallback{
   width:32px;height:32px;flex-shrink:0;
   background:var(--accent);
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:10px;font-weight:500;color:#fff;letter-spacing:-0.5px;
-  box-shadow:0 0 20px rgba(155,125,255,0.3),inset 0 1px 0 rgba(255,255,255,0.15);
-  transition:transform 0.2s,box-shadow 0.2s;cursor:default;
+  font-family:var(--mono);font-size:10px;color:#fff;
   clip-path:polygon(0 0,calc(100% - 6px) 0,100% 6px,100% 100%,6px 100%,0 calc(100% - 6px));
 }
-.logo-mark:hover{transform:scale(1.07);box-shadow:0 0 28px rgba(155,125,255,0.45);}
-.logo-text{font-size:15px;font-weight:700;letter-spacing:-0.4px;color:var(--text);}
-.logo-sub{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:1px;letter-spacing:0.5px;}
+.logo-text{font-size:15px;font-weight:700;letter-spacing:-0.4px;}
+.logo-sub{font-size:10px;color:var(--text3);font-family:var(--mono);letter-spacing:0.5px;}
 
-/* Sidebar body */
-.sidebar-body{flex:1;overflow-y:auto;padding:12px 10px;}
+.sidebar-body{flex:1;overflow-y:auto;padding:10px 8px;}
 .new-btn{
   display:flex;align-items:center;gap:8px;width:100%;
   padding:9px 12px;margin-bottom:10px;
   background:transparent;border:1px solid var(--border2);
   color:var(--text2);font-family:var(--font);font-size:12px;font-weight:600;
-  cursor:pointer;transition:all 0.14s;letter-spacing:0.2px;
-  position:relative;overflow:hidden;
+  cursor:pointer;transition:all 0.14s;
 }
-.new-btn::before{content:'';position:absolute;inset:0;background:var(--accent);opacity:0;transition:opacity 0.14s;}
-.new-btn:hover{border-color:var(--accentbd);color:var(--text);}
-.new-btn:hover::before{opacity:0.05;}
-.new-btn-icon{font-size:14px;flex-shrink:0;}
+.new-btn:hover{border-color:var(--accentbd);color:var(--text);background:var(--accentbg);}
+.new-btn .material-icons-round{font-size:16px;}
 
 .sec-label{
   font-size:9px;font-weight:600;color:var(--text4);
-  letter-spacing:2px;text-transform:uppercase;
-  padding:10px 8px 4px;
+  letter-spacing:2px;text-transform:uppercase;padding:10px 8px 4px;
 }
-
 .chat-row{
-  display:flex;align-items:center;gap:7px;
-  padding:7px 10px;cursor:pointer;
-  transition:background 0.1s;border:1px solid transparent;
-  margin-bottom:1px;
+  display:flex;align-items:center;gap:7px;padding:7px 10px;
+  cursor:pointer;transition:background 0.1s;border:1px solid transparent;margin-bottom:1px;
 }
 .chat-row:hover{background:var(--bg3);border-color:var(--border);}
 .chat-row.active{background:var(--bg3);border-color:var(--border2);}
 .chat-row-dot{width:5px;height:5px;flex-shrink:0;background:var(--text4);}
 .chat-row.active .chat-row-dot{background:var(--accent);}
-.chat-row-text{flex:1;font-size:12px;color:var(--text2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.4;}
+.chat-row-text{flex:1;font-size:12px;color:var(--text2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
 .chat-row.active .chat-row-text{color:var(--text);}
 .chat-del{
-  opacity:0;width:18px;height:18px;background:transparent;border:none;
+  opacity:0;width:20px;height:20px;background:transparent;border:none;
   color:var(--text3);font-size:15px;cursor:pointer;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;transition:color 0.1s;
+  display:flex;align-items:center;justify-content:center;transition:color 0.1s;padding:0;
 }
 .chat-row:hover .chat-del{opacity:1;}
 .chat-del:hover{color:#e07070;}
+.chat-del .material-icons-round{font-size:15px;}
 
-.empty-sidebar{padding:14px 8px;font-size:11px;color:var(--text4);line-height:1.7;text-align:center;}
-
-/* Sidebar footer */
-.sidebar-footer{flex-shrink:0;padding:8px 10px;border-top:1px solid var(--border);}
+.sidebar-footer{flex-shrink:0;padding:8px;border-top:1px solid var(--border);}
 .nav-row{
   display:flex;align-items:center;gap:9px;padding:8px 10px;
   font-size:12px;color:var(--text2);cursor:pointer;transition:all 0.1s;
   border:1px solid transparent;margin-bottom:1px;text-decoration:none;
 }
 .nav-row:hover{background:var(--bg3);color:var(--text);border-color:var(--border);}
-.nav-icon{font-size:12px;opacity:0.5;flex-shrink:0;font-family:var(--mono);}
+.nav-row .material-icons-round{font-size:15px;opacity:0.5;}
 
 /* ── MAIN ── */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.main{
+  flex:1;display:flex;flex-direction:column;
+  overflow:hidden;min-width:0;
+  /* Fill remaining height — keyboard will shrink this */
+}
 
 /* ── TOPBAR ── */
 .topbar{
   display:flex;align-items:center;gap:8px;
-  padding:10px 16px;border-bottom:1px solid var(--border);
-  background:rgba(10,10,10,0.92);backdrop-filter:blur(24px);
+  padding:10px 14px;border-bottom:1px solid var(--border);
+  background:rgba(10,10,10,0.95);backdrop-filter:blur(24px);
   flex-shrink:0;z-index:10;
+  /* Prevent topbar from being pushed off screen on mobile */
+  position:sticky;top:0;
 }
 .menu-btn{
-  display:none;align-items:center;justify-content:center;width:30px;height:30px;
-  background:transparent;border:1px solid var(--border);color:var(--text2);
-  cursor:pointer;font-size:16px;flex-shrink:0;transition:all 0.1s;
+  display:none;align-items:center;justify-content:center;
+  width:32px;height:32px;background:transparent;
+  border:1px solid var(--border);color:var(--text2);
+  cursor:pointer;font-size:16px;flex-shrink:0;transition:all 0.1s;padding:0;
 }
 .menu-btn:hover{background:var(--bg3);color:var(--text);}
+.menu-btn .material-icons-round{font-size:20px;}
 @media(max-width:768px){.menu-btn{display:flex;}}
 
 .model-pill{
@@ -161,133 +180,130 @@ body{font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiase
 }
 .model-pill:hover{background:var(--bg4);border-color:var(--border3);}
 .model-dot{
-  width:7px;height:7px;flex-shrink:0;
-  background:var(--accent2);
+  width:7px;height:7px;flex-shrink:0;background:var(--accent2);
   clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);
   animation:roto 4s linear infinite;
 }
 @keyframes roto{to{transform:rotate(360deg);}}
-.model-pill-name{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.model-pill-name{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+@media(max-width:480px){.model-pill-name{max-width:90px;}}
 .model-size-badge{
   font-family:var(--mono);font-size:9px;color:var(--accent);
-  background:var(--accentbg);border:1px solid var(--accentbd);
-  padding:1px 5px;letter-spacing:0.3px;
+  background:var(--accentbg);border:1px solid var(--accentbd);padding:1px 5px;
 }
-.model-caret{font-size:9px;color:var(--text4);margin-left:2px;}
 .topbar-gap{flex:1;}
 .tb-btn{
-  width:30px;height:30px;background:transparent;
-  border:1px solid var(--border);color:var(--text2);
-  cursor:pointer;font-size:14px;transition:all 0.1s;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  width:32px;height:32px;background:transparent;border:1px solid var(--border);
+  color:var(--text2);cursor:pointer;transition:all 0.1s;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;
 }
 .tb-btn:hover{background:var(--bg3);color:var(--text);border-color:var(--border2);}
+.tb-btn .material-icons-round{font-size:18px;}
 .model-loading-pill{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text3);font-family:var(--mono);}
 
-/* ── CHAT AREA ── */
-.chat-area{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;}
-.chat-scroll{max-width:760px;width:100%;margin:0 auto;padding:24px 16px 8px;display:flex;flex-direction:column;gap:0;min-height:100%;}
+/* ── CHAT AREA — takes remaining space, scrollable ── */
+.chat-area{
+  flex:1;
+  overflow-y:auto;overflow-x:hidden;
+  position:relative;
+  /* Smooth momentum scroll on iOS */
+  -webkit-overflow-scrolling:touch;
+}
+.chat-scroll{
+  max-width:760px;width:100%;margin:0 auto;
+  padding:20px 14px 8px;
+  display:flex;flex-direction:column;gap:0;
+  min-height:100%;
+}
 
 /* ── WELCOME ── */
 .welcome{
   flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;padding:40px 20px;gap:20px;
+  text-align:center;padding:32px 16px;gap:18px;
   animation:wIn 0.5s cubic-bezier(0.16,1,0.3,1) both;
 }
 @keyframes wIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
-.welcome-icon-wrap{position:relative;margin-bottom:4px;}
+.welcome-icon-wrap{position:relative;}
 .welcome-logo{
-  width:72px;height:72px;
-  background:var(--bg3);border:1px solid var(--border2);
+  width:68px;height:68px;
   display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:20px;font-weight:500;color:var(--accent);
-  position:relative;
+  position:relative;animation:logoPop 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;
+}
+@keyframes logoPop{from{opacity:0;transform:scale(0.4);}to{opacity:1;transform:scale(1);}}
+.welcome-logo img{width:68px;height:68px;object-fit:contain;}
+.welcome-logo-fallback{
+  width:68px;height:68px;background:var(--bg3);border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:20px;color:var(--accent);
   clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
   box-shadow:0 0 40px rgba(155,125,255,0.12);
-  animation:logoPop 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;
-  transition:box-shadow 0.3s;cursor:default;
 }
-.welcome-logo:hover{box-shadow:0 0 60px rgba(155,125,255,0.22);}
-@keyframes logoPop{from{opacity:0;transform:scale(0.5);}to{opacity:1;transform:scale(1);}}
 .welcome-glow{
-  position:absolute;width:140px;height:140px;
+  position:absolute;width:130px;height:130px;
   background:radial-gradient(circle,rgba(155,125,255,0.18) 0%,transparent 70%);
   top:50%;left:50%;transform:translate(-50%,-50%);
   pointer-events:none;animation:glowPulse 3s ease-in-out infinite;
 }
 @keyframes glowPulse{0%,100%{opacity:0.6;transform:translate(-50%,-50%) scale(1);}50%{opacity:1;transform:translate(-50%,-50%) scale(1.15);}}
-.welcome h1{font-size:26px;font-weight:700;letter-spacing:-0.7px;color:var(--text);animation:wIn 0.5s 0.1s both;}
-.welcome-sub{font-size:13px;color:var(--text2);line-height:1.75;max-width:340px;animation:wIn 0.5s 0.15s both;}
+.welcome h1{font-size:24px;font-weight:700;letter-spacing:-0.6px;}
+.welcome-sub{font-size:13px;color:var(--text2);line-height:1.75;max-width:320px;}
 .no-model-badge{
   padding:10px 16px;background:var(--bg3);border:1px solid var(--border2);
   font-size:12px;color:var(--text2);line-height:1.5;max-width:320px;
 }
 .no-model-badge strong{color:var(--accent);}
 
-/* Suggestion grid */
-.suggestions{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:480px;animation:wIn 0.5s 0.2s both;}
+.suggestions{display:grid;grid-template-columns:1fr 1fr;gap:7px;width:100%;max-width:460px;}
 @media(max-width:440px){.suggestions{grid-template-columns:1fr;}}
 .suggestion{
-  padding:11px 14px;background:var(--bg3);border:1px solid var(--border);
+  padding:11px 13px;background:var(--bg3);border:1px solid var(--border);
   text-align:left;cursor:pointer;transition:all 0.14s;
-  position:relative;overflow:hidden;
 }
-.suggestion::before{content:'';position:absolute;inset:0;background:var(--accent);opacity:0;transition:opacity 0.14s;}
-.suggestion:hover::before{opacity:0.04;}
-.suggestion:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,0,0,0.3);}
-.s-label{font-size:12px;font-weight:600;color:var(--text);position:relative;}
-.s-sub{font-size:10px;color:var(--text3);margin-top:3px;font-family:var(--mono);letter-spacing:0.3px;position:relative;}
+.suggestion:hover{border-color:var(--border2);transform:translateY(-1px);background:var(--bg4);}
+.s-label{font-size:12px;font-weight:600;color:var(--text);}
+.s-sub{font-size:10px;color:var(--text3);margin-top:3px;font-family:var(--mono);}
 
 /* ── MESSAGES ── */
-.messages-list{display:flex;flex-direction:column;gap:0;width:100%;}
-
 .msg-group{
-  display:flex;gap:14px;padding:16px 0;
+  display:flex;gap:12px;padding:14px 0;
   border-bottom:1px solid var(--border);
   animation:mIn 0.28s cubic-bezier(0.16,1,0.3,1) both;
 }
 .msg-group:last-of-type{border-bottom:none;}
 @keyframes mIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
-.msg-group.user{background:transparent;}
-.msg-group.ai{background:transparent;}
 
 .avatar{
   width:28px;height:28px;flex-shrink:0;margin-top:1px;
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:8px;font-weight:500;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
 }
 .avatar.ai{
-  background:var(--accent);color:#fff;
+  background:var(--accent);
   clip-path:polygon(0 0,calc(100% - 5px) 0,100% 5px,100% 100%,5px 100%,0 calc(100% - 5px));
-  box-shadow:0 0 16px rgba(155,125,255,0.3);
+  box-shadow:0 0 14px rgba(155,125,255,0.3);
 }
+.avatar.ai img{width:22px;height:22px;object-fit:contain;}
+.avatar.ai .ava-fallback{font-family:var(--mono);font-size:8px;color:#fff;font-weight:500;}
 .avatar.user{
-  background:var(--bg4);border:1px solid var(--border2);color:var(--text2);
+  background:var(--bg4);border:1px solid var(--border2);
+  font-family:var(--mono);font-size:8px;color:var(--text2);font-weight:500;
 }
 
 .msg-inner{flex:1;min-width:0;}
-.msg-sender{font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:600;letter-spacing:0.3px;display:flex;align-items:center;gap:8px;}
-
-.bubble{
-  font-size:13.5px;line-height:1.78;word-break:break-word;color:var(--text);
+.msg-sender{
+  font-size:11px;color:var(--text3);margin-bottom:5px;
+  font-weight:600;letter-spacing:0.3px;display:flex;align-items:center;gap:6px;
 }
-.msg-group.user .bubble{color:var(--text);}
-.bubble-img{
-  max-width:200px;max-height:140px;margin-bottom:8px;
-  display:block;border:1px solid var(--border2);object-fit:cover;
-}
+.bubble{font-size:13.5px;line-height:1.78;word-break:break-word;color:var(--text);}
+.bubble-img{max-width:180px;max-height:130px;margin-bottom:8px;display:block;border:1px solid var(--border2);object-fit:cover;}
 
 .conf-tag{
   display:inline-flex;align-items:center;gap:5px;font-size:9px;color:var(--text3);
-  font-family:var(--mono);margin-top:8px;padding:3px 7px;background:var(--bg3);
-  border:1px solid var(--border);letter-spacing:0.3px;
+  font-family:var(--mono);margin-top:8px;padding:3px 7px;
+  background:var(--bg3);border:1px solid var(--border);
 }
 .conf-dot{width:5px;height:5px;flex-shrink:0;clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);}
 
-/* Typing */
-.typing{
-  display:inline-flex;align-items:center;gap:5px;padding:8px 0;
-}
+.typing{display:inline-flex;align-items:center;gap:5px;padding:6px 0;}
 .typing-dot{width:5px;height:5px;background:var(--text3);animation:blink 1.2s ease-in-out infinite;}
 .typing-dot:nth-child(2){animation-delay:0.18s}.typing-dot:nth-child(3){animation-delay:0.36s}
 @keyframes blink{0%,100%{opacity:0.15;transform:scale(0.7);}50%{opacity:1;transform:scale(1.2);}}
@@ -295,28 +311,31 @@ body{font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiase
 /* ── INPUT AREA ── */
 .input-wrap{
   flex-shrink:0;
-  padding:0;
   border-top:1px solid var(--border);
   background:var(--bg2);
+  /* Safe area for notch/home indicator */
+  padding-bottom:env(safe-area-inset-bottom, 0px);
 }
-.input-container{
-  max-width:760px;margin:0 auto;padding:12px 16px 16px;
-}
+.input-container{max-width:760px;margin:0 auto;padding:10px 14px 12px;}
+
 .pending-img-bar{
   display:flex;align-items:center;gap:10px;
-  padding:8px 12px;background:var(--bg3);
-  border:1px solid var(--border2);border-bottom:none;
-  margin-bottom:0;
+  padding:8px 12px;background:var(--bg3);border:1px solid var(--border2);
+  border-bottom:none;margin-bottom:0;
 }
 .pending-img-thumb{width:36px;height:36px;object-fit:cover;border:1px solid var(--border2);}
 .pending-img-label{font-size:11px;color:var(--text2);flex:1;line-height:1.4;}
-.pending-img-remove{background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1;padding:2px 4px;transition:color 0.1s;}
+.pending-img-remove{
+  background:transparent;border:none;color:var(--text3);cursor:pointer;
+  display:flex;align-items:center;padding:0;transition:color 0.1s;
+}
 .pending-img-remove:hover{color:var(--text);}
+.pending-img-remove .material-icons-round{font-size:18px;}
 
 .input-inner{
   display:flex;align-items:flex-end;gap:8px;
   background:var(--bg3);border:1px solid var(--border2);
-  padding:10px 10px 10px 14px;
+  padding:10px 8px 10px 13px;
   transition:border-color 0.15s,box-shadow 0.15s;
 }
 .input-inner:focus-within{
@@ -325,38 +344,46 @@ body{font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiase
 }
 .input-inner textarea{
   flex:1;background:transparent;border:none;outline:none;
-  color:var(--text);font-family:var(--font);font-size:13.5px;
-  line-height:1.6;resize:none;min-height:22px;max-height:160px;
+  color:var(--text);font-family:var(--font);font-size:14px;
+  line-height:1.55;resize:none;
+  min-height:22px;max-height:140px;
   overflow-y:auto;scrollbar-width:none;
+  /* Prevent iOS zoom on focus */
+  font-size:max(14px, 16px);
 }
+/* On desktop, keep 14px */
+@media(min-width:769px){.input-inner textarea{font-size:14px;}}
 .input-inner textarea::-webkit-scrollbar{display:none;}
 .input-inner textarea::placeholder{color:var(--text4);}
 
-.input-actions{display:flex;align-items:flex-end;gap:6px;flex-shrink:0;}
-.img-btn{
-  width:30px;height:30px;flex-shrink:0;background:transparent;
+.input-actions{display:flex;align-items:flex-end;gap:5px;flex-shrink:0;}
+.input-icon-btn{
+  width:32px;height:32px;flex-shrink:0;background:transparent;
   border:1px solid var(--border);color:var(--text3);cursor:pointer;
-  display:flex;align-items:center;justify-content:center;font-size:13px;
-  transition:all 0.12s;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.12s;padding:0;
 }
-.img-btn:hover{background:var(--bg4);color:var(--text);border-color:var(--border2);}
-.img-btn:disabled{opacity:0.25;cursor:not-allowed;}
+.input-icon-btn:hover{background:var(--bg4);color:var(--text);border-color:var(--border2);}
+.input-icon-btn:disabled{opacity:0.25;cursor:not-allowed;}
+.input-icon-btn .material-icons-round{font-size:18px;}
+
 .send-btn{
-  width:30px;height:30px;flex-shrink:0;
+  width:32px;height:32px;flex-shrink:0;
   background:var(--accent);border:none;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;
-  transition:all 0.14s;
+  display:flex;align-items:center;justify-content:center;color:#fff;
+  transition:all 0.14s;padding:0;
   box-shadow:0 2px 12px rgba(155,125,255,0.3);
   clip-path:polygon(0 0,calc(100% - 5px) 0,100% 5px,100% 100%,5px 100%,0 calc(100% - 5px));
 }
 .send-btn:hover:not(:disabled){background:var(--accent-h);box-shadow:0 4px 20px rgba(155,125,255,0.5);}
 .send-btn:disabled{opacity:0.25;cursor:not-allowed;box-shadow:none;}
+.send-btn .material-icons-round{font-size:18px;}
 
 .input-hint{
-  font-size:10px;color:var(--text4);text-align:center;padding-top:8px;line-height:1.4;
-  font-family:var(--mono);
+  font-size:10px;color:var(--text4);text-align:center;
+  padding-top:7px;line-height:1.4;font-family:var(--mono);
 }
-.input-hint span{color:var(--accent);cursor:pointer;transition:opacity 0.1s;}
+.input-hint span{color:var(--accent);cursor:pointer;}
 .input-hint span:hover{opacity:0.7;}
 
 /* ── SPINNER ── */
@@ -376,7 +403,7 @@ body{font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiase
 @keyframes ovIn{from{opacity:0;}to{opacity:1;}}
 .modal{
   background:var(--bg2);border:1px solid var(--border2);
-  width:100%;max-width:460px;max-height:88vh;overflow:hidden;
+  width:100%;max-width:460px;max-height:88dvh;overflow:hidden;
   display:flex;flex-direction:column;
   animation:moPop 0.22s cubic-bezier(0.16,1,0.3,1);
   box-shadow:0 24px 80px rgba(0,0,0,0.6);
@@ -384,61 +411,58 @@ body{font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiase
 @keyframes moPop{from{opacity:0;transform:scale(0.95) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);}}
 .modal-head{
   display:flex;align-items:center;justify-content:space-between;
-  padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0;
+  padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0;
 }
 .modal-title{font-size:14px;font-weight:700;letter-spacing:-0.3px;}
 .modal-sub{font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono);}
 .close-btn{
-  width:28px;height:28px;background:transparent;border:1px solid var(--border);
-  color:var(--text3);cursor:pointer;font-size:17px;transition:all 0.12s;
-  display:flex;align-items:center;justify-content:center;
+  width:30px;height:30px;background:transparent;border:1px solid var(--border);
+  color:var(--text3);cursor:pointer;transition:all 0.12s;
+  display:flex;align-items:center;justify-content:center;padding:0;
 }
 .close-btn:hover{background:var(--bg3);color:var(--text);}
+.close-btn .material-icons-round{font-size:18px;}
 .modal-body{padding:16px 18px;overflow-y:auto;flex:1;}
 .modal-sec{font-size:9px;font-weight:700;color:var(--text4);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;}
 
-/* Model items */
 .model-item{
   display:flex;align-items:flex-start;gap:12px;padding:11px 13px;
   border:1px solid var(--border);background:var(--bg3);cursor:pointer;
   transition:all 0.14s;margin-bottom:5px;
 }
-.model-item:hover{background:var(--bg4);border-color:var(--border2);transform:translateY(-1px);}
+.model-item:hover{background:var(--bg4);border-color:var(--border2);}
 .model-item.selected{border-color:var(--accentbd);background:var(--accentbg);}
 .model-icon{font-size:14px;flex-shrink:0;margin-top:2px;color:var(--accent);font-family:var(--mono);}
 .model-info{flex:1;min-width:0;}
-.model-name{font-size:12px;font-weight:600;color:var(--text);}
+.model-name{font-size:12px;font-weight:600;}
 .model-desc{font-size:11px;color:var(--text2);margin-top:2px;line-height:1.4;}
 .model-meta-row{display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap;}
 .model-size{font-family:var(--mono);font-size:9px;color:var(--accent);background:var(--accentbg);border:1px solid var(--accentbd);padding:1px 5px;}
 .model-tags{display:flex;gap:3px;flex-wrap:wrap;}
 .tag{font-size:9px;font-family:var(--mono);padding:1px 5px;background:var(--bg4);border:1px solid var(--border);color:var(--text2);}
 .tag.accent{background:var(--accentbg);border-color:var(--accentbd);color:var(--accent);}
-.model-check{flex-shrink:0;font-size:13px;color:var(--accent);font-family:var(--mono);}
+.model-check{flex-shrink:0;font-size:13px;color:var(--accent);}
 .no-models{padding:24px 16px;text-align:center;font-size:12px;color:var(--text3);border:1px dashed var(--border);line-height:1.9;}
 .no-models code{font-family:var(--mono);color:var(--text2);}
 
-/* Settings */
 .settings-section{margin-bottom:18px;}
 .settings-section:last-child{margin-bottom:0;}
 .settings-label{font-size:9px;font-weight:700;color:var(--text4);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;font-family:var(--mono);}
 .settings-row{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;background:var(--bg3);border:1px solid var(--border);margin-bottom:5px;}
 .settings-row-info{flex:1;padding-right:12px;}
-.settings-row-title{font-size:12px;font-weight:600;color:var(--text);}
+.settings-row-title{font-size:12px;font-weight:600;}
 .settings-row-sub{font-size:10px;color:var(--text3);margin-top:2px;line-height:1.4;font-family:var(--mono);}
 .danger-btn{padding:6px 12px;background:rgba(220,70,70,0.08);border:1px solid rgba(220,70,70,0.2);color:#d96060;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.12s;white-space:nowrap;}
-.danger-btn:hover{background:rgba(220,70,70,0.16);color:#e87070;}
-.info-banner{display:flex;align-items:flex-start;gap:9px;padding:10px 13px;background:var(--accentbg);border:1px solid var(--accentbd);font-size:11px;color:var(--text2);line-height:1.6;}
-.info-banner-icon{font-size:12px;flex-shrink:0;opacity:0.5;font-family:var(--mono);margin-top:1px;}
+.danger-btn:hover{background:rgba(220,70,70,0.16);}
+.info-banner{display:flex;align-items:flex-start;gap:9px;padding:10px 13px;background:var(--accentbg);border:1px solid var(--accentbd);font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:10px;}
+.info-banner .material-icons-round{font-size:14px;opacity:0.6;flex-shrink:0;margin-top:1px;}
 
-/* Plans */
 .plans-coming{display:flex;flex-direction:column;align-items:center;text-align:center;padding:28px 16px;gap:12px;}
-.plans-coming-icon{font-size:28px;}
-.plans-coming h3{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.3px;}
+.plans-coming .material-icons-round{font-size:36px;color:var(--accent);}
+.plans-coming h3{font-size:16px;font-weight:700;letter-spacing:-0.3px;}
 .plans-coming p{font-size:12px;color:var(--text2);line-height:1.65;max-width:280px;}
-.plans-badge{padding:3px 10px;background:var(--accentbg);border:1px solid var(--accentbd);font-size:9px;font-family:var(--mono);color:var(--accent);letter-spacing:0.5px;}
+.plans-badge{padding:3px 10px;background:var(--accentbg);border:1px solid var(--accentbd);font-size:9px;font-family:var(--mono);color:var(--accent);}
 
-/* OCR */
 .ocr-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .ocr-option-btn{
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
@@ -446,7 +470,7 @@ body{font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiase
   cursor:pointer;transition:all 0.14s;color:var(--text2);font-size:12px;font-weight:600;
 }
 .ocr-option-btn:hover{background:var(--bg4);border-color:var(--accentbd);color:var(--text);}
-.ocr-option-icon{font-size:24px;}
+.ocr-option-btn .material-icons-round{font-size:28px;}
 .ocr-progress{display:flex;flex-direction:column;align-items:center;gap:14px;padding:28px 16px;}
 .ocr-progress-label{font-size:12px;color:var(--text2);font-family:var(--mono);}
 .ocr-progress-bar-wrap{width:100%;height:3px;background:var(--bg4);overflow:hidden;}
@@ -458,20 +482,35 @@ body{font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiase
 .ocr-actions{display:flex;gap:7px;flex-wrap:wrap;}
 .ocr-btn{flex:1;padding:8px 12px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.12s;}
 .ocr-btn:hover{background:var(--bg4);color:var(--text);}
-.ocr-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 12px rgba(155,125,255,0.3);}
+.ocr-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
 .ocr-btn.primary:hover{background:var(--accent-h);}
 
 .chat-bottom-anchor{height:1px;}
+
+/* ── MOBILE KEYBOARD FIX ──
+   On mobile, when keyboard opens, the .app shrinks via 100dvh.
+   The topbar is sticky so it stays visible.
+   The chat-area flex:1 shrinks naturally.
+   The input-wrap flex-shrinks:0 always stays at bottom.
+   This means you can always see what you type. */
+@media(max-width:768px){
+  .input-container{padding:8px 10px 10px;}
+  .chat-scroll{padding:14px 10px 6px;}
+  .msg-group{padding:12px 0;}
+  .welcome{padding:24px 12px;gap:14px;}
+  .welcome h1{font-size:20px;}
+  .input-hint{display:none;} /* hide on mobile to save vertical space */
+}
 </style>
 </head>
 <body>
 <div id="root"></div>
 
 <script>
-/* ════════════════════════════════════════════════
-   ZYWAYLE ENGINE — Enhanced AI Inference
-   BM25 Retrieval + Intent Detection + Neural Net
-   ════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════
+   ZYWAYLE ENGINE — Neural AI with Creative Generation
+   BM25 · Intent · Neural Net · Creative Synthesis
+   ══════════════════════════════════════════════════ */
 
 window.ZYY = {
   randn(s=0.1){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)*s;},
@@ -497,31 +536,169 @@ window.ZYY = {
   },
   countParams(layers){return layers.reduce((s,l)=>s+l.W.length*l.W[0].length+l.b.length,0);},
   charNgrams(s,n=3){const res=new Set();const p=' '+s+' ';for(let i=0;i<=p.length-n;i++)res.add(p.slice(i,i+n));return res;},
-  ngramSim(a,b,n=3){const sa=ZYY.charNgrams(a.toLowerCase(),n),sb=ZYY.charNgrams(b.toLowerCase(),n);let inter=0;for(const x of sa)if(sb.has(x))inter++;return inter/Math.max(sa.size,sb.size,1);},
+  ngramSim(a,b,n=3){const sa=ZYY.charNgrams(a,n),sb=ZYY.charNgrams(b,n);let inter=0;for(const x of sa)if(sb.has(x))inter++;return inter/Math.max(sa.size,sb.size,1);},
+
+  /* ── Temperature sampling from softmax distribution ── */
+  sampleFromDist(probs, temperature=0.7){
+    // Apply temperature — lower = more focused, higher = more creative
+    const logits = probs.map(p => Math.log(Math.max(p, 1e-10)) / temperature);
+    return ZYY.softmax(logits);
+  },
+
+  /* ── Pick top-k indices probabilistically ── */
+  topKSample(probs, k=5){
+    const indexed = probs.map((p,i)=>({p,i})).sort((a,b)=>b.p-a.p).slice(0,k);
+    const total = indexed.reduce((s,x)=>s+x.p, 0);
+    let r = Math.random() * total;
+    for(const {p,i} of indexed){r -= p; if(r <= 0) return i;}
+    return indexed[0].i;
+  },
 };
 
+/* ── Creative Answer Synthesis Engine ── */
+const CREATIVE = {
+  /* Sentence-level transformations */
+  openings: [
+    '', // no opener (clean)
+    'Great question. ',
+    'Sure! ',
+    'Glad you asked. ',
+    'Here\'s what I know: ',
+    'Let me explain. ',
+    'Absolutely. ',
+    'Interesting! ',
+  ],
+  closings: [
+    '',
+    ' Hope that helps!',
+    ' Let me know if you\'d like to know more.',
+    ' Is there anything else you\'d like to know?',
+    ' Feel free to ask follow-up questions.',
+    ' Does that answer your question?',
+  ],
+
+  /* Split a response into sentences */
+  sentences(text){
+    return text.match(/[^.!?]+[.!?]*/g)?.map(s=>s.trim()).filter(s=>s.length>4) || [text];
+  },
+
+  /* Rephrase a sentence with light variation */
+  rephraseSentence(s){
+    const rephrases=[
+      [/^(It|This|That) (is|was|are|were)/i,'$1\'s'],
+      [/\bwhich is\b/i,'—'],
+      [/\bfor example\b/i,'e.g.'],
+      [/\bIn other words\b/i,'Put simply'],
+      [/\bused in\b/i,'applied in'],
+      [/\bcreated by\b/i,'built by'],
+      [/\ba type of\b/i,'a kind of'],
+      [/\bcommonly\b/i,'often'],
+      [/\butilized\b/i,'used'],
+      [/\bprimarily\b/i,'mainly'],
+    ];
+    let out = s;
+    // Apply 0–2 random rephrases
+    const count = Math.floor(Math.random()*2);
+    const shuffled = [...rephrases].sort(()=>Math.random()-0.5).slice(0, count+1);
+    for(const [pat, rep] of shuffled){
+      out = out.replace(pat, rep);
+    }
+    return out;
+  },
+
+  /* Generate a creative variation of a known answer */
+  vary(text, temperature=0.6){
+    if(!text) return text;
+    const sents = this.sentences(text);
+    if(sents.length === 0) return text;
+
+    // Decide on structure based on temperature
+    const creative = temperature > 0.5;
+
+    // Optionally rephrase some sentences
+    const newSents = sents.map(s => {
+      if(creative && Math.random() < temperature * 0.5) return this.rephraseSentence(s);
+      return s;
+    });
+
+    // Maybe reorder middle sentences
+    if(creative && newSents.length > 2 && Math.random() < 0.3){
+      const mid = newSents.slice(1, -1);
+      mid.sort(()=>Math.random()-0.5);
+      newSents.splice(1, mid.length, ...mid);
+    }
+
+    let result = newSents.join(' ');
+
+    // Optionally prepend opening
+    if(creative && Math.random() < 0.25){
+      const opener = this.openings[Math.floor(Math.random()*this.openings.length)];
+      result = opener + result;
+    }
+
+    // Optionally append closing
+    if(creative && Math.random() < 0.15){
+      const closer = this.closings[Math.floor(Math.random()*this.closings.length)];
+      result = result.replace(/[.!?]*$/, '') + closer;
+    }
+
+    return result.trim();
+  },
+
+  /* Synthesize a response from multiple candidate answers */
+  synthesize(candidates, query){
+    if(candidates.length === 0) return null;
+    if(candidates.length === 1) return this.vary(candidates[0].text, 0.5);
+
+    // Extract sentences from top candidates
+    const allSents = [];
+    for(const c of candidates.slice(0,3)){
+      const sents = this.sentences(c.text);
+      allSents.push(...sents.map(s=>({s, score:c.score})));
+    }
+
+    // Score sentences by query relevance
+    const qToks = new Set(ZYY.tokenize(query));
+    const scored = allSents.map(({s, score})=>{
+      const sToks = ZYY.tokenize(s);
+      const overlap = sToks.filter(t=>qToks.has(t)).length;
+      return {s, score: score + overlap * 0.1};
+    });
+    scored.sort((a,b)=>b.score-a.score);
+
+    // Pick top unique sentences
+    const seen = new Set();
+    const selected = [];
+    for(const {s} of scored){
+      const key = s.slice(0,40).toLowerCase();
+      if(!seen.has(key)){seen.add(key);selected.push(s);}
+      if(selected.length >= 3) break;
+    }
+    if(selected.length === 0) return this.vary(candidates[0].text, 0.5);
+    return this.vary(selected.join(' '), 0.55);
+  },
+};
+
+/* ── BM25 Retriever ── */
 class BM25Retriever {
   constructor(pairs,k1=1.5,b=0.75){
     this.pairs=pairs;this.k1=k1;this.b=b;this.N=pairs.length;
     this.docs=pairs.map(([q])=>ZYY.tokenize(q));
     this.avgdl=this.docs.reduce((s,d)=>s+d.length,0)/(this.N||1);
-    this.df={};
-    for(const doc of this.docs)for(const t of new Set(doc))this.df[t]=(this.df[t]||0)+1;
+    this.df={};for(const doc of this.docs)for(const t of new Set(doc))this.df[t]=(this.df[t]||0)+1;
   }
   score(query,dIdx){
     const doc=this.docs[dIdx],dl=doc.length;
     const tf={};for(const t of doc)tf[t]=(tf[t]||0)+1;
-    const qt=new Set(ZYY.tokenize(query));
     let score=0;
-    for(const t of qt){
+    for(const t of new Set(ZYY.tokenize(query))){
       const df=this.df[t]||0;if(!df)continue;
       const idf=Math.log((this.N-df+0.5)/(df+0.5)+1);
-      const tfn=(tf[t]||0)*(this.k1+1)/((tf[t]||0)+this.k1*(1-this.b+this.b*dl/this.avgdl));
-      score+=idf*tfn;
+      score+=idf*(tf[t]||0)*(this.k1+1)/((tf[t]||0)+this.k1*(1-this.b+this.b*dl/this.avgdl));
     }
     return score;
   }
-  query(text,k=3){
+  queryTop(text,k=5){
     const scores=this.docs.map((_,i)=>({i,score:this.score(text,i)}));
     scores.sort((a,b)=>b.score-a.score);
     const max=scores[0]?.score||1;
@@ -529,6 +706,7 @@ class BM25Retriever {
   }
 }
 
+/* ── Neural Net ── */
 class NeuralNet {
   constructor(sizes,act='relu'){
     this.sizes=sizes;this.act=act;this.layers=[];this.t=0;
@@ -539,12 +717,7 @@ class NeuralNet {
       this.layers.push({W,b,mW:ZYY.zeros(fin,fout),mb:new Float32Array(fout),vW:ZYY.zeros(fin,fout),vb:new Float32Array(fout)});
     }
   }
-  activate(x){
-    if(this.act==='tanh')return Math.tanh(x);
-    if(this.act==='sigmoid')return ZYY.sigmoid(x);
-    if(this.act==='leaky')return ZYY.leaky(x);
-    return ZYY.relu(x);
-  }
+  activate(x){if(this.act==='tanh')return Math.tanh(x);if(this.act==='sigmoid')return ZYY.sigmoid(x);if(this.act==='leaky')return ZYY.leaky(x);return ZYY.relu(x);}
   forward(input){
     let a=Float32Array.from(input);
     for(let i=0;i<this.layers.length;i++){
@@ -564,58 +737,141 @@ class NeuralNet {
 }
 window.NeuralNet=NeuralNet;
 
+/* ── Intent patterns ── */
 const INTENTS=[
-  {re:/^(hi+|hello+|hey+|howdy|sup|yo|greetings)/,fn:()=>['Hello! How can I help you today?','Hey there! What can I do for you?','Hi! Ask me anything.'][Math.floor(Math.random()*3)]},
-  {re:/^(good (morning|afternoon|evening|night))/,fn:()=>['Good day! How can I assist?','Hello! Hope you\'re having a great day.'][Math.floor(Math.random()*2)]},
-  {re:/^(thanks?|thank you|thx|ty|cheers|appreciate)/,fn:()=>['You\'re welcome!','Happy to help!','Anytime!'][Math.floor(Math.random()*3)]},
-  {re:/^(bye|goodbye|see (you|ya)|cya|ttyl|later|farewell)/,fn:()=>['Goodbye! Come back anytime.','See you later!','Take care!'][Math.floor(Math.random()*3)]},
-  {re:/(who are you|what are you|your name|introduce yourself)/,fn:()=>'I\'m Zywayle, a custom-trained AI assistant running entirely in your browser. I use a neural network trained on custom data — no data leaves your device.'},
-  {re:/(how are you|how('re| are) you doing|you okay|you good)/,fn:()=>['Doing great, thanks for asking! How about you?','Running smoothly! What can I help with?'][Math.floor(Math.random()*2)]},
-  {re:/^(what can you (do|help)|help me|what do you know)/,fn:()=>'I can answer questions based on my training data. The more I\'ve been trained, the better I get! Try asking me anything.'},
-  {re:/^(ok+|okay|alright|sure|got it|i see|understood|makes sense)/,fn:()=>['Got it! Anything else?','Sure thing! What else can I help with?','Understood. Let me know if you need anything.'][Math.floor(Math.random()*3)]},
-  {re:/^(yes|yeah|yep|yup|correct|exactly|right|absolutely)/,fn:()=>['Great!','Awesome!','Perfect!'][Math.floor(Math.random()*3)]+' What else can I help you with?'},
-  {re:/^(no|nope|nah|not really)/,fn:()=>['No problem! Feel free to ask anything else.','Alright, let me know if there\'s anything I can do for you.'][Math.floor(Math.random()*2)]},
-  {re:/^(lol|lmao|haha|hehe|😂|😄)/,fn:()=>['Ha! 😄','Glad that amused you!','😄 Anything else I can help with?'][Math.floor(Math.random()*3)]},
+  {re:/^(hi+|hello+|hey+|howdy|sup|yo|greetings|hiya)/i,
+   fn:()=>CREATIVE.vary(['Hello! How can I help you today?','Hey there! What can I do for you?','Hi! Ask me anything you like.','Greetings! What\'s on your mind?'][Math.floor(Math.random()*4)],0.6)},
+  {re:/^(good (morning|afternoon|evening|night))/i,
+   fn:()=>CREATIVE.vary(['Good day! How can I assist?','Hello! Hope you\'re having a wonderful day.','Great time to chat! What can I help with?'][Math.floor(Math.random()*3)],0.6)},
+  {re:/^(thanks?|thank you|thx|ty|cheers|appreciate|ty+)/i,
+   fn:()=>['You\'re welcome! Happy to help anytime.','No problem at all!','Glad I could help! Anything else?','Anytime — feel free to ask more.'][Math.floor(Math.random()*4)]},
+  {re:/^(bye|goodbye|see (you|ya)|cya|ttyl|later|farewell|gotta go)/i,
+   fn:()=>['Goodbye! Come back anytime.','See you around! Take care.','Take care — it was great chatting!','Later! Feel free to return anytime.'][Math.floor(Math.random()*4)]},
+  {re:/(who are you|what are you|your name|introduce yourself|what\'s your name)/i,
+   fn:()=>'I\'m Zywayle, a neural AI running entirely in your browser. I\'m trained on custom data and I learn from whatever you teach me — and no data ever leaves your device.'},
+  {re:/(how are you|how('re| are) you doing|you okay|you good|how\'s it going)/i,
+   fn:()=>['Running great, thanks for asking! How can I help?','All systems good! What can I do for you?','Doing well — ready to help. What\'s up?'][Math.floor(Math.random()*3)]},
+  {re:/^(what can you (do|help with)|help me|what do you know|what do you do)/i,
+   fn:()=>'I can answer questions based on my training data. The more I\'ve been trained, the smarter and more helpful I become. Ask me anything!'},
+  {re:/^(ok+|okay|alright|sure|got it|i see|understood|makes sense|cool|nice)/i,
+   fn:()=>['Got it! Anything else I can help with?','Sure thing! What else can I do?','Understood — let me know if you need anything.','Cool! Feel free to ask more.'][Math.floor(Math.random()*4)]},
+  {re:/^(yes|yeah|yep|yup|correct|exactly|right|absolutely|definitely|for sure)/i,
+   fn:()=>['Great!','Awesome!','Perfect!','Excellent!'][Math.floor(Math.random()*4)]+' '+['What else can I help you with?','Anything else on your mind?','Feel free to keep asking!'][Math.floor(Math.random()*3)]},
+  {re:/^(no|nope|nah|not really|never mind|nevermind)/i,
+   fn:()=>['No problem! Let me know if there\'s anything I can help with.','Alright, I\'m here whenever you need me.','Sure — just ask if anything comes up.'][Math.floor(Math.random()*3)]},
+  {re:/^(lol|lmao|haha|hehe|😂|😄|funny|hilarious)/i,
+   fn:()=>['Ha! Glad you\'re amused!','😄 Laughter is the best! Anything I can help with?','Haha! What else can I do for you?'][Math.floor(Math.random()*3)]},
+  {re:/(tell me a joke|say something funny|make me laugh)/i,
+   fn:()=>['Why do programmers prefer dark mode? Because light attracts bugs! 🐛','I told a joke about a neural network once. It had terrible delivery but it kept improving with each retelling.','What does a neural net say when it\'s confused? "I\'m still learning."'][Math.floor(Math.random()*3)]},
+  {re:/(what time is it|what\'s the date|today\'s date)/i,
+   fn:()=>`It's ${new Date().toLocaleString()} on your device! I don't have internet access so I rely on your browser's clock.`},
+  {re:/(are you real|are you ai|are you a bot|are you human)/i,
+   fn:()=>'I\'m a real neural network — not a scripted chatbot. I run actual forward passes through layers of weights learned from training data, all inside your browser.'},
 ];
 
+/* ── Main inference engine with creative generation ── */
 function inferResponse(input, history, model) {
-  if(!model) return {text:"No model loaded. Open the model picker above and select a model to start chatting.",conf:0,method:'none'};
-  const lower=input.toLowerCase().trim();
-  for(const intent of INTENTS){if(intent.re.test(lower)){return {text:intent.fn(),conf:0.95,method:'intent'};}}
-  if(model.qaMap&&model.qaMap[lower])return {text:model.qaMap[lower],conf:1.0,method:'exact'};
-  if(model.bm25){
-    const hits=model.bm25.query(lower,3);
-    if(hits.length&&hits[0].score>0.35)return {text:hits[0].pair[1],conf:hits[0].score,method:'retrieval'};
-    if(history&&history.length>0){
-      const lastMsgs=history.slice(-4).map(m=>m.text).join(' ');
-      const ctxHits=model.bm25.query(lastMsgs+' '+input,2);
-      if(ctxHits.length&&ctxHits[0].score>0.28)return {text:ctxHits[0].pair[1],conf:ctxHits[0].score*0.88,method:'contextual'};
-      if(hits.length&&hits[0].score>0.15)return {text:hits[0].pair[1],conf:hits[0].score,method:'retrieval'};
+  if(!model) return {text:"No model loaded. Click the model selector above to choose one.",conf:0,method:'none'};
+  const lower = input.toLowerCase().trim();
+
+  // 1. Intent detection
+  for(const intent of INTENTS){
+    if(intent.re.test(lower)){
+      return {text:intent.fn(), conf:0.95, method:'intent'};
     }
   }
-  if(model.net&&model.vocab&&model.pairs&&model.pairs.length){
-    const inputSize=model.meta?.sizes?.[0]||128;
-    const inp=ZYY.textToVec(lower,model.vocab,inputSize);
-    const raw=model.net.predict(inp);
-    const sm=ZYY.softmax(raw);
-    const maxP=Math.max(...sm);
-    if(maxP>0.18){const idx=sm.indexOf(maxP)%model.pairs.length;return {text:model.pairs[idx][1],conf:maxP,method:'neural'};}
+
+  // 2. Exact lookup — but creatively vary the answer
+  if(model.qaMap && model.qaMap[lower]){
+    const exact = model.qaMap[lower];
+    const varied = CREATIVE.vary(exact, 0.45);
+    return {text:varied, conf:1.0, method:'exact'};
   }
+
+  // 3. BM25 retrieval — get top-k candidates and synthesize
+  if(model.bm25){
+    const hits = model.bm25.queryTop(lower, 5);
+    if(hits.length && hits[0].score > 0.3){
+      const candidates = hits.filter(h=>h.score>0.2).map(h=>({text:h.pair[1],score:h.score}));
+      const synthesized = candidates.length > 1
+        ? CREATIVE.synthesize(candidates, input)
+        : CREATIVE.vary(candidates[0].text, 0.5);
+      return {text:synthesized, conf:hits[0].score, method:'retrieval'};
+    }
+
+    // Context-aware retrieval
+    if(history && history.length > 0){
+      const ctx = history.slice(-4).map(m=>m.text).join(' ') + ' ' + input;
+      const ctxHits = model.bm25.queryTop(ctx, 3);
+      if(ctxHits.length && ctxHits[0].score > 0.25){
+        const varied = CREATIVE.vary(ctxHits[0].pair[1], 0.5);
+        return {text:varied, conf:ctxHits[0].score*0.88, method:'contextual'};
+      }
+      // Lower threshold
+      if(hits.length && hits[0].score > 0.12){
+        return {text:CREATIVE.vary(hits[0].pair[1], 0.5), conf:hits[0].score, method:'retrieval'};
+      }
+    } else if(hits.length && hits[0].score > 0.15){
+      return {text:CREATIVE.vary(hits[0].pair[1], 0.5), conf:hits[0].score, method:'retrieval'};
+    }
+  }
+
+  // 4. Neural network — temperature sampling from distribution
+  if(model.net && model.vocab && model.pairs && model.pairs.length){
+    const inputSize = model.meta?.sizes?.[0] || 128;
+    const inp = ZYY.textToVec(lower, model.vocab, inputSize);
+    const raw = model.net.predict(inp);
+    const probs = ZYY.softmax(raw);
+    // Sample with temperature instead of argmax — more creative
+    const sampledProbs = ZYY.sampleFromDist(probs, 0.8);
+    const idx = ZYY.topKSample(sampledProbs, Math.min(5, model.pairs.length));
+    const maxP = Math.max(...probs);
+    if(maxP > 0.15){
+      const safeIdx = idx % model.pairs.length;
+      const answer = model.pairs[safeIdx][1];
+      return {text:CREATIVE.vary(answer, 0.55), conf:maxP, method:'neural'};
+    }
+  }
+
+  // 5. N-gram fuzzy match
   if(model.pairs){
-    let best=null,bestScore=0;
-    for(const[q,a]of model.pairs){const s=ZYY.ngramSim(lower,q.toLowerCase(),3);if(s>bestScore){bestScore=s;best=a;}}
-    if(bestScore>0.45)return {text:best,conf:bestScore,method:'fuzzy'};
+    let bestScore=0, bestAnswers=[];
+    for(const[q,a] of model.pairs){
+      const s=ZYY.ngramSim(lower,q.toLowerCase(),3);
+      if(s>bestScore){bestScore=s;bestAnswers=[a];}
+      else if(s===bestScore&&bestAnswers.length<3) bestAnswers.push(a);
+    }
+    if(bestScore>0.42){
+      const pick = bestAnswers[Math.floor(Math.random()*bestAnswers.length)];
+      return {text:CREATIVE.vary(pick, 0.55), conf:bestScore, method:'fuzzy'};
+    }
   }
-  const toks=lower.split(/\s+/).filter(t=>t.length>2);
-  if(toks.length&&model.pairs){
+
+  // 6. Token overlap
+  const toks = lower.split(/\s+/).filter(t=>t.length>2);
+  if(toks.length && model.pairs){
     let best=null,bestScore=0;
-    for(const[q,a]of model.pairs){const qt=q.toLowerCase().split(/\s+/);const s=toks.filter(t=>qt.some(qw=>qw===t||qw.includes(t)||t.includes(qw))).length/toks.length;if(s>bestScore){bestScore=s;best=a;}}
-    if(bestScore>0.5)return {text:best,conf:bestScore,method:'token'};
+    for(const[q,a] of model.pairs){
+      const qt=q.toLowerCase().split(/\s+/);
+      const s=toks.filter(t=>qt.some(qw=>qw===t||qw.includes(t)||t.includes(qw))).length/toks.length;
+      if(s>bestScore){bestScore=s;best=a;}
+    }
+    if(bestScore>0.5) return {text:CREATIVE.vary(best, 0.5), conf:bestScore, method:'token'};
   }
-  const fallbacks=["I don't have a good answer for that based on my training. Could you rephrase?","That's outside my current training data. Try asking something else!","Hmm, I'm not sure about that one. Could you be more specific?","I don't quite understand — could you rephrase your question?","That's a good question, but I haven't been trained on it yet. Try something else!"];
-  return {text:fallbacks[Math.floor(Math.random()*fallbacks.length)],conf:0,method:'fallback'};
+
+  // 7. Creative fallback — varies the "don't know" response
+  const fallbacks=[
+    "I don't have a solid answer for that yet. Could you rephrase or ask something else?",
+    "That's outside my current training. Try asking in a different way!",
+    "Hmm, I'm not confident enough to answer that one. Could you be more specific?",
+    "I don't quite have that in my training data. Can you rephrase it?",
+    "Interesting question, but it's beyond what I've been trained on. Try something else!",
+    "I'm still learning! That particular topic isn't in my training yet.",
+  ];
+  return {text:fallbacks[Math.floor(Math.random()*fallbacks.length)], conf:0, method:'fallback'};
 }
 
+/* ── Model loading ── */
 async function fetchModels(){
   const models=[];
   try{
@@ -627,7 +883,7 @@ async function fetchModels(){
       if(parts.length>=2){
         const[file,name,size='',desc='',tagsStr='']=parts;
         const tags=tagsStr.split(',').map(t=>t.trim()).filter(Boolean);
-        models.push({id:'m_'+file.replace(/\.[^.]+$/,''),name,size,file:'./Models/'+file,desc:desc||'Custom trained Zywayle model',tags,type:'file'});
+        models.push({id:'m_'+file.replace(/\.[^.]+$/,''),name,size,file:'./Models/'+file,desc:desc||'Custom trained Zywayle model',tags});
       }
     }
   }catch{}
@@ -635,8 +891,7 @@ async function fetchModels(){
 }
 
 async function loadModelFile(url){
-  const r=await fetch(url);
-  if(!r.ok)throw new Error('Failed: '+url);
+  const r=await fetch(url);if(!r.ok)throw new Error('Failed: '+url);
   const data=await r.json();
   const net=NeuralNet.deserialize(data.net||data);
   const qaMap={};
@@ -657,7 +912,27 @@ const DB={
 const uid=()=>Math.random().toString(36).slice(2,9);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
-/* ─── IMAGE OCR MODAL ─── */
+/* Logo component with fallback */
+function LogoImg({size=32, className=''}){
+  const [err,setErr]=useState(false);
+  if(err) return <div className="logo-img-fallback" style={{width:size,height:size}}>ZY</div>;
+  return <img src="./logo.png" alt="Zywayle" className={`logo-img ${className}`} style={{width:size,height:size}} onError={()=>setErr(true)}/>;
+}
+
+/* Avatar with logo fallback */
+function AiAvatar(){
+  const [err,setErr]=useState(false);
+  return(
+    <div className="avatar ai">
+      {err
+        ? <span className="ava-fallback">ZY</span>
+        : <img src="./logo.png" alt="" onError={()=>setErr(true)} style={{width:20,height:20,objectFit:'contain'}}/>
+      }
+    </div>
+  );
+}
+
+/* Image OCR Modal */
 function ImageModal({onUse,onClose}){
   const [phase,setPhase]=useState('pick');
   const [progress,setProgress]=useState(0);
@@ -686,18 +961,20 @@ function ImageModal({onUse,onClose}){
     <div className="overlay" onClick={onClose}>
       <div className="modal" style={{maxWidth:400}} onClick={e=>e.stopPropagation()}>
         <div className="modal-head">
-          <div><div className="modal-title">Image to Text</div><div className="modal-sub">Extract text from an image and send it</div></div>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <div><div className="modal-title">Image to Text</div><div className="modal-sub">Extract text from an image</div></div>
+          <button className="close-btn" onClick={onClose}><span className="material-icons-round">close</span></button>
         </div>
         <div className="modal-body">
           {phase==='pick'&&(
             <div className="ocr-options">
               <div className="ocr-option-btn" onClick={()=>camRef.current?.click()}>
-                <span className="ocr-option-icon">📷</span><span>Take Photo</span>
+                <span className="material-icons-round">photo_camera</span>
+                <span>Take Photo</span>
                 <input ref={camRef} type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={e=>processFile(e.target.files[0])}/>
               </div>
               <div className="ocr-option-btn" onClick={()=>fileRef.current?.click()}>
-                <span className="ocr-option-icon">🖼️</span><span>Upload Image</span>
+                <span className="material-icons-round">image</span>
+                <span>Upload Image</span>
                 <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={e=>processFile(e.target.files[0])}/>
               </div>
             </div>
@@ -714,7 +991,10 @@ function ImageModal({onUse,onClose}){
             <div className="ocr-result-wrap">
               {previewUrl&&<img src={previewUrl} className="ocr-preview-img" alt="OCR source"/>}
               <div style={{fontSize:10,color:'var(--text3)',marginBottom:4,fontWeight:600,letterSpacing:'1.5px',textTransform:'uppercase',fontFamily:'var(--mono)'}}>Extracted Text</div>
-              {phase==='empty'?<div className="ocr-extracted"><span className="ocr-empty">No text detected. Try a clearer image.</span></div>:<div className="ocr-extracted">{ocrText}</div>}
+              {phase==='empty'
+                ?<div className="ocr-extracted"><span className="ocr-empty">No text detected. Try a clearer image.</span></div>
+                :<div className="ocr-extracted">{ocrText}</div>
+              }
               <div className="ocr-actions">
                 <button className="ocr-btn" onClick={()=>setPhase('pick')}>↩ Try again</button>
                 {phase==='done'&&<button className="ocr-btn primary" onClick={()=>{onUse(ocrText);onClose();}}>Send as message →</button>}
@@ -723,9 +1003,9 @@ function ImageModal({onUse,onClose}){
           )}
           {phase==='error'&&(
             <div style={{textAlign:'center',padding:'24px 0',color:'var(--text2)',fontSize:13}}>
-              <div style={{fontSize:28,marginBottom:10}}>⚠️</div>
-              <div>Could not read the image. Try a different file.</div>
-              <button className="ocr-btn" style={{marginTop:12,display:'inline-block',width:'auto'}} onClick={()=>setPhase('pick')}>Try again</button>
+              <span className="material-icons-round" style={{fontSize:36,marginBottom:10,display:'block',color:'var(--text3)'}}>warning</span>
+              Could not read the image. Try a different file.
+              <button className="ocr-btn" style={{marginTop:12,display:'block',width:'100%'}} onClick={()=>setPhase('pick')}>Try again</button>
             </div>
           )}
         </div>
@@ -759,7 +1039,6 @@ function App(){
   const activeChat=useMemo(()=>chats.find(c=>c.id===activeId)||null,[chats,activeId]);
 
   useEffect(()=>{
-    setModelsLoading(true);
     fetchModels().then(ms=>{
       setModels(ms);setModelsLoading(false);
       setSelModelId(p=>{if(!p&&ms.length>0)return ms[0].id;return p;});
@@ -768,8 +1047,7 @@ function App(){
 
   useEffect(()=>{
     if(!selModelId){setLoadedModel(null);return;}
-    const info=models.find(m=>m.id===selModelId);
-    if(!info)return;
+    const info=models.find(m=>m.id===selModelId);if(!info)return;
     setModelLoading(true);
     loadModelFile(info.file).then(m=>{setLoadedModel(m);setModelLoading(false);}).catch(()=>{setLoadedModel(null);setModelLoading(false);});
   },[selModelId,models]);
@@ -803,7 +1081,7 @@ function App(){
     const text=(textOverride||input).trim();
     if(!text||typing)return;
     setInput('');
-    if(taRef.current)taRef.current.style.height='auto';
+    if(taRef.current){taRef.current.style.height='auto';}
 
     let cid=activeId;let currentChats=null;
     if(!cid){
@@ -817,7 +1095,7 @@ function App(){
     setPendingImg(null);
     setChats(p=>p.map(c=>c.id===cid?{...c,title:c.messages.length===0?text.slice(0,42):c.title,messages:[...c.messages,userMsg]}:c));
     setTyping(true);
-    await sleep(180+Math.random()*280);
+    await sleep(180+Math.random()*300);
 
     const snapshot=currentChats||chats;
     const hist=snapshot.find(c=>c.id===cid)?.messages||[];
@@ -830,7 +1108,7 @@ function App(){
   const onKey=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}};
   const resizeTA=e=>{
     const ta=e.target;
-    requestAnimationFrame(()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,160)+'px';});
+    requestAnimationFrame(()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,140)+'px';});
   };
 
   const curModel=models.find(m=>m.id===selModelId)||null;
@@ -846,20 +1124,19 @@ function App(){
   ];
 
   const methodColor={
-    'exact':'var(--accent2)','retrieval':'var(--accent)',
-    'bm25':'var(--accent)','neural':'var(--accent3)',
-    'contextual':'#60a5fa','intent':'var(--accent2)',
-    'fuzzy':'#f472b6','token':'#fb923c','fallback':'var(--text3)'
+    exact:'var(--accent2)',retrieval:'var(--accent)',bm25:'var(--accent)',
+    neural:'var(--accent3)',contextual:'#60a5fa',intent:'var(--accent2)',
+    fuzzy:'#f472b6',token:'#fb923c',fallback:'var(--text3)'
   };
 
   return(
     <div className="app">
       <div className={`sidebar-overlay ${sidebarOpen?'open':''}`} onClick={()=>setSidebarOpen(false)}/>
 
-      {/* ── SIDEBAR ── */}
-      <div className={`sidebar ${sidebarOpen?'open':''}`}>
+      {/* SIDEBAR */}
+      <div className={`sidebar ${sidebarOpen?'open':''}`} role="navigation" aria-label="Conversations">
         <div className="sidebar-header">
-          <div className="logo-mark">ZY</div>
+          <LogoImg size={32}/>
           <div>
             <div className="logo-text">Zywayle</div>
             <div className="logo-sub">NEURAL AI</div>
@@ -867,17 +1144,22 @@ function App(){
         </div>
 
         <div className="sidebar-body">
-          <button className="new-btn" onClick={newChat}>
-            <span className="new-btn-icon">+</span> New conversation
+          <button className="new-btn" onClick={newChat} aria-label="New conversation">
+            <span className="material-icons-round">add</span> New conversation
           </button>
 
           {today.length>0&&<>
-            <div className="sec-label">Today</div>
+            <div className="sec-label" aria-label="Today's chats">Today</div>
             {today.map(c=>(
-              <div key={c.id} className={`chat-row ${c.id===activeId?'active':''}`} onClick={()=>{setActiveId(c.id);setSidebarOpen(false);}}>
-                <div className="chat-row-dot"/>
+              <div key={c.id} className={`chat-row ${c.id===activeId?'active':''}`}
+                onClick={()=>{setActiveId(c.id);setSidebarOpen(false);}}
+                role="button" tabIndex={0} aria-label={`Chat: ${c.title||'Untitled'}`}
+                onKeyDown={e=>e.key==='Enter'&&setActiveId(c.id)}>
+                <div className="chat-row-dot" aria-hidden="true"/>
                 <span className="chat-row-text">{c.title||'Untitled'}</span>
-                <button className="chat-del" onClick={e=>delChat(c.id,e)}>×</button>
+                <button className="chat-del" onClick={e=>delChat(c.id,e)} aria-label="Delete chat">
+                  <span className="material-icons-round">close</span>
+                </button>
               </div>
             ))}
           </>}
@@ -885,72 +1167,97 @@ function App(){
           {older.length>0&&<>
             <div className="sec-label">Previous</div>
             {older.map(c=>(
-              <div key={c.id} className={`chat-row ${c.id===activeId?'active':''}`} onClick={()=>{setActiveId(c.id);setSidebarOpen(false);}}>
-                <div className="chat-row-dot"/>
+              <div key={c.id} className={`chat-row ${c.id===activeId?'active':''}`}
+                onClick={()=>{setActiveId(c.id);setSidebarOpen(false);}}
+                role="button" tabIndex={0}
+                onKeyDown={e=>e.key==='Enter'&&setActiveId(c.id)}>
+                <div className="chat-row-dot" aria-hidden="true"/>
                 <span className="chat-row-text">{c.title||'Untitled'}</span>
-                <button className="chat-del" onClick={e=>delChat(c.id,e)}>×</button>
+                <button className="chat-del" onClick={e=>delChat(c.id,e)} aria-label="Delete chat">
+                  <span className="material-icons-round">close</span>
+                </button>
               </div>
             ))}
           </>}
 
-          {chats.length===0&&<div className="empty-sidebar">No conversations yet.<br/>Start by clicking New conversation.</div>}
+          {chats.length===0&&(
+            <div style={{padding:'14px 8px',fontSize:11,color:'var(--text4)',textAlign:'center',lineHeight:1.7}}>
+              No conversations yet.<br/>Start by clicking New conversation.
+            </div>
+          )}
         </div>
 
         <div className="sidebar-footer">
-          <div className="nav-row" onClick={()=>{setShowPlans(true);setSidebarOpen(false);}}>
-            <span className="nav-icon">◇</span> Plans &amp; Pricing
+          <div className="nav-row" onClick={()=>{setShowPlans(true);setSidebarOpen(false);}} role="button" tabIndex={0}>
+            <span className="material-icons-round">diamond</span> Plans &amp; Pricing
           </div>
-          <a className="nav-row" href="training.html" style={{color:'inherit'}}>
-            <span className="nav-icon">⚙</span> Trainer
+          <a className="nav-row" href="training.html">
+            <span className="material-icons-round">model_training</span> Trainer
           </a>
-          <div className="nav-row" onClick={()=>{setShowSettings(true);setSidebarOpen(false);}}>
-            <span className="nav-icon">≡</span> Settings
+          <div className="nav-row" onClick={()=>{setShowSettings(true);setSidebarOpen(false);}} role="button" tabIndex={0}>
+            <span className="material-icons-round">settings</span> Settings
           </div>
         </div>
       </div>
 
-      {/* ── MAIN ── */}
-      <div className="main">
+      {/* MAIN */}
+      <div className="main" role="main">
 
         {/* TOPBAR */}
-        <div className="topbar">
-          <button className="menu-btn" onClick={()=>setSidebarOpen(o=>!o)}>≡</button>
+        <div className="topbar" role="banner">
+          <button className="menu-btn" onClick={()=>setSidebarOpen(o=>!o)} aria-label="Toggle sidebar" aria-expanded={sidebarOpen}>
+            <span className="material-icons-round">menu</span>
+          </button>
 
-          <div className="model-pill" onClick={()=>setShowPicker(true)}>
-            <div className="model-dot"/>
+          <button className="model-pill" onClick={()=>setShowPicker(true)} aria-label="Select model" aria-haspopup="dialog">
+            <div className="model-dot" aria-hidden="true"/>
             <span className="model-pill-name">
               {modelLoading?'Loading…':curModel?curModel.name:modelsLoading?'Loading…':'No model'}
             </span>
             {curModel?.size&&!modelLoading&&<span className="model-size-badge">{curModel.size}</span>}
-            <span className="model-caret">▾</span>
-          </div>
+            <span className="material-icons-round" style={{fontSize:14,color:'var(--text4)'}}>expand_more</span>
+          </button>
 
-          {modelLoading&&<div className="model-loading-pill"><div className="load-spin"/>Loading…</div>}
+          {modelLoading&&(
+            <div className="model-loading-pill" aria-live="polite">
+              <div className="load-spin" aria-hidden="true"/>Loading…
+            </div>
+          )}
 
           <div className="topbar-gap"/>
 
-          <button className="tb-btn" onClick={newChat} title="New chat">+</button>
-          <button className="tb-btn" onClick={()=>setShowSettings(true)} title="Settings">⚙</button>
+          <button className="tb-btn" onClick={newChat} title="New chat" aria-label="New chat">
+            <span className="material-icons-round">add</span>
+          </button>
+          <button className="tb-btn" onClick={()=>setShowSettings(true)} title="Settings" aria-label="Settings">
+            <span className="material-icons-round">settings</span>
+          </button>
         </div>
 
         {/* CHAT AREA */}
-        <div className="chat-area" ref={chatAreaRef}>
+        <div className="chat-area" ref={chatAreaRef} role="log" aria-label="Chat messages" aria-live="polite">
           <div className="chat-scroll">
             {!activeChat?(
               <div className="welcome">
                 <div className="welcome-icon-wrap">
-                  <div className="welcome-glow"/>
-                  <div className="welcome-logo">ZY</div>
+                  <div className="welcome-glow" aria-hidden="true"/>
+                  <div className="welcome-logo">
+                    <LogoImg size={68}/>
+                  </div>
                 </div>
                 <h1>Zywayle AI</h1>
                 <p className="welcome-sub">A real neural network running entirely in your browser. Completely private — nothing leaves your device.</p>
                 {!hasModel&&!modelLoading&&!modelsLoading&&(
-                  <div className="no-model-badge"><strong>No model loaded.</strong> Click the model selector above to choose one.</div>
+                  <div className="no-model-badge" role="alert">
+                    <strong>No model loaded.</strong> Click the model selector above to choose one.
+                  </div>
                 )}
                 {hasModel&&(
-                  <div className="suggestions">
+                  <div className="suggestions" role="list">
                     {suggestions.map(s=>(
-                      <div key={s.label} className="suggestion" onClick={()=>{setInput(s.label);taRef.current?.focus();}}>
+                      <div key={s.label} className="suggestion" role="listitem"
+                        onClick={()=>{setInput(s.label);taRef.current?.focus();}}
+                        tabIndex={0} onKeyDown={e=>e.key==='Enter'&&(setInput(s.label),taRef.current?.focus())}>
                         <div className="s-label">{s.label}</div>
                         <div className="s-sub">{s.sub}</div>
                       </div>
@@ -961,20 +1268,21 @@ function App(){
             ):(
               <div className="messages-list">
                 {activeChat.messages.map(msg=>(
-                  <div key={msg.id} className={`msg-group ${msg.role}`}>
-                    <div className={`avatar ${msg.role}`}>
-                      {msg.role==='ai'?'ZY':'YOU'}
-                    </div>
+                  <div key={msg.id} className={`msg-group ${msg.role}`} role="article">
+                    {msg.role==='ai'
+                      ? <AiAvatar/>
+                      : <div className="avatar user" aria-label="You">YOU</div>
+                    }
                     <div className="msg-inner">
-                      <div className="msg-sender">
+                      <div className="msg-sender" aria-hidden="true">
                         {msg.role==='ai'?(curModel?.name||'Zywayle'):'You'}
                       </div>
                       <div className="bubble">
-                        {msg.imgUrl&&<img src={msg.imgUrl} className="bubble-img" alt="Sent image"/>}
+                        {msg.imgUrl&&<img src={msg.imgUrl} className="bubble-img" alt="Attached image"/>}
                         {msg.text}
                       </div>
                       {msg.role==='ai'&&msg.conf>0&&(
-                        <div className="conf-tag">
+                        <div className="conf-tag" aria-label={`Method: ${msg.method}, confidence ${(msg.conf*100).toFixed(0)}%`}>
                           <div className="conf-dot" style={{background:methodColor[msg.method]||'var(--accent2)'}}/>
                           <span style={{color:methodColor[msg.method]||'var(--accent2)'}}>{msg.method}</span>
                           <span style={{color:'var(--text4)'}}>·</span>
@@ -985,30 +1293,32 @@ function App(){
                   </div>
                 ))}
                 {typing&&(
-                  <div className="msg-group ai">
-                    <div className="avatar ai">ZY</div>
+                  <div className="msg-group ai" aria-live="polite" aria-label="Zywayle is typing">
+                    <AiAvatar/>
                     <div className="msg-inner">
-                      <div className="msg-sender">{curModel?.name||'Zywayle'}</div>
-                      <div className="typing">
+                      <div className="msg-sender" aria-hidden="true">{curModel?.name||'Zywayle'}</div>
+                      <div className="typing" aria-hidden="true">
                         <div className="typing-dot"/><div className="typing-dot"/><div className="typing-dot"/>
                       </div>
                     </div>
                   </div>
                 )}
-                <div ref={bottomRef} className="chat-bottom-anchor"/>
+                <div ref={bottomRef} className="chat-bottom-anchor" aria-hidden="true"/>
               </div>
             )}
           </div>
         </div>
 
-        {/* INPUT */}
+        {/* INPUT — stays at bottom, keyboard shrinks chat-area above it via dvh */}
         <div className="input-wrap">
           <div className="input-container">
             {pendingImg&&(
               <div className="pending-img-bar">
                 <img src={pendingImg.url} className="pending-img-thumb" alt="Pending"/>
-                <span className="pending-img-label">Image attached — text extracted and ready to send</span>
-                <button className="pending-img-remove" onClick={()=>setPendingImg(null)}>×</button>
+                <span className="pending-img-label">Image attached — text extracted</span>
+                <button className="pending-img-remove" onClick={()=>setPendingImg(null)} aria-label="Remove image">
+                  <span className="material-icons-round">close</span>
+                </button>
               </div>
             )}
             <div className="input-inner">
@@ -1020,19 +1330,23 @@ function App(){
                 placeholder={hasModel?'Message Zywayle… (Enter to send)':'Load a model to start chatting…'}
                 rows={1}
                 disabled={typing||modelLoading||!hasModel}
+                aria-label="Message input"
+                aria-disabled={typing||modelLoading||!hasModel}
               />
               <div className="input-actions">
-                <button className="img-btn" onClick={()=>setShowImageModal(true)} title="Image to text (OCR)" disabled={typing}>
-                  📷
+                <button className="input-icon-btn" onClick={()=>setShowImageModal(true)}
+                  title="Image to text (OCR)" aria-label="Attach image for OCR" disabled={typing}>
+                  <span className="material-icons-round">photo_camera</span>
                 </button>
-                <button className="send-btn" onClick={()=>send()} disabled={!input.trim()||typing||modelLoading||!hasModel}>
-                  ↑
+                <button className="send-btn" onClick={()=>send()}
+                  disabled={!input.trim()||typing||modelLoading||!hasModel}
+                  aria-label="Send message">
+                  <span className="material-icons-round">arrow_upward</span>
                 </button>
               </div>
             </div>
             <div className="input-hint">
-              Zywayle · Local neural AI · No data leaves your browser ·{' '}
-              <span onClick={()=>setShowPicker(true)}>Switch model</span>
+              Zywayle · Local neural AI · Private · <span onClick={()=>setShowPicker(true)}>Switch model</span>
             </div>
           </div>
         </div>
@@ -1040,26 +1354,33 @@ function App(){
 
       {/* OCR MODAL */}
       {showImageModal&&(
-        <ImageModal
-          onUse={(text)=>{setInput(text);taRef.current?.focus();}}
-          onClose={()=>setShowImageModal(false)}
-        />
+        <ImageModal onUse={(text)=>{setInput(text);taRef.current?.focus();}} onClose={()=>setShowImageModal(false)}/>
       )}
 
       {/* MODEL PICKER */}
       {showPicker&&(
-        <div className="overlay" onClick={()=>setShowPicker(false)}>
+        <div className="overlay" onClick={()=>setShowPicker(false)} role="dialog" aria-modal="true" aria-label="Choose model">
           <div className="modal" onClick={e=>e.stopPropagation()}>
             <div className="modal-head">
-              <div><div className="modal-title">Choose Model</div><div className="modal-sub">Loaded from /Models/meta.txt</div></div>
-              <button className="close-btn" onClick={()=>setShowPicker(false)}>×</button>
+              <div><div className="modal-title">Choose Model</div><div className="modal-sub">From ./Models/meta.txt</div></div>
+              <button className="close-btn" onClick={()=>setShowPicker(false)} aria-label="Close">
+                <span className="material-icons-round">close</span>
+              </button>
             </div>
             <div className="modal-body">
-              {modelsLoading&&<div style={{display:'flex',alignItems:'center',gap:8,padding:'14px 0',color:'var(--text3)',fontSize:12}}><div className="load-spin"/>Loading models…</div>}
+              {modelsLoading&&(
+                <div style={{display:'flex',alignItems:'center',gap:8,padding:'14px 0',color:'var(--text3)',fontSize:12}}>
+                  <div className="load-spin"/>Loading models…
+                </div>
+              )}
               {!modelsLoading&&models.length>0&&(
                 <><div className="modal-sec">Available Models</div>
                   {models.map(m=>(
-                    <div key={m.id} className={`model-item ${selModelId===m.id?'selected':''}`} onClick={()=>{setSelModelId(m.id);setShowPicker(false);}}>
+                    <div key={m.id} className={`model-item ${selModelId===m.id?'selected':''}`}
+                      onClick={()=>{setSelModelId(m.id);setShowPicker(false);}}
+                      role="button" tabIndex={0}
+                      onKeyDown={e=>e.key==='Enter'&&(setSelModelId(m.id),setShowPicker(false))}
+                      aria-selected={selModelId===m.id}>
                       <div className="model-icon">&gt;</div>
                       <div className="model-info">
                         <div className="model-name">{m.name}</div>
@@ -1069,7 +1390,7 @@ function App(){
                           <div className="model-tags">{m.tags.map((t,i)=><span key={i} className="tag accent">{t}</span>)}</div>
                         </div>
                       </div>
-                      {selModelId===m.id&&<div className="model-check">✓</div>}
+                      {selModelId===m.id&&<div className="model-check" aria-label="Selected">✓</div>}
                     </div>
                   ))}
                 </>
@@ -1087,22 +1408,22 @@ function App(){
         </div>
       )}
 
-      {/* PLANS MODAL */}
+      {/* PLANS */}
       {showPlans&&(
-        <div className="overlay" onClick={()=>setShowPlans(false)}>
+        <div className="overlay" onClick={()=>setShowPlans(false)} role="dialog" aria-modal="true">
           <div className="modal" style={{maxWidth:380}} onClick={e=>e.stopPropagation()}>
             <div className="modal-head">
               <div><div className="modal-title">Plans &amp; Pricing</div><div className="modal-sub">Zywayle</div></div>
-              <button className="close-btn" onClick={()=>setShowPlans(false)}>×</button>
+              <button className="close-btn" onClick={()=>setShowPlans(false)} aria-label="Close"><span className="material-icons-round">close</span></button>
             </div>
             <div className="modal-body">
               <div className="plans-coming">
-                <div className="plans-coming-icon">◈</div>
+                <span className="material-icons-round">auto_awesome</span>
                 <h3>Coming Soon</h3>
                 <p>Plans are in development. Zywayle is completely free right now — enjoy unlimited access while we build premium features.</p>
                 <div className="plans-badge">IN DEVELOPMENT</div>
                 <div className="info-banner" style={{textAlign:'left',marginTop:4}}>
-                  <span className="info-banner-icon">&gt;</span>
+                  <span className="material-icons-round">info</span>
                   <span>A free tier will always be available. Premium tiers will unlock cloud models, advanced training, and collaboration.</span>
                 </div>
               </div>
@@ -1111,20 +1432,20 @@ function App(){
         </div>
       )}
 
-      {/* SETTINGS MODAL */}
+      {/* SETTINGS */}
       {showSettings&&(
-        <div className="overlay" onClick={()=>{setShowSettings(false);setResetConfirm(false);}}>
+        <div className="overlay" onClick={()=>{setShowSettings(false);setResetConfirm(false);}} role="dialog" aria-modal="true" aria-label="Settings">
           <div className="modal" style={{maxWidth:420}} onClick={e=>e.stopPropagation()}>
             <div className="modal-head">
               <div><div className="modal-title">Settings</div><div className="modal-sub">Zywayle Neural AI</div></div>
-              <button className="close-btn" onClick={()=>{setShowSettings(false);setResetConfirm(false);}}>×</button>
+              <button className="close-btn" onClick={()=>{setShowSettings(false);setResetConfirm(false);}} aria-label="Close"><span className="material-icons-round">close</span></button>
             </div>
             <div className="modal-body">
               <div className="settings-section">
                 <div className="settings-label">About</div>
                 <div className="info-banner">
-                  <span className="info-banner-icon">&gt;</span>
-                  <span>Zywayle runs a real feedforward neural network with BM25 retrieval, intent detection, and character n-gram matching — all in your browser. Nothing is sent to any server.</span>
+                  <span className="material-icons-round">info</span>
+                  <span>Zywayle runs a real feedforward neural network with BM25 retrieval, intent detection, creative synthesis, and character n-gram matching — all in your browser. Nothing sent to any server.</span>
                 </div>
               </div>
               <div className="settings-section">
@@ -1134,25 +1455,30 @@ function App(){
                     <div className="settings-row-title">Chat history</div>
                     <div className="settings-row-sub">{chats.length} conversation{chats.length!==1?'s':''} stored locally</div>
                   </div>
-                  {!resetConfirm?(
-                    <button className="danger-btn" onClick={()=>setResetConfirm(true)}>Reset all</button>
-                  ):(
-                    <div style={{display:'flex',gap:5}}>
+                  {!resetConfirm
+                    ?<button className="danger-btn" onClick={()=>setResetConfirm(true)}>Reset all</button>
+                    :<div style={{display:'flex',gap:5}}>
                       <button className="danger-btn" onClick={resetAll}>Confirm</button>
                       <button className="danger-btn" style={{background:'var(--bg4)',borderColor:'var(--border)',color:'var(--text2)'}} onClick={()=>setResetConfirm(false)}>Cancel</button>
                     </div>
-                  )}
+                  }
                 </div>
-                {resetConfirm&&<div className="info-banner" style={{marginTop:6}}><span className="info-banner-icon">!</span><span>This permanently deletes all chats and resets model selection. Cannot be undone.</span></div>}
+                {resetConfirm&&<div className="info-banner" style={{marginTop:6}}>
+                  <span className="material-icons-round">warning</span>
+                  <span>This permanently deletes all chats and resets model selection. Cannot be undone.</span>
+                </div>}
               </div>
               <div className="settings-section">
                 <div className="settings-label">Model</div>
                 <div className="settings-row">
                   <div className="settings-row-info">
                     <div className="settings-row-title">Active model</div>
-                    <div className="settings-row-sub">{curModel?curModel.name+(loadedModel?' · '+loadedModel.pairs?.length+' pairs':' · loading...'):'None loaded'}</div>
+                    <div className="settings-row-sub">
+                      {curModel?curModel.name+(loadedModel?' · '+loadedModel.pairs?.length+' pairs':' · loading...'):'None loaded'}
+                    </div>
                   </div>
-                  <button className="danger-btn" style={{background:'var(--accentbg)',borderColor:'var(--accentbd)',color:'var(--accent)'}} onClick={()=>{setShowSettings(false);setShowPicker(true);}}>Switch</button>
+                  <button className="danger-btn" style={{background:'var(--accentbg)',borderColor:'var(--accentbd)',color:'var(--accent)'}}
+                    onClick={()=>{setShowSettings(false);setShowPicker(true);}}>Switch</button>
                 </div>
               </div>
               <div className="settings-section">
@@ -1162,7 +1488,9 @@ function App(){
                     <div className="settings-row-title">Neural Trainer</div>
                     <div className="settings-row-sub">Train custom models from your own data</div>
                   </div>
-                  <a href="training.html" style={{textDecoration:'none'}}><button className="danger-btn" style={{background:'var(--accentbg)',borderColor:'var(--accentbd)',color:'var(--accent)'}}>Open</button></a>
+                  <a href="training.html" style={{textDecoration:'none'}}>
+                    <button className="danger-btn" style={{background:'var(--accentbg)',borderColor:'var(--accentbd)',color:'var(--accent)'}}>Open</button>
+                  </a>
                 </div>
               </div>
             </div>

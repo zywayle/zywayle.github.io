@@ -2,356 +2,416 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
 <title>Zywayle Trainer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 <script src="https://unpkg.com/tesseract.js@4/dist/tesseract.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0e0e0c;--bg2:#141412;--bg3:#1c1c1a;--bg4:#242422;--bg5:#2e2e2c;
-  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);--border3:rgba(255,255,255,0.18);
-  --text:#f2efe9;--text2:#9e9890;--text3:#5e5a52;--text4:#3a3835;
-  --accent:#8b5cf6;--accent-h:#7c3aed;--accent2:#4ade80;
-  --accentbg:rgba(139,92,246,0.09);--accentbd:rgba(139,92,246,0.25);
-  --greenbg:rgba(74,222,128,0.08);--greenbd:rgba(74,222,128,0.25);
-  --green:#4ade80;
-  --r:6px;--font:'Syne',sans-serif;--mono:'DM Mono',monospace;
+  --bg:#0a0a0a;--bg2:#111111;--bg3:#181818;--bg4:#202020;--bg5:#2a2a2a;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);--border3:rgba(255,255,255,0.2);
+  --text:#eeece8;--text2:#8a8680;--text3:#4a4744;--text4:#2e2c2a;
+  --accent:#9b7dff;--accent-h:#8b6af0;--accent2:#3ddc84;--accent3:#f0a500;
+  --accentbg:rgba(155,125,255,0.07);--accentbd:rgba(155,125,255,0.22);
+  --greenbg:rgba(61,220,132,0.08);--greenbd:rgba(61,220,132,0.25);--green:#3ddc84;
+  --font:'Space Grotesk',sans-serif;--mono:'JetBrains Mono',monospace;
 }
-html,body{min-height:100vh;background:var(--bg);font-family:var(--font);color:var(--text);-webkit-font-smoothing:antialiased;}
-::-webkit-scrollbar{width:3px;height:3px}
-::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:2px}
 
-/* TOPBAR */
+html,body{
+  min-height:100dvh;background:var(--bg);
+  font-family:var(--font);color:var(--text);
+  -webkit-font-smoothing:antialiased;
+}
+::-webkit-scrollbar{width:2px;height:2px}
+::-webkit-scrollbar-thumb{background:var(--bg5);}
+.material-icons-round{font-size:18px;line-height:1;vertical-align:middle;user-select:none;}
+
+/* ── TOPBAR ── */
 .topbar{
   display:flex;align-items:center;gap:12px;
-  padding:12px 22px;border-bottom:1px solid var(--border);
-  background:var(--bg2);position:sticky;top:0;z-index:20;
+  padding:12px 20px;border-bottom:1px solid var(--border);
+  background:rgba(10,10,10,0.95);backdrop-filter:blur(24px);
+  position:sticky;top:0;z-index:20;
 }
-.logo-mark{
-  width:28px;height:28px;border-radius:6px;background:var(--accent);flex-shrink:0;
+.logo-wrap{display:flex;align-items:center;gap:10px;}
+.logo-img{width:30px;height:30px;object-fit:contain;}
+.logo-img-fallback{
+  width:30px;height:30px;flex-shrink:0;background:var(--accent);
   display:flex;align-items:center;justify-content:center;
   font-family:var(--mono);font-size:9px;color:#fff;
-  box-shadow:0 0 0 1px var(--accentbd);
+  clip-path:polygon(0 0,calc(100% - 5px) 0,100% 5px,100% 100%,5px 100%,0 calc(100% - 5px));
 }
-.logo-title{font-size:14px;font-weight:700;letter-spacing:-0.2px;}
-.logo-sub{font-size:10px;color:var(--text3);margin-top:1px;}
+.logo-title{font-size:14px;font-weight:700;letter-spacing:-0.3px;}
+.logo-sub{font-size:10px;color:var(--text3);font-family:var(--mono);}
 .topbar-gap{flex:1;}
 .back-link{
-  display:flex;align-items:center;gap:5px;padding:5px 11px;
-  border:1px solid var(--border2);border-radius:var(--r);
-  font-size:12px;color:var(--text2);text-decoration:none;transition:all 0.14s;font-weight:600;
+  display:flex;align-items:center;gap:5px;padding:7px 12px;
+  border:1px solid var(--border2);font-size:12px;color:var(--text2);
+  text-decoration:none;transition:all 0.14s;font-weight:600;
 }
 .back-link:hover{background:var(--bg3);color:var(--text);}
+.back-link .material-icons-round{font-size:16px;}
 
-/* LAYOUT */
-.page{max-width:1120px;margin:0 auto;padding:22px 20px;display:flex;flex-direction:column;gap:16px;}
+/* ── PAGE ── */
+.page{max-width:1120px;margin:0 auto;padding:20px 16px;display:flex;flex-direction:column;gap:14px;}
 
-/* HEADER */
 .page-header{display:flex;flex-direction:column;gap:6px;}
-.page-title{font-size:22px;font-weight:800;letter-spacing:-0.5px;}
-.page-desc{font-size:13px;color:var(--text2);line-height:1.6;max-width:580px;}
+.page-title{font-size:22px;font-weight:700;letter-spacing:-0.6px;}
+.page-desc{font-size:13px;color:var(--text2);line-height:1.65;max-width:560px;}
 
-/* STATUS BAR */
+/* ── STATUS BAR ── */
 .status-bar{
   display:flex;align-items:center;gap:10px;
-  padding:10px 16px;border-radius:var(--r);font-size:12px;font-weight:600;
+  padding:10px 14px;font-size:12px;font-weight:600;
   border:1px solid transparent;transition:all 0.3s;
 }
 .status-bar.idle{background:var(--bg3);color:var(--text3);border-color:var(--border);}
 .status-bar.training{background:var(--accentbg);color:var(--accent);border-color:var(--accentbd);}
 .status-bar.done{background:var(--greenbg);color:var(--green);border-color:var(--greenbd);}
 .status-bar.error{background:rgba(224,112,112,0.08);color:#e07070;border-color:rgba(224,112,112,0.25);}
-.pulse{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 1.2s infinite;flex-shrink:0;}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.35;transform:scale(0.65);}}
+.pulse{width:7px;height:7px;background:currentColor;animation:pulse 1.2s infinite;flex-shrink:0;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.3;transform:scale(0.6);}}
 
-/* MAIN GRID */
-.trainer-grid{display:grid;grid-template-columns:1fr 380px;gap:16px;}
+/* ── GRID ── */
+.trainer-grid{display:grid;grid-template-columns:1fr 370px;gap:14px;}
 @media(max-width:860px){.trainer-grid{grid-template-columns:1fr;}}
 
-/* CARD */
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;animation:fadeUp 0.3s cubic-bezier(0.16,1,0.3,1) both;}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
-.card:nth-child(1){animation-delay:0.02s}.card:nth-child(2){animation-delay:0.06s}
-.card-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border);}
-.card-title{font-size:13px;font-weight:700;letter-spacing:-0.1px;}
-.card-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+/* ── CARD ── */
+.card{background:var(--bg2);border:1px solid var(--border);overflow:hidden;}
+.card-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 16px;border-bottom:1px solid var(--border);
+}
+.card-title{font-size:13px;font-weight:700;letter-spacing:-0.1px;display:flex;align-items:center;gap:7px;}
+.card-title .material-icons-round{font-size:16px;color:var(--accent);}
+.card-sub{font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono);}
 .card-body{padding:16px;}
-.card-badge{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:3px;background:var(--bg4);border:1px solid var(--border);color:var(--text2);}
+.card-badge{font-family:var(--mono);font-size:9px;padding:3px 7px;background:var(--bg4);border:1px solid var(--border);color:var(--text2);}
 .card-badge.green{background:var(--greenbg);border-color:var(--greenbd);color:var(--green);}
 .card-badge.purple{background:var(--accentbg);border-color:var(--accentbd);color:var(--accent);}
 
-/* FORMS */
-label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600;}
+/* ── FORMS ── */
+label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600;letter-spacing:0.2px;}
 input[type=text],input[type=number],select,textarea{
-  width:100%;padding:8px 10px;border-radius:var(--r);
+  width:100%;padding:9px 11px;
   background:var(--bg3);border:1px solid var(--border2);
-  color:var(--text);font-family:var(--font);font-size:12px;
+  color:var(--text);font-family:var(--font);font-size:13px;
   outline:none;transition:border-color 0.14s;
+  /* Prevent iOS zoom — font-size >= 16px */
+  font-size:max(13px, 16px);
 }
-input:focus,select:focus,textarea:focus{border-color:var(--accentbd);}
+@media(min-width:769px){input[type=text],input[type=number],select,textarea{font-size:12px;}}
+input:focus,select:focus,textarea:focus{border-color:var(--accentbd);box-shadow:0 0 0 3px rgba(155,125,255,0.06);}
 select{cursor:pointer;}select option{background:var(--bg3);}
 textarea{resize:vertical;min-height:60px;line-height:1.55;}
 .form-row{display:flex;flex-direction:column;gap:3px;margin-bottom:12px;}
 .form-row:last-child{margin-bottom:0;}
 .form-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
-.hint{font-size:10px;color:var(--text4);margin-top:2px;line-height:1.4;}
+.hint{font-size:10px;color:var(--text4);margin-top:3px;line-height:1.4;font-family:var(--mono);}
 
-/* RANGE */
-input[type=range]{width:100%;height:4px;background:var(--bg5);border-radius:2px;-webkit-appearance:none;cursor:pointer;border:none;padding:0;}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);cursor:pointer;}
+/* Range */
+input[type=range]{width:100%;height:4px;background:var(--bg5);-webkit-appearance:none;cursor:pointer;border:none;padding:0;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--accent);cursor:pointer;}
 .range-row{display:flex;align-items:center;gap:8px;}
-.range-val{font-family:var(--mono);font-size:11px;color:var(--accent);min-width:38px;text-align:right;}
+.range-val{font-family:var(--mono);font-size:11px;color:var(--accent);min-width:40px;text-align:right;}
 
-/* BUTTONS */
+/* ── BUTTONS ── */
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  padding:8px 14px;border-radius:var(--r);border:1px solid var(--border2);
+  padding:9px 14px;border:1px solid var(--border2);
   font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;
   transition:all 0.14s;background:transparent;color:var(--text2);
 }
 .btn:hover{background:var(--bg3);color:var(--text);}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(139,92,246,0.3);}
+.btn:active{transform:scale(0.98);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 12px rgba(155,125,255,0.3);}
 .btn.primary:hover{background:var(--accent-h);}
-.btn.primary:disabled{opacity:0.35;cursor:not-allowed;box-shadow:none;}
+.btn.primary:disabled{opacity:0.3;cursor:not-allowed;box-shadow:none;}
 .btn.success{background:var(--green);border-color:var(--green);color:#000;font-weight:700;}
 .btn.success:hover{filter:brightness(0.9);}
-.btn.danger{background:rgba(224,112,112,0.1);border-color:rgba(224,112,112,0.28);color:#e07070;}
-.btn.danger:hover{background:rgba(224,112,112,0.18);}
-.btn.sm{padding:5px 9px;font-size:11px;}
+.btn.danger{background:rgba(224,112,112,0.08);border-color:rgba(224,112,112,0.25);color:#e07070;}
+.btn.danger:hover{background:rgba(224,112,112,0.16);}
+.btn.sm{padding:6px 10px;font-size:11px;}
 .btn-row{display:flex;gap:7px;flex-wrap:wrap;}
+.btn .material-icons-round{font-size:16px;}
 
-/* DATA TEXTAREA */
+/* ── DATA TEXTAREA ── */
 .data-ta{
-  width:100%;min-height:240px;max-height:420px;resize:vertical;
-  background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);
-  color:var(--text);font-family:var(--mono);font-size:11px;line-height:1.7;
+  width:100%;min-height:240px;max-height:380px;resize:vertical;
+  background:var(--bg3);border:1px solid var(--border2);
+  color:var(--text);font-family:var(--mono);font-size:11px;line-height:1.75;
   padding:11px;outline:none;transition:border-color 0.14s;
+  /* iOS zoom fix */
+  font-size:max(11px, 16px);
 }
+@media(min-width:769px){.data-ta{font-size:11px;}}
 .data-ta:focus{border-color:var(--accentbd);}
 .data-ta::placeholder{color:var(--text4);}
 
-/* DATA STATS */
+/* Mobile: smaller textarea so keyboard doesn't hide it */
+@media(max-width:768px){
+  .data-ta{min-height:140px;max-height:240px;}
+}
+
+/* ── STATS ── */
 .data-stats{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;}
 .stat{display:flex;flex-direction:column;gap:2px;}
-.stat-val{font-family:var(--mono);font-size:20px;font-weight:500;color:var(--text);}
+.stat-val{font-family:var(--mono);font-size:20px;font-weight:500;}
 .stat-val.accent{color:var(--accent);}
 .stat-val.green{color:var(--green);}
 .stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;}
 
-/* PROGRESS */
+/* ── PROGRESS ── */
 .prog-wrap{margin-bottom:12px;}
-.prog-track{width:100%;height:5px;background:var(--bg4);border-radius:2px;overflow:hidden;}
-.prog-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width 0.3s ease;}
-.prog-info{display:flex;justify-content:space-between;margin-top:4px;}
-.prog-label{font-size:10px;color:var(--text3);}
+.prog-track{width:100%;height:4px;background:var(--bg4);overflow:hidden;}
+.prog-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));transition:width 0.3s ease;}
+.prog-info{display:flex;justify-content:space-between;margin-top:5px;}
+.prog-label{font-size:10px;color:var(--text3);font-family:var(--mono);}
 .prog-pct{font-size:10px;font-family:var(--mono);color:var(--accent);}
 
-/* LOSS CHART */
-#lossCanvas{width:100%;height:120px;border-radius:3px;background:var(--bg3);border:1px solid var(--border);display:block;}
+/* ── LOSS CHART ── */
+#lossCanvas{width:100%;height:110px;background:var(--bg3);border:1px solid var(--border);display:block;}
 
-/* METRICS */
+/* ── METRICS ── */
 .metric-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
-.metric{padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);}
-.metric-val{font-family:var(--mono);font-size:18px;font-weight:500;color:var(--text);}
+.metric{padding:10px 12px;background:var(--bg3);border:1px solid var(--border);}
+.metric-val{font-family:var(--mono);font-size:18px;font-weight:500;}
 .metric-val.accent{color:var(--accent);}
 .metric-val.green{color:var(--green);}
 .metric-label{font-size:9px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:0.7px;}
 
-/* LOG */
+/* ── LOG ── */
 .log-box{
-  background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);
-  font-family:var(--mono);font-size:10px;color:var(--text2);line-height:1.7;
-  padding:9px 11px;max-height:100px;overflow-y:auto;
+  background:var(--bg3);border:1px solid var(--border);
+  font-family:var(--mono);font-size:10px;color:var(--text2);
+  line-height:1.75;padding:9px 11px;max-height:100px;overflow-y:auto;
 }
-.log-ok{color:var(--green);}.log-err{color:#e07070;}.log-info{color:var(--text3);}
+.log-ok{color:var(--green);}
+.log-err{color:#e07070;}
+.log-info{color:var(--text3);}
 
-/* IMPORT ZONE */
+/* ── IMPORT ZONE ── */
 .import-zone{
-  border:1.5px dashed var(--border2);border-radius:var(--r);padding:16px;
+  border:1px dashed var(--border2);padding:16px;
   text-align:center;cursor:pointer;transition:all 0.14s;color:var(--text3);font-size:12px;
 }
 .import-zone:hover,.import-zone.over{border-color:var(--accentbd);background:var(--accentbg);color:var(--accent);}
 
-/* EXPORT PANEL */
+/* ── EXPORT PANEL ── */
 .export-panel{
   background:var(--greenbg);border:1px solid var(--greenbd);
-  border-radius:var(--r);padding:14px;margin-top:12px;
+  padding:14px;margin-top:12px;
 }
-.export-panel h3{font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px;}
+.export-panel h3{font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
 
-/* TEST */
+/* ── TEST OUTPUT ── */
 .test-out{
-  margin-top:8px;font-size:12px;color:var(--text2);line-height:1.6;
-  background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px;
-  display:none;
+  margin-top:8px;font-size:12px;color:var(--text2);line-height:1.65;
+  background:var(--bg3);border:1px solid var(--border);padding:10px;display:none;
 }
 
-/* TABS */
-.tab-bar{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:0;}
+/* ── TABS ── */
+.tab-bar{display:flex;gap:0;margin-bottom:14px;border-bottom:1px solid var(--border);}
 .tab{
-  padding:7px 13px;font-size:11px;font-weight:700;color:var(--text3);
-  cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.14s;
-  letter-spacing:0.2px;
+  padding:8px 13px;font-size:11px;font-weight:700;color:var(--text3);
+  cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:all 0.14s;letter-spacing:0.2px;display:flex;align-items:center;gap:5px;
 }
+.tab .material-icons-round{font-size:14px;}
 .tab:hover{color:var(--text2);}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
 .tab-content{display:none;}.tab-content.active{display:block;}
 
-/* MODE PILLS */
-.mode-pills{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap;}
-.mode-pill{
-  padding:5px 11px;border-radius:999px;font-size:11px;font-weight:600;
-  border:1px solid var(--border2);color:var(--text2);cursor:pointer;transition:all 0.14s;
-}
-.mode-pill:hover{background:var(--bg3);color:var(--text);}
-.mode-pill.active{background:var(--accentbg);border-color:var(--accentbd);color:var(--accent);}
-
-/* ADVANCED TOGGLE */
+/* ── ADVANCED TOGGLE ── */
 .adv-toggle{
   display:flex;align-items:center;gap:7px;cursor:pointer;
-  padding:7px 10px;border-radius:var(--r);border:1px solid var(--border);
-  font-size:11px;color:var(--text3);margin-bottom:12px;background:var(--bg3);
+  padding:8px 11px;border:1px solid var(--border);font-size:11px;
+  color:var(--text3);margin-bottom:12px;background:var(--bg3);
   transition:all 0.14s;font-weight:600;
 }
 .adv-toggle:hover{color:var(--text2);}
+.adv-toggle .material-icons-round{font-size:16px;transition:transform 0.2s;}
+.adv-toggle.open .material-icons-round.adv-arrow{transform:rotate(90deg);}
 .adv-section{display:none;padding:10px 0 0;}
 .adv-section.open{display:block;}
 
-/* IMAGE OCR SECTION */
-.ocr-section{
-  border:1.5px dashed var(--border2);border-radius:var(--r);padding:13px;
-  text-align:center;cursor:pointer;transition:all 0.14s;margin-bottom:10px;
+/* ── OCR ── */
+.ocr-opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.ocr-opt{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:20px 12px;background:var(--bg3);border:1px dashed var(--border2);
+  cursor:pointer;transition:all 0.14s;font-size:11px;font-weight:600;color:var(--text2);
 }
-.ocr-section:hover{border-color:var(--accentbd);background:var(--accentbg);}
-.ocr-processing{display:flex;align-items:center;gap:10px;padding:12px;}
-.spin{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.6s linear infinite;flex-shrink:0;}
+.ocr-opt:hover{background:var(--bg4);border-color:var(--accentbd);color:var(--text);}
+.ocr-opt .material-icons-round{font-size:26px;}
+.ocr-processing{display:flex;align-items:center;gap:10px;padding:14px;}
+.spin{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);animation:spin 0.6s linear infinite;flex-shrink:0;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .ocr-preview-row{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
-.ocr-thumb{width:80px;height:60px;object-fit:cover;border-radius:4px;border:1px solid var(--border);flex-shrink:0;}
-.ocr-result-text{flex:1;font-family:var(--mono);font-size:10px;color:var(--text2);line-height:1.6;max-height:80px;overflow:auto;white-space:pre-wrap;}
+.ocr-thumb{width:80px;height:60px;object-fit:cover;border:1px solid var(--border);flex-shrink:0;}
+.ocr-result-text{flex:1;font-family:var(--mono);font-size:10px;color:var(--text2);line-height:1.65;max-height:80px;overflow:auto;white-space:pre-wrap;}
+.prog-track{width:100%;height:3px;background:var(--bg4);overflow:hidden;margin-bottom:12px;}
 
-/* INFO BANNER */
-.info-banner{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:var(--r);background:var(--accentbg);border:1px solid var(--accentbd);font-size:11px;color:var(--text2);line-height:1.55;margin-bottom:12px;}
+/* ── INFO BANNER ── */
+.info-banner{
+  display:flex;align-items:flex-start;gap:8px;padding:9px 13px;
+  background:var(--accentbg);border:1px solid var(--accentbd);
+  font-size:11px;color:var(--text2);line-height:1.55;margin-bottom:12px;
+}
+.info-banner .material-icons-round{font-size:14px;opacity:0.6;flex-shrink:0;margin-top:1px;}
 
-/* Overlay */
-.overlay{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px;animation:ovIn 0.18s ease;}
-@keyframes ovIn{from{opacity:0;}to{opacity:1;}}
-.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;width:100%;max-width:440px;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;animation:moPop 0.24s cubic-bezier(0.16,1,0.3,1);}
-@keyframes moPop{from{opacity:0;transform:scale(0.93) translateY(10px);}to{opacity:1;transform:scale(1) translateY(0);}}
-.modal-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
-.modal-title{font-size:13px;font-weight:700;}.modal-sub{font-size:10px;color:var(--text3);margin-top:2px;}
-.close-btn{width:24px;height:24px;border-radius:4px;background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:all 0.12s;}
-.close-btn:hover{background:var(--bg3);color:var(--text);}
-.modal-body{padding:13px 16px;overflow-y:auto;flex:1;}
-.ocr-opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.ocr-opt{display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 12px;border-radius:var(--r);background:var(--bg3);border:1.5px dashed var(--border2);cursor:pointer;transition:all 0.14s;font-size:11px;font-weight:600;color:var(--text2);}
-.ocr-opt:hover{background:var(--bg4);border-color:var(--accentbd);color:var(--text);}
-.ocr-opt-icon{font-size:24px;}
-.ocr-prog-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:22px 16px;}
-.ocr-prog-bar-track{width:100%;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;}
-.ocr-prog-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:2px;transition:width 0.3s;}
+/* ── ARCH PREVIEW ── */
+.arch-box{
+  margin-top:8px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);
+  font-size:10px;color:var(--text3);font-family:var(--mono);
+}
+.arch-box span{color:var(--text2);}
+
+/* ── SIZE DISPLAY ── */
+.size-display{
+  display:flex;align-items:center;gap:6px;padding:8px 12px;
+  background:var(--accentbg);border:1px solid var(--accentbd);
+  font-family:var(--mono);font-size:11px;color:var(--accent);margin-top:6px;
+}
+.size-display .material-icons-round{font-size:14px;}
+
+/* ── MOBILE ── */
+@media(max-width:768px){
+  .page{padding:14px 12px;}
+  .card-body{padding:12px;}
+  .form-row2{grid-template-columns:1fr;}
+  .metric-row{grid-template-columns:1fr 1fr;}
+}
 </style>
 </head>
 <body>
 
+<!-- TOPBAR -->
 <div class="topbar">
-  <div class="logo-mark">ZY</div>
-  <div>
-    <div class="logo-title">Zywayle Trainer</div>
-    <div class="logo-sub">Train · Test · Export</div>
+  <div class="logo-wrap">
+    <img src="./logo.png" alt="Zywayle" class="logo-img" onerror="this.outerHTML='<div class=\'logo-img-fallback\'>ZY</div>'">
+    <div>
+      <div class="logo-title">Zywayle Trainer</div>
+      <div class="logo-sub">Train · Test · Export</div>
+    </div>
   </div>
   <div class="topbar-gap"></div>
-  <a href="index.html" class="back-link">← Back to Chat</a>
+  <a href="index.html" class="back-link">
+    <span class="material-icons-round">arrow_back</span>
+    <span>Back to Chat</span>
+  </a>
 </div>
 
 <div class="page">
 
   <div class="page-header">
     <div class="page-title">Train your AI model</div>
-    <div class="page-desc">Add training data, configure your neural network, and export a .zyy model. The more data you provide, the smarter the AI gets. You can also extract training data from images using OCR.</div>
+    <div class="page-desc">Add Q&amp;A training data, configure the neural network, and export a .zyy model file. The AI genuinely learns — more diverse data means richer, more creative responses.</div>
   </div>
 
   <!-- STATUS -->
-  <div class="status-bar idle" id="status-bar">
-    <div class="pulse" id="pulse" style="display:none"></div>
-    <span id="status-text">Ready — add your training data below and click Train.</span>
+  <div class="status-bar idle" id="status-bar" role="status" aria-live="polite">
+    <div class="pulse" id="pulse" style="display:none" aria-hidden="true"></div>
+    <span id="status-text">Ready — add training data below and click Train.</span>
   </div>
 
-  <!-- MAIN GRID -->
+  <!-- GRID -->
   <div class="trainer-grid">
 
     <!-- LEFT: DATA -->
     <div class="card">
       <div class="card-head">
         <div>
-          <div class="card-title">📊 Training Data</div>
+          <div class="card-title">
+            <span class="material-icons-round">dataset</span>
+            Training Data
+          </div>
           <div class="card-sub">Questions and answers that teach the AI</div>
         </div>
         <span class="card-badge purple" id="pair-badge">0 pairs</span>
       </div>
       <div class="card-body">
 
-        <!-- TABS: QA / Free Text / Image OCR -->
-        <div class="tab-bar">
-          <div class="tab active" onclick="switchTab('qa',this)">Q&amp;A Pairs</div>
-          <div class="tab" onclick="switchTab('freetext',this)">Free Text</div>
-          <div class="tab" onclick="switchTab('image',this)">📷 Image OCR</div>
+        <!-- TABS -->
+        <div class="tab-bar" role="tablist">
+          <div class="tab active" onclick="switchTab('qa',this)" role="tab" aria-selected="true" tabindex="0">
+            Q&amp;A Pairs
+          </div>
+          <div class="tab" onclick="switchTab('freetext',this)" role="tab" tabindex="0">
+            Free Text
+          </div>
+          <div class="tab" onclick="switchTab('image',this)" role="tab" tabindex="0">
+            <span class="material-icons-round">photo_camera</span> Image OCR
+          </div>
         </div>
 
         <!-- QA TAB -->
-        <div class="tab-content active" id="tab-qa">
-          <div class="info-banner" id="qa-hint" style="margin-bottom:10px">
-            <span>ℹ</span>
-            <span>One pair per line in format: <strong>question | answer</strong>. Use <strong>|</strong> to separate. More pairs = smarter model.</span>
+        <div class="tab-content active" id="tab-qa" role="tabpanel">
+          <div class="info-banner">
+            <span class="material-icons-round">info</span>
+            <span>One pair per line: <strong>question | answer</strong>. More varied pairs = more creative responses.</span>
           </div>
           <textarea class="data-ta" id="data-input"
-            placeholder="what is python | Python is a high-level programming language known for readability. Used in AI, web development, and automation.&#10;what is machine learning | Machine learning is AI where systems learn patterns from data without explicit programming.&#10;hello | Hi! How can I help you today?&#10;&#10;Tip: Aim for 30+ pairs. Consistent phrasing helps the model learn better."
+            aria-label="Training data input"
+            placeholder="what is python | Python is a high-level programming language known for readability.&#10;what is machine learning | Machine learning is AI where systems learn patterns from data.&#10;hello | Hi! How can I help you today?&#10;&#10;Tip: Aim for 30+ pairs. Varied phrasing makes responses more creative."
             oninput="updateDataStats()"></textarea>
 
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
-            <button class="btn sm" onclick="loadSample()">Load sample</button>
-            <button class="btn sm" onclick="importPairs()">Import .zyy</button>
-            <button class="btn sm" onclick="sortData()">Sort A→Z</button>
-            <button class="btn sm" onclick="dedupeData()">Remove dupes</button>
-            <button class="btn sm danger" onclick="clearData()">Clear</button>
+            <button class="btn sm" onclick="loadSample()" aria-label="Load sample data">
+              <span class="material-icons-round">download</span> Sample
+            </button>
+            <button class="btn sm" onclick="importPairs()" aria-label="Import .zyy file">
+              <span class="material-icons-round">upload_file</span> Import .zyy
+            </button>
+            <button class="btn sm" onclick="sortData()">
+              <span class="material-icons-round">sort</span> Sort
+            </button>
+            <button class="btn sm" onclick="dedupeData()">
+              <span class="material-icons-round">filter_list</span> Dedupe
+            </button>
+            <button class="btn sm danger" onclick="clearData()">
+              <span class="material-icons-round">delete_outline</span> Clear
+            </button>
           </div>
-
           <input type="file" id="file-import" accept=".zyy,.json,.txt" style="display:none" onchange="handleImport(this)">
         </div>
 
         <!-- FREE TEXT TAB -->
-        <div class="tab-content" id="tab-freetext">
+        <div class="tab-content" id="tab-freetext" role="tabpanel">
           <div class="info-banner">
-            <span>ℹ</span>
-            <span>Paste any text (article, FAQ, knowledge base, etc.) and the AI will auto-extract Q&amp;A training pairs from it.</span>
+            <span class="material-icons-round">info</span>
+            <span>Paste any text (articles, FAQs, knowledge bases) and the AI will auto-extract Q&amp;A training pairs.</span>
           </div>
-          <textarea class="data-ta" id="freetext-input" style="min-height:180px"
-            placeholder="Paste any text here…&#10;&#10;Example:&#10;Python is a high-level programming language created by Guido van Rossum in 1991. It emphasizes code readability and simplicity. Python is widely used in web development, data science, artificial intelligence, and automation.&#10;&#10;JavaScript is a programming language primarily used for web development. It runs in browsers and enables interactive websites. Node.js allows JavaScript to run on servers.&#10;&#10;The app will extract useful Q&A pairs automatically."></textarea>
-          <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-            <button class="btn primary" onclick="autoExtract()">⚡ Auto-extract Q&amp;A pairs</button>
-            <span style="font-size:11px;color:var(--text3)" id="extract-status"></span>
+          <textarea class="data-ta" id="freetext-input" style="min-height:160px"
+            aria-label="Free text input"
+            placeholder="Paste any text here…&#10;&#10;Python is a high-level programming language created by Guido van Rossum in 1991. It emphasizes code readability. Python is used in web development, data science, and AI.&#10;&#10;The app will extract useful Q&A pairs automatically."></textarea>
+          <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap">
+            <button class="btn primary" onclick="autoExtract()">
+              <span class="material-icons-round">bolt</span> Auto-extract Q&amp;A
+            </button>
+            <span style="font-size:11px;color:var(--text3);font-family:var(--mono)" id="extract-status"></span>
           </div>
         </div>
 
         <!-- IMAGE OCR TAB -->
-        <div class="tab-content" id="tab-image">
+        <div class="tab-content" id="tab-image" role="tabpanel">
           <div class="info-banner">
-            <span>ℹ</span>
-            <span>Take a photo or upload an image containing text. Zywayle will extract the text using OCR and add it as training data.</span>
+            <span class="material-icons-round">info</span>
+            <span>Take a photo or upload an image with text. OCR extracts it and adds it as training data.</span>
           </div>
-
           <div id="ocr-pick-area">
             <div class="ocr-opt-grid">
-              <div class="ocr-opt" onclick="document.getElementById('ocr-cam').click()">
-                <span class="ocr-opt-icon">📷</span>
+              <div class="ocr-opt" onclick="document.getElementById('ocr-cam').click()" role="button" tabindex="0">
+                <span class="material-icons-round">photo_camera</span>
                 <span>Take Photo</span>
                 <input id="ocr-cam" type="file" accept="image/*" capture="environment" style="display:none" onchange="trainerOCR(this.files[0])">
               </div>
-              <div class="ocr-opt" onclick="document.getElementById('ocr-file').click()">
-                <span class="ocr-opt-icon">🖼️</span>
+              <div class="ocr-opt" onclick="document.getElementById('ocr-file').click()" role="button" tabindex="0">
+                <span class="material-icons-round">image</span>
                 <span>Upload Image</span>
                 <input id="ocr-file" type="file" accept="image/*" style="display:none" onchange="trainerOCR(this.files[0])">
               </div>
@@ -360,28 +420,32 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
 
           <div id="ocr-progress-area" style="display:none">
             <div class="ocr-processing">
-              <div class="spin"></div>
+              <div class="spin" aria-hidden="true"></div>
               <span style="font-size:12px;color:var(--text2)">Reading text from image…</span>
             </div>
-            <div class="prog-track" style="margin:0 12px 12px">
+            <div class="prog-track">
               <div class="prog-bar" id="ocr-prog-bar" style="width:0%"></div>
             </div>
           </div>
 
           <div id="ocr-result-area" style="display:none;margin-top:10px">
             <div class="ocr-preview-row">
-              <img id="ocr-thumb" class="ocr-thumb" alt="OCR source">
+              <img id="ocr-thumb" class="ocr-thumb" alt="OCR source image">
               <div class="ocr-result-text" id="ocr-result-text"></div>
             </div>
             <div class="btn-row">
-              <button class="btn sm primary" onclick="addOCRAsTraining()">Add to training data</button>
-              <button class="btn sm" onclick="addOCRToFreeText()">Add to Free Text tab</button>
-              <button class="btn sm danger" onclick="resetOCR()">Try another image</button>
+              <button class="btn sm primary" onclick="addOCRAsTraining()">
+                <span class="material-icons-round">add</span> Add to training
+              </button>
+              <button class="btn sm" onclick="addOCRToFreeText()">To Free Text</button>
+              <button class="btn sm danger" onclick="resetOCR()">
+                <span class="material-icons-round">refresh</span> Try again
+              </button>
             </div>
           </div>
         </div>
 
-        <!-- DATA STATS (shown when data exists) -->
+        <!-- DATA STATS -->
         <div class="data-stats" id="data-stats" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
           <div class="stat"><span class="stat-val accent" id="stat-pairs">0</span><span class="stat-label">Pairs</span></div>
           <div class="stat"><span class="stat-val" id="stat-vocab">0</span><span class="stat-label">Vocab</span></div>
@@ -392,68 +456,72 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
       </div>
     </div>
 
-    <!-- RIGHT: SETTINGS + TRAIN + EXPORT -->
-    <div style="display:flex;flex-direction:column;gap:16px;">
+    <!-- RIGHT -->
+    <div style="display:flex;flex-direction:column;gap:14px;">
 
       <!-- SETTINGS -->
       <div class="card">
         <div class="card-head">
           <div>
-            <div class="card-title">⚙️ Settings</div>
+            <div class="card-title">
+              <span class="material-icons-round">tune</span>
+              Model Settings
+            </div>
             <div class="card-sub">Smart defaults pre-configured</div>
           </div>
         </div>
         <div class="card-body">
 
           <div class="form-row">
-            <label>Model name</label>
+            <label for="model-name">Model name</label>
             <input type="text" id="model-name" value="My Zywayle Model" placeholder="e.g. My Custom AI">
           </div>
 
           <div class="form-row2">
             <div>
-              <label>Size label</label>
-              <input type="text" id="model-size" value="0.1B" placeholder="0.1B">
+              <label for="model-version">Version</label>
+              <input type="text" id="model-version" value="1.0" placeholder="1.0">
             </div>
             <div>
-              <label>Version</label>
-              <input type="text" id="model-version" value="1.0" placeholder="1.0">
+              <label for="model-tags">Tags</label>
+              <input type="text" id="model-tags" value="Chat,Custom">
             </div>
           </div>
 
           <div class="form-row">
-            <label>Description</label>
+            <label for="model-desc">Description</label>
             <textarea id="model-desc" style="min-height:42px">Custom trained Zywayle model</textarea>
           </div>
 
-          <div class="form-row">
-            <label>Tags (comma separated)</label>
-            <input type="text" id="model-tags" value="Chat,Custom">
+          <!-- Size is now auto-calculated, shown as read-only display -->
+          <div class="size-display" id="size-display" aria-live="polite">
+            <span class="material-icons-round">memory</span>
+            <span>Model size: <strong id="size-label">—</strong></span>
           </div>
 
-          <!-- ADVANCED SETTINGS TOGGLE -->
-          <div class="adv-toggle" onclick="toggleAdv(this)">
-            <span id="adv-arrow">▸</span>
+          <!-- ADVANCED TOGGLE -->
+          <div class="adv-toggle" id="adv-toggle" onclick="toggleAdv()" style="margin-top:12px">
+            <span class="material-icons-round adv-arrow">chevron_right</span>
             <span>Advanced settings</span>
             <span style="flex:1"></span>
-            <span style="font-size:10px;color:var(--text4)">epochs, LR, network</span>
+            <span style="font-size:10px;color:var(--text4);font-family:var(--mono)">epochs · LR · network</span>
           </div>
           <div class="adv-section" id="adv-section">
 
             <div class="form-row2">
               <div>
-                <label>Epochs</label>
+                <label for="epochs">Epochs</label>
                 <input type="number" id="epochs" value="200" min="10" max="5000" step="10">
-                <div class="hint">More = better fit. 200 is good.</div>
+                <div class="hint">200 is a good start. More = better fit.</div>
               </div>
               <div>
-                <label>Input vector size</label>
+                <label for="input-size">Input vector size</label>
                 <input type="number" id="input-size" value="128" min="32" max="512" step="32" onchange="updateArchPreview()">
               </div>
             </div>
 
             <div class="form-row">
-              <label>Learning rate: <span id="lr-val" style="color:var(--accent);font-family:var(--mono)">0.002</span></label>
+              <label>Learning rate: <span id="lr-val" style="color:var(--accent);font-family:var(--mono)">0.0020</span></label>
               <input type="range" id="lr-range" min="0.0001" max="0.05" step="0.0001" value="0.002"
                 oninput="document.getElementById('lr-val').textContent=(+this.value).toFixed(4)">
             </div>
@@ -462,17 +530,19 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
               <label>Dropout: <span id="drop-val" style="color:var(--accent);font-family:var(--mono)">0.10</span></label>
               <input type="range" id="drop-range" min="0" max="0.5" step="0.05" value="0.1"
                 oninput="document.getElementById('drop-val').textContent=(+this.value).toFixed(2)">
-              <div class="hint">Prevents overfitting. 0.1–0.2 recommended.</div>
+              <div class="hint">0.1–0.2 prevents overfitting.</div>
             </div>
 
             <div class="form-row">
               <label>Hidden layers</label>
               <div id="layer-list" style="display:flex;flex-direction:column;gap:5px;margin-bottom:7px;"></div>
-              <button class="btn sm" onclick="addLayer()">+ Add layer</button>
+              <button class="btn sm" onclick="addLayer()">
+                <span class="material-icons-round">add</span> Add layer
+              </button>
             </div>
 
             <div class="form-row">
-              <label>Activation function</label>
+              <label for="activation">Activation function</label>
               <select id="activation">
                 <option value="relu" selected>ReLU (recommended)</option>
                 <option value="leaky">Leaky ReLU</option>
@@ -482,7 +552,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
             </div>
 
             <div class="form-row">
-              <label>Optimizer</label>
+              <label for="optimizer">Optimizer</label>
               <select id="optimizer">
                 <option value="adam" selected>Adam (recommended)</option>
                 <option value="sgd">SGD + Momentum</option>
@@ -491,28 +561,32 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
             </div>
 
             <div class="form-row">
-              <label>LR Schedule</label>
+              <label for="lr-sched">LR Schedule</label>
               <select id="lr-sched">
                 <option value="cosine" selected>Cosine annealing (best)</option>
                 <option value="step">Step decay</option>
-                <option value="none">None (constant)</option>
+                <option value="none">Constant</option>
               </select>
             </div>
 
-            <div style="margin-top:8px;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:10px;color:var(--text3)">
-              Architecture: <span id="arch-preview" style="font-family:var(--mono);color:var(--text2)">—</span>
+            <div class="arch-box">
+              Architecture: <span id="arch-preview">—</span>
             </div>
+
           </div>
 
         </div>
       </div>
 
-      <!-- TRAINING CONTROL -->
+      <!-- TRAIN -->
       <div class="card">
         <div class="card-head">
           <div>
-            <div class="card-title">🚀 Train</div>
-            <div class="card-sub">Run the neural network training</div>
+            <div class="card-title">
+              <span class="material-icons-round">rocket_launch</span>
+              Train
+            </div>
+            <div class="card-sub">Run neural network training</div>
           </div>
           <span class="card-badge" id="train-badge">Idle</span>
         </div>
@@ -529,9 +603,15 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
           </div>
 
           <div class="btn-row" style="margin-bottom:12px">
-            <button class="btn primary" id="train-btn" onclick="startTraining()" style="flex:1">▶ Train</button>
-            <button class="btn danger" id="stop-btn" onclick="stopTraining()" style="display:none;flex:1">■ Stop</button>
-            <button class="btn" onclick="resetModel()" title="Reset model">↺</button>
+            <button class="btn primary" id="train-btn" onclick="startTraining()" style="flex:1" aria-label="Start training">
+              <span class="material-icons-round">play_arrow</span> Train
+            </button>
+            <button class="btn danger" id="stop-btn" onclick="stopTraining()" style="display:none;flex:1" aria-label="Stop training">
+              <span class="material-icons-round">stop</span> Stop
+            </button>
+            <button class="btn" onclick="resetModel()" title="Reset model" aria-label="Reset model">
+              <span class="material-icons-round">refresh</span>
+            </button>
           </div>
 
           <div class="metric-row">
@@ -543,10 +623,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
 
           <div style="margin-bottom:12px">
             <label style="margin-bottom:5px;display:block">Loss curve</label>
-            <canvas id="lossCanvas"></canvas>
+            <canvas id="lossCanvas" aria-label="Training loss chart" role="img"></canvas>
           </div>
 
-          <div class="log-box" id="log-box">
+          <div class="log-box" id="log-box" role="log" aria-label="Training log" aria-live="polite">
             <span class="log-info">Zywayle Trainer ready. Add data and click Train.</span>
           </div>
 
@@ -557,41 +637,61 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
       <div class="card">
         <div class="card-head">
           <div>
-            <div class="card-title">💬 Test &amp; Export</div>
+            <div class="card-title">
+              <span class="material-icons-round">chat</span>
+              Test &amp; Export
+            </div>
             <div class="card-sub">Try your model and download it</div>
           </div>
         </div>
         <div class="card-body">
 
           <div style="display:flex;gap:6px;margin-bottom:8px">
-            <input type="text" id="test-input" placeholder="Ask the model something…" style="flex:1" onkeydown="if(event.key==='Enter')testModel()">
-            <button class="btn sm primary" onclick="testModel()">Ask</button>
+            <input type="text" id="test-input" placeholder="Ask the model something…"
+              aria-label="Test question input"
+              style="flex:1" onkeydown="if(event.key==='Enter')testModel()">
+            <button class="btn sm primary" onclick="testModel()" aria-label="Test model">
+              <span class="material-icons-round">send</span>
+            </button>
           </div>
-          <div class="test-out" id="test-output"></div>
+          <div class="test-out" id="test-output" role="region" aria-label="Model test output"></div>
 
           <!-- IMAGE TEST -->
           <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
-            <div style="font-size:10px;color:var(--text3);margin-bottom:7px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px">📷 Test with image text</div>
-            <div style="display:flex;gap:5px">
-              <button class="btn sm" onclick="document.getElementById('test-img-cam').click()">📷 Camera</button>
-              <button class="btn sm" onclick="document.getElementById('test-img-file').click()">🖼️ Upload</button>
+            <div style="font-size:10px;color:var(--text3);margin-bottom:7px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;font-family:var(--mono);display:flex;align-items:center;gap:4px">
+              <span class="material-icons-round" style="font-size:13px">photo_camera</span>
+              Test with image text
+            </div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap">
+              <button class="btn sm" onclick="document.getElementById('test-img-cam').click()">
+                <span class="material-icons-round">photo_camera</span> Camera
+              </button>
+              <button class="btn sm" onclick="document.getElementById('test-img-file').click()">
+                <span class="material-icons-round">image</span> Upload
+              </button>
               <input id="test-img-cam" type="file" accept="image/*" capture="environment" style="display:none" onchange="testWithImage(this.files[0])">
               <input id="test-img-file" type="file" accept="image/*" style="display:none" onchange="testWithImage(this.files[0])">
             </div>
-            <div id="test-img-status" style="font-size:11px;color:var(--text3);margin-top:5px;display:none"></div>
+            <div id="test-img-status" style="font-size:11px;color:var(--text3);margin-top:6px;display:none;font-family:var(--mono)" aria-live="polite"></div>
           </div>
 
-          <div class="export-panel" id="export-panel" style="display:none">
-            <h3>✓ Model ready to export</h3>
-            <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.5">
-              Download the .zyy file and place it in your <code style="font-family:var(--mono)">/Models/</code> folder. Update <code style="font-family:var(--mono)">Models/meta.txt</code> with the entry below.
+          <!-- EXPORT -->
+          <div class="export-panel" id="export-panel" style="display:none" role="region" aria-label="Export panel">
+            <h3>
+              <span class="material-icons-round" style="color:var(--green)">check_circle</span>
+              Model ready to export
+            </h3>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.55">
+              Download the .zyy file and place it in your <code style="font-family:var(--mono);color:var(--accent)">/Models/</code> folder. Update <code style="font-family:var(--mono);color:var(--accent)">Models/meta.txt</code> with the entry below.
             </div>
-            <div style="font-family:var(--mono);font-size:10px;color:var(--text2);padding:8px;background:var(--bg4);border-radius:var(--r);margin-bottom:10px;word-break:break-all" id="meta-entry">
-              —
-            </div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text2);padding:8px 10px;background:var(--bg4);border:1px solid var(--border);margin-bottom:10px;word-break:break-all;line-height:1.6" id="meta-entry">—</div>
             <div class="btn-row">
-              <button class="btn success" onclick="exportModel()">⬇ Download .zyy</button>
-              <button class="btn sm" onclick="copyMetaEntry()">Copy meta.txt entry</button>
+              <button class="btn success" onclick="exportModel()">
+                <span class="material-icons-round">download</span> Download .zyy
+              </button>
+              <button class="btn sm" onclick="copyMetaEntry()">
+                <span class="material-icons-round">content_copy</span> Copy meta entry
+              </button>
             </div>
           </div>
 
@@ -617,8 +717,7 @@ const ZYY={
   softmax(v){const m=Math.max(...v),e=v.map(x=>Math.exp(x-m)),s=e.reduce((a,b)=>a+b,0);return e.map(x=>x/s);},
   tokenize(t){return t.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean);},
   textToVec(text,vocab,size){
-    const vec=new Float32Array(size);
-    const toks=ZYY.tokenize(text);
+    const vec=new Float32Array(size);const toks=ZYY.tokenize(text);
     for(const t of toks)if(t in vocab)vec[vocab[t]%size]+=1;
     for(let i=0;i<toks.length-1;i++){
       const bi=toks[i]+' '+toks[i+1];let h=0;
@@ -631,6 +730,14 @@ const ZYY={
   },
   buildVocab(pairs){const v={};let i=0;for(const[q]of pairs)for(const t of ZYY.tokenize(q))if(!(t in v))v[t]=i++;return v;},
   countParams(layers){return layers.reduce((s,l)=>s+l.W.length*l.W[0].length+l.b.length,0);},
+  /* Human-readable size from param count */
+  humanSize(params){
+    // Each param is ~4 bytes (float32) but we store as compact JSON (~5 chars avg)
+    // Show in KB or MB, never "B" for parameters
+    const bytes=params*4;
+    if(bytes<1024*1024)return (bytes/1024).toFixed(1)+' KB';
+    return (bytes/(1024*1024)).toFixed(2)+' MB';
+  },
 };
 
 class BM25Retriever{
@@ -716,9 +823,7 @@ class Net{
   serialize(){return{sizes:this.sizes,act:this.act,t:this.t,layers:this.layers.map(l=>({W:l.W.map(r=>r.map(v=>+v.toFixed(5))),b:[...l.b].map(v=>+v.toFixed(5))}));};}
 }
 
-/* ══════════════════════════════════════════════
-   STATE
-   ══════════════════════════════════════════════ */
+/* ── STATE ── */
 let trainNet=null,trainPairs=[],trainVocab={},trainRunning=false,trainStop=false;
 let lossHistory=[],bestLoss=Infinity,trainStart=0;
 let hiddenLayers=[{n:256,act:'relu'},{n:128,act:'relu'}];
@@ -727,40 +832,36 @@ let ocrExtractedText='',ocrPreviewUrl='';
 const lossCanvas=document.getElementById('lossCanvas');
 const lossCtx=lossCanvas.getContext('2d');
 
-/* ══════════════════════════════════════════════
-   TABS
-   ══════════════════════════════════════════════ */
+/* ── TABS ── */
 function switchTab(id,el){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>{t.classList.remove('active');t.setAttribute('aria-selected','false');});
   document.querySelectorAll('.tab-content').forEach(tc=>tc.classList.remove('active'));
-  el.classList.add('active');
+  el.classList.add('active');el.setAttribute('aria-selected','true');
   document.getElementById('tab-'+id).classList.add('active');
 }
 
-/* ══════════════════════════════════════════════
-   ADVANCED TOGGLE
-   ══════════════════════════════════════════════ */
-function toggleAdv(el){
+/* ── ADVANCED TOGGLE ── */
+function toggleAdv(){
   const sec=document.getElementById('adv-section');
-  const arrow=document.getElementById('adv-arrow');
+  const toggle=document.getElementById('adv-toggle');
   sec.classList.toggle('open');
-  arrow.textContent=sec.classList.contains('open')?'▾':'▸';
+  toggle.classList.toggle('open');
 }
 
-/* ══════════════════════════════════════════════
-   LAYER BUILDER
-   ══════════════════════════════════════════════ */
+/* ── LAYER BUILDER ── */
 function renderLayers(){
   const list=document.getElementById('layer-list');list.innerHTML='';
   hiddenLayers.forEach((l,i)=>{
     const row=document.createElement('div');
-    row.style.cssText='display:flex;gap:5px;align-items:center;padding:6px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);';
-    row.innerHTML=`<span style="font-size:10px;font-family:var(--mono);color:var(--text3);width:50px">L${i+1}</span>
-      <input type="number" value="${l.n}" min="4" max="1024" style="width:70px;padding:4px 6px;font-size:11px" onchange="hiddenLayers[${i}].n=+this.value;updateArchPreview()">
-      <select style="flex:1;padding:4px 6px;font-size:11px" onchange="hiddenLayers[${i}].act=this.value">
+    row.style.cssText='display:flex;gap:5px;align-items:center;padding:7px 9px;background:var(--bg3);border:1px solid var(--border);';
+    row.innerHTML=`<span style="font-size:10px;font-family:var(--mono);color:var(--text3);width:28px">L${i+1}</span>
+      <input type="number" value="${l.n}" min="4" max="1024" style="width:72px;padding:5px 7px;font-size:12px" onchange="hiddenLayers[${i}].n=+this.value;updateArchPreview()" aria-label="Layer ${i+1} neurons">
+      <select style="flex:1;padding:5px 7px;font-size:12px" onchange="hiddenLayers[${i}].act=this.value" aria-label="Layer ${i+1} activation">
         ${['relu','leaky','tanh','sigmoid'].map(a=>`<option${l.act===a?' selected':''}>${a}</option>`).join('')}
       </select>
-      <button style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:15px;padding:0 3px" onclick="hiddenLayers.splice(${i},1);renderLayers();updateArchPreview()">×</button>`;
+      <button style="background:transparent;border:none;color:var(--text3);cursor:pointer;display:flex;align-items:center;padding:0" onclick="hiddenLayers.splice(${i},1);renderLayers();updateArchPreview()" aria-label="Remove layer ${i+1}">
+        <span class="material-icons-round" style="font-size:18px">close</span>
+      </button>`;
     list.appendChild(row);
   });
   updateArchPreview();
@@ -771,12 +872,13 @@ function updateArchPreview(){
   const isize=+document.getElementById('input-size').value||128;
   const nPairs=parsePairs().length||1;
   const sizes=[isize,...hiddenLayers.map(l=>l.n),nPairs];
-  document.getElementById('arch-preview').textContent=sizes.join(' → ')+' ('+sizes.reduce((s,_,i)=>i>0?s+(sizes[i-1]+1)*sizes[i]:s,0).toLocaleString()+' params)';
+  const params=sizes.reduce((s,_,i)=>i>0?s+(sizes[i-1]+1)*sizes[i]:s,0);
+  document.getElementById('arch-preview').textContent=sizes.join(' → ')+' ('+params.toLocaleString()+' params)';
+  // Update size display
+  document.getElementById('size-label').textContent=ZYY.humanSize(params);
 }
 
-/* ══════════════════════════════════════════════
-   DATA HELPERS
-   ══════════════════════════════════════════════ */
+/* ── DATA ── */
 function parsePairs(){
   const text=document.getElementById('data-input').value;
   const pairs=[];
@@ -788,8 +890,7 @@ function parsePairs(){
 }
 
 function updateDataStats(){
-  const pairs=parsePairs();
-  const n=pairs.length;
+  const pairs=parsePairs();const n=pairs.length;
   const badge=document.getElementById('pair-badge');
   badge.textContent=n+' pairs';
   badge.className='card-badge '+(n>0?'purple':'');
@@ -810,40 +911,41 @@ function loadSample(){
   document.getElementById('data-input').value=`what is python | Python is a high-level, versatile programming language known for readability. Widely used in AI, data science, web development, and automation.
 what is javascript | JavaScript is the primary language of the web, running in browsers and servers via Node.js. It enables interactive interfaces and full-stack development.
 what is machine learning | Machine learning is AI where systems learn patterns from data without explicit programming. Types include supervised, unsupervised, and reinforcement learning.
-what is a neural network | A neural network is a computing model inspired by the brain, composed of layers of interconnected neurons that learn by adjusting weights through backpropagation.
+what is a neural network | A neural network is a computing model inspired by the brain. It's composed of layers of interconnected neurons that learn by adjusting weights through backpropagation.
 what is html | HTML (HyperText Markup Language) structures web page content using elements like headings, paragraphs, links, and images.
 what is css | CSS (Cascading Style Sheets) controls the visual presentation of web pages — colors, fonts, layouts, animations, and responsive design.
-what is an api | An API (Application Programming Interface) defines rules for how software applications communicate with each other.
-what is git | Git is a distributed version control system that tracks code changes, enables collaboration, and maintains the full history of every project.
-what is docker | Docker packages applications into containers — lightweight, portable environments that run consistently across any system.
-what is a database | A database is an organized collection of data managed by a DBMS. Types include relational (SQL) and non-relational (NoSQL) databases.
-what is sql | SQL (Structured Query Language) manages and queries relational databases. Core commands: SELECT, INSERT, UPDATE, DELETE, JOIN.
-what is cloud computing | Cloud computing delivers servers, storage, databases, and software over the internet, enabling scalable, on-demand resources.
-what is open source | Open source software has publicly available code that anyone can view, modify, and distribute. Examples: Linux, Python, React, VS Code.
-what is an algorithm | An algorithm is a step-by-step procedure for solving a problem, analyzed for time complexity (Big O notation) and space efficiency.
-what is recursion | Recursion is when a function calls itself to solve a smaller version of the same problem. It requires a base case to terminate.
-what is object oriented programming | OOP organizes code around objects that combine data (attributes) and behavior (methods). Core principles: encapsulation, inheritance, polymorphism, abstraction.
-what is rest | REST (Representational State Transfer) is an architectural style for APIs using HTTP methods (GET, POST, PUT, DELETE) to interact with resources.
-what is agile | Agile is a software development methodology emphasizing iterative development, collaboration, and responding to change over rigid planning.
+what is an api | An API (Application Programming Interface) defines how software components communicate with each other.
+what is git | Git is a distributed version control system that tracks code changes and enables collaboration.
+what is docker | Docker packages applications into containers — lightweight, portable environments that run consistently anywhere.
+what is a database | A database is an organized collection of data. Types include relational (SQL) and non-relational (NoSQL) databases.
+what is sql | SQL manages and queries relational databases. Core commands: SELECT, INSERT, UPDATE, DELETE.
+what is cloud computing | Cloud computing delivers servers, storage, and software over the internet, enabling scalable on-demand resources.
+what is open source | Open source software has publicly available code that anyone can view, modify, and distribute.
+what is an algorithm | An algorithm is a step-by-step procedure for solving a problem or computing a result.
+what is recursion | Recursion is when a function calls itself to solve a smaller version of the same problem, requiring a base case to terminate.
+what is object oriented programming | OOP organizes code around objects combining data and behavior. Core principles: encapsulation, inheritance, polymorphism, abstraction.
+what is rest | REST is an API style using HTTP methods like GET, POST, PUT, DELETE to interact with resources.
+what is agile | Agile is a software methodology emphasizing iterative development, collaboration, and adaptability.
 hello | Hello! How can I help you today?
 hi | Hi there! Ask me anything and I'll do my best to answer.
 how are you | I'm running great! What can I help you with?
 thank you | You're welcome! Feel free to ask anything else.
-goodbye | Goodbye! Come back anytime.
-who are you | I'm a custom AI trained with Zywayle. I run entirely in your browser — private, fast, and customizable.
-what can you do | I can answer questions I've been trained on. The more data I'm given, the smarter I become!`;
+goodbye | Goodbye! Come back anytime you have questions.
+who are you | I'm a custom neural AI trained with Zywayle. I run entirely in your browser — private, fast, and customizable.
+what can you do | I can answer questions I've been trained on. The more diverse data I receive, the smarter and more creative I become!`;
   updateDataStats();
   log('Loaded 25 sample training pairs.','ok');
 }
 
-function clearData(){document.getElementById('data-input').value='';updateDataStats();log('Training data cleared.');}
+function clearData(){document.getElementById('data-input').value='';updateDataStats();log('Training data cleared.','info');}
 function sortData(){
   const pairs=parsePairs();pairs.sort((a,b)=>a[0].localeCompare(b[0]));
   document.getElementById('data-input').value=pairs.map(([q,a])=>`${q} | ${a}`).join('\n');
-  updateDataStats();log('Data sorted A→Z.');
+  updateDataStats();log('Data sorted A→Z.','ok');
 }
 function dedupeData(){
-  const seen=new Set();const pairs=parsePairs().filter(([q])=>{if(seen.has(q.toLowerCase()))return false;seen.add(q.toLowerCase());return true;});
+  const seen=new Set();
+  const pairs=parsePairs().filter(([q])=>{if(seen.has(q.toLowerCase()))return false;seen.add(q.toLowerCase());return true;});
   document.getElementById('data-input').value=pairs.map(([q,a])=>`${q} | ${a}`).join('\n');
   updateDataStats();log(`Deduplicated: ${pairs.length} unique pairs remain.`,'ok');
 }
@@ -857,7 +959,7 @@ function handleImport(inp){
         const lines=e.target.result.split('\n').filter(l=>l.includes('|'));
         document.getElementById('data-input').value+='\n'+lines.join('\n');
         updateDataStats();log('Imported '+lines.length+' lines from .txt','ok');
-      } else {
+      }else{
         const data=JSON.parse(e.target.result);
         const pairs=data.pairs||[];
         document.getElementById('data-input').value+='\n'+pairs.map(([q,a])=>`${q} | ${a}`).join('\n');
@@ -868,57 +970,37 @@ function handleImport(inp){
   reader.readAsText(file);inp.value='';
 }
 
-/* ══════════════════════════════════════════════
-   AUTO EXTRACT (Free Text → Q&A)
-   ══════════════════════════════════════════════ */
+/* ── AUTO EXTRACT ── */
 function autoExtract(){
   const text=document.getElementById('freetext-input').value.trim();
-  if(!text){document.getElementById('extract-status').textContent='⚠ No text to extract from.';return;}
+  if(!text){document.getElementById('extract-status').textContent='⚠ No text to extract.';return;}
   document.getElementById('extract-status').textContent='Extracting…';
   const pairs=[];
   const sentences=text.split(/[.!?]+/).map(s=>s.trim()).filter(s=>s.length>30);
-  // Pattern 1: "X is Y" → "what is X | Y"
   const isPattern=/^([A-Z][^,.(]+?)\s+is\s+(.+)$/i;
   for(const s of sentences){
     const m=s.match(isPattern);
-    if(m){
-      const subj=m[1].trim().toLowerCase();
-      const pred=m[2].trim();
-      if(subj.length>2&&subj.length<60&&pred.length>10){
-        pairs.push([`what is ${subj}`,`${m[1].trim()} is ${pred}`]);
-      }
-    }
+    if(m){const subj=m[1].trim().toLowerCase();const pred=m[2].trim();
+      if(subj.length>2&&subj.length<60&&pred.length>10)pairs.push([`what is ${subj}`,`${m[1].trim()} is ${pred}`]);}
   }
-  // Pattern 2: "X (Y) ..." → "what is X | X is Y..."
   const parenPattern=/^([A-Z][^(]+)\(([^)]+)\)(.{20,})/;
   for(const s of sentences){
     const m=s.match(parenPattern);
-    if(m){
-      const subj=m[1].trim().toLowerCase();
-      if(subj.length>2&&subj.length<50)pairs.push([`what is ${subj}`,s.trim()]);
-    }
+    if(m){const subj=m[1].trim().toLowerCase();if(subj.length>2&&subj.length<50)pairs.push([`what is ${subj}`,s.trim()]);}
   }
-  // Pattern 3: Short sentences as standalone facts
   const factPairs=sentences.filter(s=>s.length>40&&s.length<200).slice(0,10);
-  for(const s of factPairs){
-    const words=s.trim().split(' ').slice(0,5).join(' ').toLowerCase();
-    if(words.length>5)pairs.push([`tell me about ${words}`,s.trim()]);
-  }
-  if(pairs.length===0){document.getElementById('extract-status').textContent='⚠ No patterns detected. Try Q&A Pairs tab instead.';return;}
-  // Dedupe
+  for(const s of factPairs){const words=s.trim().split(' ').slice(0,5).join(' ').toLowerCase();if(words.length>5)pairs.push([`tell me about ${words}`,s.trim()]);}
+  if(pairs.length===0){document.getElementById('extract-status').textContent='⚠ No patterns found. Try Q&A Pairs tab.';return;}
   const seen=new Set();const uniq=pairs.filter(([q])=>{if(seen.has(q))return false;seen.add(q);return true;});
   const current=document.getElementById('data-input').value.trim();
   document.getElementById('data-input').value=(current?current+'\n':'')+uniq.map(([q,a])=>`${q} | ${a}`).join('\n');
   updateDataStats();
   document.getElementById('extract-status').textContent=`✓ Extracted ${uniq.length} pairs`;
-  // Switch to Q&A tab
   document.querySelector('.tab').click();
-  log(`Auto-extracted ${uniq.length} Q&A pairs from free text.`,'ok');
+  log(`Auto-extracted ${uniq.length} Q&A pairs.`,'ok');
 }
 
-/* ══════════════════════════════════════════════
-   IMAGE OCR (Trainer)
-   ══════════════════════════════════════════════ */
+/* ── IMAGE OCR ── */
 async function trainerOCR(file){
   if(!file)return;
   ocrPreviewUrl=URL.createObjectURL(file);
@@ -928,11 +1010,7 @@ async function trainerOCR(file){
   document.getElementById('ocr-prog-bar').style.width='0%';
   try{
     const worker=await Tesseract.createWorker('eng',1,{
-      logger:m=>{
-        if(m.status==='recognizing text'){
-          document.getElementById('ocr-prog-bar').style.width=Math.round(m.progress*90+5)+'%';
-        }
-      }
+      logger:m=>{if(m.status==='recognizing text')document.getElementById('ocr-prog-bar').style.width=Math.round(m.progress*90+5)+'%';}
     });
     const{data:{text}}=await worker.recognize(file);
     await worker.terminate();
@@ -943,49 +1021,42 @@ async function trainerOCR(file){
       document.getElementById('ocr-thumb').src=ocrPreviewUrl;
       document.getElementById('ocr-result-text').textContent=ocrExtractedText;
       document.getElementById('ocr-result-area').style.display='block';
-    } else {
-      alert('No text detected. Try a clearer image.');
-      resetOCR();
-    }
+    }else{alert('No text detected. Try a clearer image.');resetOCR();}
   }catch(e){log('OCR failed: '+e.message,'err');resetOCR();}
 }
-
 function addOCRAsTraining(){
   if(!ocrExtractedText)return;
   const lines=ocrExtractedText.split('\n').filter(l=>l.trim().length>10);
   const newPairs=[];
   for(const l of lines){
-    if(l.includes('|')){newPairs.push(l);}
+    if(l.includes('|'))newPairs.push(l);
     else if(l.length>20){const words=l.toLowerCase().split(' ').slice(0,4).join(' ');newPairs.push(`${words} | ${l.trim()}`);}
   }
   const curr=document.getElementById('data-input').value.trim();
   document.getElementById('data-input').value=(curr?curr+'\n':'')+newPairs.join('\n');
-  updateDataStats();
-  log(`Added ${newPairs.length} items from OCR text.`,'ok');
-  switchTab('qa',document.querySelectorAll('.tab')[0]);
+  updateDataStats();log(`Added ${newPairs.length} items from OCR.`,'ok');
+  document.querySelectorAll('.tab')[0].click();
 }
-
 function addOCRToFreeText(){
   if(!ocrExtractedText)return;
   const curr=document.getElementById('freetext-input').value.trim();
   document.getElementById('freetext-input').value=(curr?curr+'\n\n':'')+ocrExtractedText;
-  switchTab('freetext',document.querySelectorAll('.tab')[1]);
+  document.querySelectorAll('.tab')[1].click();
 }
-
 function resetOCR(){
   ocrExtractedText='';ocrPreviewUrl='';
   document.getElementById('ocr-pick-area').style.display='block';
   document.getElementById('ocr-progress-area').style.display='none';
   document.getElementById('ocr-result-area').style.display='none';
-  document.getElementById('ocr-cam').value='';
-  document.getElementById('ocr-file').value='';
+  document.getElementById('ocr-cam').value='';document.getElementById('ocr-file').value='';
 }
 
-/* ══════════════════════════════════════════════
-   TEST WITH IMAGE
-   ══════════════════════════════════════════════ */
+/* ── IMAGE TEST ── */
 async function testWithImage(file){
-  if(!file||!trainNet){document.getElementById('test-img-status').style.display='block';document.getElementById('test-img-status').textContent='⚠ Train a model first.';return;}
+  if(!file||!trainNet){
+    document.getElementById('test-img-status').style.display='block';
+    document.getElementById('test-img-status').textContent='⚠ Train a model first.';return;
+  }
   document.getElementById('test-img-status').style.display='block';
   document.getElementById('test-img-status').textContent='Reading image…';
   try{
@@ -993,16 +1064,14 @@ async function testWithImage(file){
     const{data:{text}}=await worker.recognize(file);
     await worker.terminate();
     const extracted=text.trim();
-    if(!extracted){document.getElementById('test-img-status').textContent='⚠ No text found in image.';return;}
+    if(!extracted){document.getElementById('test-img-status').textContent='⚠ No text found.';return;}
     document.getElementById('test-input').value=extracted.slice(0,120);
     document.getElementById('test-img-status').textContent='✓ Text extracted — testing…';
     testModel();
   }catch(e){document.getElementById('test-img-status').textContent='⚠ OCR failed: '+e.message;}
 }
 
-/* ══════════════════════════════════════════════
-   TRAINING
-   ══════════════════════════════════════════════ */
+/* ── STATUS + LOG ── */
 function setStatus(cls,text){
   const bar=document.getElementById('status-bar');
   bar.className='status-bar '+cls;
@@ -1013,7 +1082,7 @@ function log(msg,type='info'){
   const box=document.getElementById('log-box');
   const el=document.createElement('div');
   el.className='log-'+(type==='ok'?'ok':type==='err'?'err':'info');
-  el.textContent='['+new Date().toLocaleTimeString()+']\u2002'+msg;
+  el.textContent='['+new Date().toLocaleTimeString()+'] '+msg;
   box.appendChild(el);box.scrollTop=box.scrollHeight;
   if(box.children.length>80)box.removeChild(box.children[0]);
 }
@@ -1024,6 +1093,7 @@ function getLRScheduled(baseLR,epoch,totalEpochs,sched){
   return baseLR;
 }
 
+/* ── TRAINING ── */
 async function startTraining(){
   const pairs=parsePairs();
   if(pairs.length<2){alert('Need at least 2 Q|A pairs to train.');return;}
@@ -1047,7 +1117,12 @@ async function startTraining(){
   const sizes=[inputSize,...hiddenLayers.map(l=>l.n),pairs.length];
   trainNet=new Net(sizes,act,'he');
   const params=ZYY.countParams(trainNet.layers);
-  log(`Starting: ${pairs.length} pairs, ${params.toLocaleString()} params, ${epochs} epochs`,'ok');
+  const humanSz=ZYY.humanSize(params);
+
+  // Auto-set the size label
+  document.getElementById('size-label').textContent=humanSz;
+
+  log(`Starting: ${pairs.length} pairs · ${params.toLocaleString()} params (${humanSz}) · ${epochs} epochs`,'ok');
   setStatus('training','Training neural network…');
 
   const inputs=pairs.map(([q])=>ZYY.textToVec(q,trainVocab,inputSize));
@@ -1056,7 +1131,6 @@ async function startTraining(){
   for(let e=0;e<=epochs;e++){
     if(trainStop)break;
     const lr=getLRScheduled(baseLR,e,epochs,sched);
-    // Shuffle training order
     const order=pairs.map((_,i)=>i).sort(()=>Math.random()-0.5);
     let totalLoss=0,correct=0;
     for(const i of order){
@@ -1093,7 +1167,7 @@ async function startTraining(){
     setStatus('idle','Stopped early.');
     document.getElementById('train-badge').textContent='Stopped';
     log(`Stopped at epoch ${lossHistory.length} · Loss: ${bestLoss.toFixed(4)}`,'info');
-  } else {
+  }else{
     setStatus('done',`Done! Accuracy: ${correctAtEnd}% · Loss: ${bestLoss.toFixed(4)} · ${elapsed}s`);
     document.getElementById('train-badge').textContent='Done';
     log(`Training complete! ${elapsed}s · ${correctAtEnd}% accuracy · ${lossHistory.length} epochs`,'ok');
@@ -1115,12 +1189,10 @@ function resetModel(){
   drawLoss();log('Model reset.','info');
 }
 
-/* ══════════════════════════════════════════════
-   LOSS CHART
-   ══════════════════════════════════════════════ */
+/* ── LOSS CHART ── */
 function drawLoss(){
   const canvas=lossCanvas;const ctx=lossCtx;
-  const W=canvas.offsetWidth,H=120;
+  const W=canvas.offsetWidth,H=110;
   canvas.width=W;canvas.height=H;
   ctx.clearRect(0,0,W,H);
   if(lossHistory.length<2)return;
@@ -1128,10 +1200,8 @@ function drawLoss(){
   const range=max-min||1;
   const pad={t:8,r:8,b:8,l:8};
   const iW=W-pad.l-pad.r,iH=H-pad.t-pad.b;
-  // Grid
   ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
   for(let i=0;i<=4;i++){const y=pad.t+iH*i/4;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();}
-  // Fill area
   ctx.beginPath();
   lossHistory.forEach((v,i)=>{
     const x=pad.l+iW*i/(lossHistory.length-1);
@@ -1141,21 +1211,18 @@ function drawLoss(){
   const lastX=pad.l+iW,lastY=pad.t+iH*(1-(lossHistory[lossHistory.length-1]-min)/range);
   ctx.lineTo(lastX,H-pad.b);ctx.lineTo(pad.l,H-pad.b);ctx.closePath();
   const grad=ctx.createLinearGradient(0,pad.t,0,H-pad.b);
-  grad.addColorStop(0,'rgba(139,92,246,0.35)');grad.addColorStop(1,'rgba(139,92,246,0.02)');
+  grad.addColorStop(0,'rgba(155,125,255,0.35)');grad.addColorStop(1,'rgba(155,125,255,0.02)');
   ctx.fillStyle=grad;ctx.fill();
-  // Line
   ctx.beginPath();
   lossHistory.forEach((v,i)=>{
     const x=pad.l+iW*i/(lossHistory.length-1);
     const y=pad.t+iH*(1-(v-min)/range);
     i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
   });
-  ctx.strokeStyle='#8b5cf6';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.strokeStyle='#9b7dff';ctx.lineWidth=1.5;ctx.stroke();
 }
 
-/* ══════════════════════════════════════════════
-   TEST MODEL
-   ══════════════════════════════════════════════ */
+/* ── TEST MODEL ── */
 function testModel(){
   const q=document.getElementById('test-input').value.trim();
   const out=document.getElementById('test-output');
@@ -1164,36 +1231,40 @@ function testModel(){
   if(!q){out.textContent='⚠ Enter a question to test.';return;}
   const lower=q.toLowerCase();
   const qaMap={};for(const[q2,a]of trainPairs)qaMap[q2.toLowerCase()]=a;
-  if(qaMap[lower]){out.innerHTML=`<span style="color:var(--green)">✓ Exact</span>: ${qaMap[lower]}`;return;}
+  if(qaMap[lower]){out.innerHTML=`<span style="color:var(--green)">✓ Exact match</span><br>${qaMap[lower]}`;return;}
   const bm25=new BM25Retriever(trainPairs);
   const hits=bm25.query(lower,1);
-  if(hits.length&&hits[0].score>0.3){out.innerHTML=`<span style="color:var(--accent)">◈ Retrieval (${(hits[0].score*100).toFixed(0)}%)</span>: ${hits[0].pair[1]}`;return;}
+  if(hits.length&&hits[0].score>0.3){out.innerHTML=`<span style="color:var(--accent)">◈ BM25 Retrieval (${(hits[0].score*100).toFixed(0)}%)</span><br>${hits[0].pair[1]}`;return;}
   const inp=ZYY.textToVec(lower,trainVocab,+document.getElementById('input-size').value||128);
   const sm=ZYY.softmax(trainNet.predict(inp));
   const maxP=Math.max(...sm),idx=sm.indexOf(maxP)%trainPairs.length;
-  out.innerHTML=`<span style="color:var(--accent3,#f59e0b)">◉ Neural (${(maxP*100).toFixed(0)}%)</span>: ${trainPairs[idx][1]}`;
+  out.innerHTML=`<span style="color:var(--accent3)">◉ Neural (${(maxP*100).toFixed(0)}%)</span><br>${trainPairs[idx][1]}`;
 }
 
-/* ══════════════════════════════════════════════
-   EXPORT
-   ══════════════════════════════════════════════ */
+/* ── EXPORT ── */
 function updateMetaEntry(){
   const name=document.getElementById('model-name').value||'My Model';
-  const size=document.getElementById('model-size').value||'0.1B';
+  const pairs=parsePairs();
+  const params=trainNet?ZYY.countParams(trainNet.layers):0;
+  const humanSz=ZYY.humanSize(params); // e.g. "124.5 KB" or "1.23 MB"
   const desc=document.getElementById('model-desc').value||'Custom model';
   const tags=document.getElementById('model-tags').value||'Custom';
+  const ver=document.getElementById('model-version').value||'1.0';
   const fname=name.toLowerCase().replace(/\s+/g,'-')+'.zyy';
-  document.getElementById('meta-entry').textContent=`${fname} | ${name} | ${size} | ${desc} | ${tags}`;
+  // Use human size in meta entry instead of fake "0.1B"
+  document.getElementById('meta-entry').textContent=`${fname} | ${name} | ${humanSz} | ${desc} | ${tags}`;
 }
 function buildExportData(){
   if(!trainNet)return null;
   const name=document.getElementById('model-name').value||'My Model';
-  const size=document.getElementById('model-size').value||'0.1B';
+  const params=ZYY.countParams(trainNet.layers);
+  const humanSz=ZYY.humanSize(params);
   const ver=document.getElementById('model-version').value||'1.0';
   const desc=document.getElementById('model-desc').value||'';
   const tags=document.getElementById('model-tags').value.split(',').map(t=>t.trim()).filter(Boolean);
   const qaMap={};for(const[q,a]of trainPairs)qaMap[q.toLowerCase()]=a;
-  return{net:trainNet.serialize(),vocab:trainVocab,qaMap,pairs:trainPairs,meta:{name,size,version:ver,desc,tags,sizes:trainNet.sizes,activation:trainNet.act}};
+  return{net:trainNet.serialize(),vocab:trainVocab,qaMap,pairs:trainPairs,
+    meta:{name,size:humanSz,version:ver,desc,tags,sizes:trainNet.sizes,activation:trainNet.act}};
 }
 function exportModel(){
   const data=buildExportData();if(!data){alert('Train first.');return;}
@@ -1202,16 +1273,16 @@ function exportModel(){
   const blob=new Blob([json],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=name+'.zyy';a.click();URL.revokeObjectURL(url);
-  log('✓ Exported: '+name+'.zyy ('+Math.round(json.length/1024)+' KB)','ok');
+  const kbSize=Math.round(json.length/1024);
+  const displaySize=kbSize>1024?(kbSize/1024).toFixed(2)+' MB':kbSize+' KB';
+  log(`✓ Exported: ${name}.zyy (${displaySize} on disk)`,'ok');
 }
 function copyMetaEntry(){
   const text=document.getElementById('meta-entry').textContent;
   navigator.clipboard.writeText(text).then(()=>log('Meta entry copied to clipboard.','ok'));
 }
 
-/* ══════════════════════════════════════════════
-   INIT
-   ══════════════════════════════════════════════ */
+/* ── INIT ── */
 renderLayers();
 updateDataStats();
 drawLoss();
