@@ -1,0 +1,22 @@
+{
+  "name": "Wayle",
+  "short_name": "Wayle",
+  "description": "Fast AI chat powered by on-device LLMs",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9f9fb",
+  "theme_color": "#ffffff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/xSFJxP7F/wayle-dark.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://i.ibb.co/xSFJxP7F/wayle-dark.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
