@@ -1,3 +1,0 @@
-# ZYY Models — one entry per line
-# Format: filename.zyy | Display Name | Size | Description | tags (comma separated)
-ZYY-nano.zyy|ZYY Nano|0.2B|Compact conversational model with 64 Q&A pairs. Covers science, tech, history, philosophy and general knowledge.|Chat,General,NLP
