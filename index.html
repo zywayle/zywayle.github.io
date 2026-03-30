@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
-  <meta name="theme-color" content="#f2f2f0"/>
+  <meta name="theme-color" content="#edede9"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <meta name="apple-mobile-web-app-title" content="Wayle"/>
@@ -17,44 +17,23 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%;overflow:hidden;background:#f2f2f0;font-family:'Space Grotesk',sans-serif;-webkit-font-smoothing:antialiased}
+    html,body{height:100%;overflow:hidden;background:#edede9;font-family:'Space Grotesk',sans-serif;-webkit-font-smoothing:antialiased}
     #root{height:100%;display:none}
-    #splash{
-      position:fixed;inset:0;z-index:9999;background:#f2f2f0;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-    }
-    #splash-logo{
-      width:80px;height:80px;border-radius:22px;overflow:hidden;
-      box-shadow:0 10px 48px rgba(124,58,237,.2),0 2px 10px rgba(0,0,0,.07);
-      animation:sIn .65s cubic-bezier(.34,1.56,.64,1) both;
-    }
+    #splash{position:fixed;inset:0;z-index:9999;background:#edede9;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    #splash-logo{width:68px;height:68px;animation:sIn .55s cubic-bezier(.34,1.56,.64,1) both}
     #splash-logo img{width:100%;height:100%;object-fit:contain;display:block}
-    #splash-name{
-      font-family:'Instrument Serif',serif;font-style:italic;
-      font-size:30px;color:#09090b;letter-spacing:-.5px;margin-top:20px;
-      animation:sIn .55s .1s cubic-bezier(.34,1.56,.64,1) both;
-    }
-    #splash-sub{
-      font-size:13px;color:#a1a1aa;margin-top:6px;
-      animation:sIn .45s .2s ease both;
-    }
-    #splash-spin{
-      width:22px;height:22px;border-radius:50%;
-      border:2.5px solid #e4e4e7;border-top-color:#7c3aed;
-      margin-top:32px;
-      animation:spin .8s linear infinite,sIn .4s .35s ease both;
-    }
-    @keyframes sIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes sOut{to{opacity:0;transform:scale(.95)}}
+    #splash-name{font-family:'Instrument Serif',serif;font-style:italic;font-size:30px;color:#1a1a16;letter-spacing:-.5px;margin-top:16px;animation:sIn .55s .1s cubic-bezier(.34,1.56,.64,1) both}
+    #splash-sub{font-size:13px;color:#909088;margin-top:6px;animation:sIn .45s .2s ease both}
+    #splash-spin{width:22px;height:22px;border-radius:50%;border:2.5px solid #d0d0cc;border-top-color:#6d28d9;margin-top:32px;animation:spin .8s linear infinite,sIn .4s .3s ease both}
+    @keyframes sIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes sOut{to{opacity:0;transform:scale(.96)}}
     @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
 
 <div id="splash">
-  <div id="splash-logo">
-    <img src="https://i.ibb.co/xSFJxP7F/wayle-dark.png" alt="Wayle"/>
-  </div>
+  <div id="splash-logo"><img src="https://i.ibb.co/xSFJxP7F/wayle-dark.png" alt="Wayle"/></div>
   <div id="splash-name">Wayle</div>
   <div id="splash-sub">On-device AI · 100% private</div>
   <div id="splash-spin"></div>
@@ -72,120 +51,119 @@ const { useState, useEffect, useRef, useCallback, useMemo } = React;
 const LOGO_URL = "https://i.ibb.co/xSFJxP7F/wayle-dark.png";
 
 const MODELS = [
-  { id:'qwen2.5-0.5b', label:'Qwen 2.5 · 0.5B', family:'qwen', params:'0.5B', quantization:'INT4', ramGB:0.4, device:'both', tags:['fast','mobile'], description:'Ultra-fast, runs on any WebGPU device', tier:'nano', free:true },
-  { id:'qwen2.5-1.5b', label:'Qwen 2.5 · 1.5B', family:'qwen', params:'1.5B', quantization:'INT4', ramGB:1.0, device:'both', tags:['fast','mobile'], description:'Great balance for mobile — recommended', tier:'small', free:true },
-  { id:'qwen2.5-3b', label:'Qwen 2.5 · 3B', family:'qwen', params:'3B', quantization:'INT4', ramGB:2.0, device:'both', tags:['balanced'], description:'Best mobile model — smart and still fast', tier:'medium', free:true },
-  { id:'phi3.5-mini', label:'Phi-3.5 Mini · 3.8B', family:'phi', params:'3.8B', quantization:'INT4', ramGB:2.4, device:'desktop', tags:['smart','desktop'], description:"Microsoft's best small model — Pro only", tier:'medium', free:false },
-  { id:'llama3.2-3b', label:'Llama 3.2 · 3B', family:'llama', params:'3B', quantization:'INT4', ramGB:2.0, device:'desktop', tags:['balanced'], description:'Recommended for desktop Chrome — Pro only', tier:'medium', free:false },
-  { id:'mistral-7b', label:'Mistral 7B', family:'mistral', params:'7B', quantization:'INT4', ramGB:4.5, device:'desktop', tags:['smart','desktop'], description:'Powerful 7B model for Pro subscribers', tier:'large', free:false },
+  { id:'qwen2.5-0.5b', label:'Qwen 2.5 · 0.5B', family:'qwen', params:'0.5B', quantization:'INT4', ramGB:0.4, tags:['fast','mobile'], description:'Ultra-fast, runs on any WebGPU device', tier:'nano', free:true },
+  { id:'qwen2.5-1.5b', label:'Qwen 2.5 · 1.5B', family:'qwen', params:'1.5B', quantization:'INT4', ramGB:1.0, tags:['fast','mobile'], description:'Great balance for mobile — recommended', tier:'small', free:true },
+  { id:'qwen2.5-3b', label:'Qwen 2.5 · 3B', family:'qwen', params:'3B', quantization:'INT4', ramGB:2.0, tags:['balanced'], description:'Best mobile model — smart and still fast', tier:'medium', free:true },
+  { id:'phi3.5-mini', label:'Phi-3.5 Mini · 3.8B', family:'phi', params:'3.8B', quantization:'INT4', ramGB:2.4, tags:['smart','desktop'], description:"Microsoft's best small model", tier:'medium', free:false },
+  { id:'llama3.2-3b', label:'Llama 3.2 · 3B', family:'llama', params:'3B', quantization:'INT4', ramGB:2.0, tags:['balanced'], description:'Recommended for desktop Chrome', tier:'medium', free:false },
+  { id:'mistral-7b', label:'Mistral 7B', family:'mistral', params:'7B', quantization:'INT4', ramGB:4.5, tags:['smart','desktop'], description:'Powerful 7B model for Pro subscribers', tier:'large', free:false },
 ];
 
 const TIER_C = {
-  nano:{bg:'#f0fdf4',color:'#16a34a'},
-  small:{bg:'#eff6ff',color:'#2563eb'},
-  medium:{bg:'#faf5ff',color:'#7c3aed'},
-  large:{bg:'#fff7ed',color:'#c2410c'},
+  nano:  {bg:'#f0fdf4',color:'#15803d'},
+  small: {bg:'#eff6ff',color:'#1d4ed8'},
+  medium:{bg:'#f5f3ff',color:'#6d28d9'},
+  large: {bg:'#fff7ed',color:'#c2410c'},
 };
 
 const PLANS = [
   { id:'free', name:'Free', price:'$0', period:'forever', badge:null, featured:false, ctaActive:true, cta:'Current Plan',
     description:'Run models locally. Your hardware, your data.',
-    features:[{t:'On-device inference (WebGPU)',y:true},{t:'3 models: Qwen 2.5 (0.5B · 1.5B · 3B)',y:true},{t:'Image upload & OCR text detection',y:true},{t:'100% private — no data leaves device',y:true},{t:'Unlimited messages',y:true},{t:'Phi-3.5 Mini, Mistral 7B+',y:false},{t:'Cloud fallback inference',y:false}]},
+    features:[
+      {t:'On-device inference (WebGPU)',y:true},{t:'3 models: Qwen 2.5 (0.5B · 1.5B · 3B)',y:true},
+      {t:'Image upload & send to model',y:true},{t:'100% private — no data leaves device',y:true},
+      {t:'Unlimited messages',y:true},{t:'Phi-3.5 Mini, Mistral 7B+',y:false},{t:'Cloud fallback inference',y:false},
+    ]},
   { id:'pro', name:'Pro', price:'$8', period:'per month', badge:'Most Popular', featured:true, ctaActive:false, cta:'Coming Soon',
     description:'Bigger models, cloud fallback when needed.',
-    features:[{t:'Everything in Free',y:true},{t:'Phi-3.5 Mini, Mistral 7B, Llama 3.2',y:true},{t:'Cloud fallback (Claude Haiku)',y:true},{t:'Faster downloads (CDN)',y:true},{t:'API access (1K req/day)',y:true},{t:'GPT-4 class models',y:false},{t:'Team sharing',y:false}]},
+    features:[
+      {t:'Everything in Free',y:true},{t:'Phi-3.5 Mini, Mistral 7B, Llama 3.2',y:true},
+      {t:'Cloud fallback (Claude Haiku)',y:true},{t:'Faster downloads (CDN)',y:true},
+      {t:'API access (1K req/day)',y:true},{t:'GPT-4 class models',y:false},{t:'Team sharing',y:false},
+    ]},
   { id:'team', name:'Team', price:'$24', period:'per seat / mo', badge:null, featured:false, ctaActive:false, cta:'Coming Soon',
     description:'Deploy Wayle across your org.',
-    features:[{t:'Everything in Pro',y:true},{t:'GPT-4o & Claude Sonnet',y:true},{t:'Team model sharing',y:true},{t:'Admin dashboard',y:true},{t:'SSO / SAML',y:true},{t:'Custom fine-tuned models',y:false}]},
+    features:[
+      {t:'Everything in Pro',y:true},{t:'GPT-4o & Claude Sonnet',y:true},{t:'Team model sharing',y:true},
+      {t:'Admin dashboard',y:true},{t:'SSO / SAML',y:true},{t:'Custom fine-tuned models',y:false},
+    ]},
 ];
 
-/* ─── CSS ─────────────────────────────────────────────────────────────────── */
+/* ─── CSS injected at runtime ─────────────────────────────────────────────── */
 const CSS = `
 :root{
-  --bg:#f0f0ee;--sbg:#e8e8e5;--sur:#f6f6f4;
-  --s2:#ebebea;--s3:#ddddd9;
-  --bdr:#d8d8d4;--bdr2:#c8c8c4;
-  --tx:#1a1a18;--t2:#4a4a45;--t3:#909088;
+  --bg:#edede9;--sbg:#e4e4e0;--sur:#f0f0ec;
+  --s2:#e8e8e4;--s3:#d8d8d4;
+  --bdr:#cececa;--bdr2:#b8b8b4;
+  --tx:#1a1a16;--t2:#464640;--t3:#888880;
   --pu:#6d28d9;--ph:#5b21b6;--pl:#7c3aed;
-  --pdim:#ede9fe;--pglow:rgba(109,40,217,.13);
+  --pdim:#ede9fe;--pglow:rgba(109,40,217,.12);
   --gr:#15803d;--rd:#dc2626;
-  --fn:'Space Grotesk',sans-serif;
-  --sf:'Instrument Serif',serif;
-  --sbw:260px;--r:16px;--rsm:12px;
-  --hh:56px;
-  --st:env(safe-area-inset-top,0px);
-  --sb:env(safe-area-inset-bottom,0px);
-  --mbh:58px;
+  --fn:'Space Grotesk',sans-serif;--sf:'Instrument Serif',serif;
+  --sbw:260px;--rsm:12px;--hh:56px;
+  --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--mbh:58px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body,#root{height:100%;overflow:hidden}
+html,body,#root{height:100%;overflow:hidden;background:var(--bg)}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:4px}
 .i{font-family:'Material Symbols Rounded';font-variation-settings:'FILL' 0,'wght' 350,'GRAD' 0,'opsz' 24;font-size:20px;line-height:1;user-select:none;pointer-events:none;display:inline-block}
 .i.f{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24}
 .i.s22{font-size:22px}.i.s18{font-size:18px}.i.s16{font-size:16px}.i.s14{font-size:14px}.i.s13{font-size:13px}
 @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fi{from{opacity:0}to{opacity:1}}
 @keyframes sc{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
-@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:.2}50%{opacity:.8}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
-@keyframes mi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-@keyframes wordIn{from{opacity:0;filter:blur(6px);transform:translateY(3px)}to{opacity:1;filter:blur(0);transform:translateY(0)}}
-.word-stream{display:inline;}.word-token{display:inline;animation:wordIn .25s ease both}
+@keyframes mi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes wordIn{from{opacity:0;filter:blur(5px)}to{opacity:1;filter:blur(0)}}
+.wtok{display:inline;animation:wordIn .22s ease both}
 .app{display:flex;height:100dvh;overflow:hidden;background:var(--bg)}
 .sidebar{width:var(--sbw);flex-shrink:0;background:var(--sbg);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden;padding:calc(var(--st) + 14px) 0 calc(var(--sb) + 14px)}
 .sb-brand{display:flex;align-items:center;gap:10px;padding:2px 16px 20px;border:none;background:none;cursor:pointer;text-align:left}
-.sb-logo{width:32px;height:32px;border-radius:9px;overflow:hidden;flex-shrink:0;box-shadow:0 2px 10px rgba(109,40,217,.15)}
+.sb-logo{width:28px;height:28px;flex-shrink:0}
 .sb-logo img{width:100%;height:100%;object-fit:contain;display:block}
 .sb-name{font-family:var(--sf);font-style:italic;font-size:21px;letter-spacing:-.4px;color:var(--tx)}
 .sb-nav{display:flex;flex-direction:column;gap:1px;padding:0 8px;flex:1}
 .stab{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;border:none;background:transparent;cursor:pointer;font-family:var(--fn);font-size:14px;font-weight:500;color:var(--t2);transition:background .13s,color .13s;text-align:left;width:100%}
-.stab:hover:not(.on){background:var(--s2);color:var(--tx)}
-.stab.on{background:var(--s3);color:var(--tx);font-weight:600}
-.stab .i{font-size:18px;flex-shrink:0}
+.stab:hover:not(.on){background:var(--s2);color:var(--tx)}.stab.on{background:var(--s3);color:var(--tx);font-weight:600}.stab .i{font-size:18px;flex-shrink:0}
 .sb-bot{padding:8px;border-top:1px solid var(--bdr);margin-top:auto}
-.nc{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px;border-radius:10px;border:none;background:var(--pu);color:#fff;font-family:var(--fn);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s,transform .15s;box-shadow:0 2px 12px var(--pglow)}
-.nc:hover{background:var(--ph)}.nc:active{transform:scale(.96)}.nc .i{font-size:17px}
+.nc{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px;border-radius:10px;border:none;background:var(--pu);color:#fff;font-family:var(--fn);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s,transform .15s;box-shadow:0 2px 10px var(--pglow)}
+.nc:hover{background:var(--ph)}.nc:active{transform:scale(.96)}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-.mtop{display:none;align-items:center;height:calc(var(--hh) + var(--st));padding:var(--st) 14px 0;background:rgba(240,240,238,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr);flex-shrink:0;z-index:10}
+.mtop{display:none;align-items:center;height:calc(var(--hh) + var(--st));padding:var(--st) 14px 0;background:rgba(237,237,233,.96);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--bdr);flex-shrink:0;z-index:10}
 .mb{display:flex;align-items:center;gap:8px;flex:1}
-.mb-logo{width:28px;height:28px;border-radius:8px;overflow:hidden;box-shadow:0 1px 6px rgba(124,58,237,.2)}
+.mb-logo{width:26px;height:26px;flex-shrink:0}
 .mb-logo img{width:100%;height:100%;object-fit:contain;display:block}
 .mb-name{font-family:var(--sf);font-style:italic;font-size:19px;color:var(--tx)}
 .ib{width:36px;height:36px;border-radius:9px;border:none;display:flex;align-items:center;justify-content:center;background:transparent;cursor:pointer;color:var(--t2);transition:background .12s;flex-shrink:0}
 .ib:active{background:var(--s3)}
 .cnt{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
 .chat{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0}
-.mbar{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--bdr);flex-shrink:0;min-height:42px}
+.mbar{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--bdr);flex-shrink:0;min-height:42px;background:var(--sbg)}
 .mpill{display:flex;align-items:center;gap:6px;padding:5px 10px 5px 8px;border-radius:20px;background:var(--s2);border:1px solid var(--bdr);font-size:12.5px;font-weight:500;color:var(--t2);cursor:pointer;transition:background .13s;white-space:nowrap}
 .mpill:hover{background:var(--s3)}
-.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.dot.on{background:var(--gr);box-shadow:0 0 0 2px rgba(22,163,74,.15)}
-.dot.off{background:var(--t3)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}.dot.on{background:var(--gr);box-shadow:0 0 0 2px rgba(21,128,61,.15)}.dot.off{background:var(--t3)}
 .tbadge{font-size:11px;color:var(--pl);font-weight:700;background:var(--pdim);padding:2px 7px;border-radius:20px}
 .pw{display:flex;align-items:center;gap:7px;flex:1;min-width:0}
 .pt{font-size:12px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
-.ptrk{width:64px;height:3px;background:#e0d9fb;border-radius:2px;overflow:hidden;flex-shrink:0}
+.ptrk{width:64px;height:3px;background:#ddd6fe;border-radius:2px;overflow:hidden;flex-shrink:0}
 .pfil{height:100%;background:var(--pu);border-radius:2px;transition:width .3s}
-.mspin{width:14px;height:14px;border-radius:50%;border:2px solid #e0d9fb;border-top-color:var(--pu);animation:spin .7s linear infinite;flex-shrink:0}
+.mspin{width:14px;height:14px;border-radius:50%;border:2px solid #ddd6fe;border-top-color:var(--pu);animation:spin .7s linear infinite;flex-shrink:0}
 .msgs{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-.msgs-in{max-width:740px;margin:0 auto;padding:28px 20px 10px;display:flex;flex-direction:column;gap:2px;min-height:100%}
-.welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px 16px;animation:sc .4s ease}
-.wlogo{width:64px;height:64px;border-radius:18px;overflow:hidden;box-shadow:0 6px 28px rgba(124,58,237,.18),0 1px 6px rgba(0,0,0,.06)}
+.msgs-in{max-width:740px;margin:0 auto;padding:24px 20px 10px;display:flex;flex-direction:column;gap:2px;min-height:100%}
+.welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px 16px;animation:sc .35s ease}
+.wlogo{width:52px;height:52px;flex-shrink:0}
 .wlogo img{width:100%;height:100%;object-fit:contain;display:block}
-.wtitle{font-family:var(--sf);font-style:italic;font-size:30px;color:var(--tx);letter-spacing:-.5px;text-align:center}
-.wsub{font-size:13.5px;color:var(--t3);text-align:center;max-width:230px;line-height:1.6}
-.wgpu{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:12px;color:var(--gr);font-weight:600}
+.wtitle{font-family:var(--sf);font-style:italic;font-size:28px;color:var(--tx);letter-spacing:-.5px;text-align:center}
+.wsub{font-size:13px;color:var(--t3);text-align:center;max-width:240px;line-height:1.6}
+.wgpu{display:flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:12px;color:var(--gr);font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;max-width:500px}
 .chip{padding:8px 14px;border-radius:20px;border:1.5px solid var(--bdr);background:var(--sur);font-size:13px;color:var(--t2);font-weight:500;cursor:pointer;transition:all .15s;font-family:var(--fn)}
-.chip:hover{border-color:var(--pl);color:var(--pu);background:var(--pdim);transform:translateY(-1px)}
-.chip:active{transform:scale(.97)}
-.msg{display:flex;flex-direction:column;animation:mi .22s ease;padding:3px 0}
+.chip:hover{border-color:var(--pl);color:var(--pu);background:var(--pdim);transform:translateY(-1px)}.chip:active{transform:scale(.97)}
+.msg{display:flex;flex-direction:column;animation:mi .2s ease;padding:3px 0}
 .msg.u{align-items:flex-end}.msg.a{align-items:flex-start}
-.mrow{display:flex;align-items:flex-end;gap:8px;max-width:100%}
-.msg.u .mrow{flex-direction:row-reverse}
+.mrow{display:flex;align-items:flex-end;gap:8px;max-width:100%}.msg.u .mrow{flex-direction:row-reverse}
 .av{width:28px;height:28px;border-radius:50%;flex-shrink:0;overflow:hidden;align-self:flex-end;display:flex;align-items:center;justify-content:center}
 .av.ai{background:var(--pu)}.av.ai img{width:18px;height:18px;object-fit:contain;filter:brightness(0) invert(1)}
 .av.hu{background:var(--s3);border:1.5px solid var(--bdr)}.av.hu .i{font-size:14px;color:var(--t2)}
@@ -193,14 +171,12 @@ html,body,#root{height:100%;overflow:hidden}
 .msg.u .bub{background:var(--pu);color:#fff;border-bottom-right-radius:5px;max-width:min(520px,calc(100% - 42px))}
 .msg.a .bub{background:transparent;color:var(--tx);padding:4px 2px;max-width:min(660px,calc(100% - 42px))}
 .bub p{margin:0 0 6px}.bub p:last-child{margin:0}
-.bub h1{font-size:17px;font-weight:700;margin:10px 0 4px;letter-spacing:-.3px}
-.bub h2{font-size:15.5px;font-weight:700;margin:8px 0 4px}
-.bub h3{font-size:14.5px;font-weight:600;margin:6px 0 3px}
+.bub h1{font-size:17px;font-weight:700;margin:10px 0 4px}.bub h2{font-size:15.5px;font-weight:700;margin:8px 0 4px}.bub h3{font-size:14.5px;font-weight:600;margin:6px 0 3px}
 .bub ul,.bub ol{padding-left:18px;margin:5px 0}.bub li{margin:3px 0}
 .bub strong{font-weight:700}.bub em{font-style:italic}
-.cb{position:relative;background:#18181b;border-radius:10px;padding:12px 14px;overflow-x:auto;margin:8px 0}
-.cb code{font-family:'SF Mono','Fira Code',monospace;font-size:12.5px;line-height:1.65;color:#e4e4e7;white-space:pre;display:block}
-.cl{position:absolute;top:7px;right:10px;font-size:10px;color:#71717a;font-family:var(--fn);text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+.cb{position:relative;background:#1c1c1e;border-radius:10px;padding:12px 14px;overflow-x:auto;margin:8px 0}
+.cb code{font-family:'SF Mono','Fira Code',monospace;font-size:12.5px;line-height:1.65;color:#e2e2e2;white-space:pre;display:block}
+.cl{position:absolute;top:7px;right:10px;font-size:10px;color:#666;font-family:var(--fn);text-transform:uppercase;letter-spacing:.6px;font-weight:600}
 .ic{font-family:'SF Mono','Fira Code',monospace;font-size:12.5px;padding:1px 5px;background:var(--s2);border-radius:5px;border:1px solid var(--bdr);color:var(--pu)}
 .msg.u .ic{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.2);color:#fff}
 .cur{display:inline-block;width:2px;height:.88em;background:var(--pu);margin-left:2px;vertical-align:text-bottom;animation:blink .75s step-end infinite}
@@ -215,102 +191,75 @@ html,body,#root{height:100%;overflow:hidden}
 .dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
 .ibar{flex-shrink:0;padding:10px 16px calc(10px + var(--sb));background:var(--bg);border-top:1px solid var(--bdr)}
 .iwrap{max-width:740px;margin:0 auto}
-.ibox{display:flex;align-items:flex-end;gap:6px;background:var(--sur);border:1.5px solid var(--bdr);border-radius:18px;padding:4px 4px 4px 6px;transition:border-color .18s,box-shadow .18s;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.img-attach{display:flex;align-items:center;gap:8px;padding:0 2px 8px;flex-wrap:wrap}
+.img-preview{position:relative;display:inline-flex}
+.img-preview img{width:56px;height:56px;border-radius:10px;object-fit:cover;border:1.5px solid var(--bdr);display:block}
+.img-remove{position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:#18181b;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;line-height:1}
+.img-pill{display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--s2);border:1px solid var(--bdr);border-radius:20px;font-size:11.5px;color:var(--t2);font-weight:500}
+.ibox{display:flex;align-items:flex-end;gap:4px;background:var(--sur);border:1.5px solid var(--bdr);border-radius:18px;padding:4px 4px 4px 6px;transition:border-color .18s,box-shadow .18s}
 .ibox:focus-within{border-color:var(--pl);box-shadow:0 0 0 3px var(--pglow)}
-.ibox textarea{flex:1;border:none;outline:none;background:transparent;font-family:var(--fn);font-size:15px;line-height:1.55;color:var(--tx);padding:8px 4px;resize:none;max-height:140px;min-height:40px;overflow-y:auto}
-.ibox textarea::placeholder{color:var(--t3)}
 .img-btn{width:36px;height:36px;border-radius:9px;border:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:transparent;color:var(--t3);cursor:pointer;transition:all .15s;margin-bottom:1px}
 .img-btn:hover{background:var(--s2);color:var(--t2)}
-.img-attach{display:flex;align-items:center;gap:6px;padding:6px 10px 0;flex-wrap:wrap}
-.img-preview{position:relative;display:inline-flex}
-.img-preview img{width:60px;height:60px;border-radius:10px;object-fit:cover;border:1.5px solid var(--bdr)}
-.img-remove{position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:#18181b;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1}
-.img-ocr-pill{display:flex;align-items:center;gap:5px;padding:3px 9px;background:var(--pdim);border:1px solid rgba(109,40,217,.2);border-radius:20px;font-size:11.5px;color:var(--pu);font-weight:600}
-.ocr-spin{width:10px;height:10px;border-radius:50%;border:1.5px solid rgba(109,40,217,.3);border-top-color:var(--pu);animation:spin .6s linear infinite}
-.snd{width:38px;height:38px;border-radius:10px;border:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--pu);color:#fff;cursor:pointer;transition:all .15s;box-shadow:0 2px 10px var(--pglow);margin-bottom:1px}
+.ibox textarea{flex:1;border:none;outline:none;background:transparent;font-family:var(--fn);font-size:15px;line-height:1.55;color:var(--tx);padding:8px 4px;resize:none;max-height:140px;min-height:40px;overflow-y:auto}
+.ibox textarea::placeholder{color:var(--t3)}
+.snd{width:36px;height:36px;border-radius:10px;border:none;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--pu);color:#fff;cursor:pointer;transition:all .15s;box-shadow:0 2px 8px var(--pglow);margin-bottom:1px}
 .snd:hover{background:var(--ph)}.snd:active{transform:scale(.91)}
 .snd:disabled{background:var(--s3);color:var(--t3);box-shadow:none;cursor:default}
-.snd.stop{background:var(--rd);box-shadow:0 2px 10px rgba(220,38,38,.2)}
+.snd.stop{background:var(--rd);box-shadow:0 2px 8px rgba(220,38,38,.2)}
 .bspin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;animation:spin .65s linear infinite}
-.ihint{text-align:center;font-size:11.5px;color:var(--t3);padding-top:7px}
-.tv{flex:1;overflow-y:auto;padding:20px 16px}
-.tvi{max-width:700px;margin:0 auto}
-.stl{font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.9px;text-transform:uppercase;margin:24px 0 10px;padding:0 2px}
-.stl:first-child{margin-top:0}
-.hwb{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--rsm);background:var(--pdim);border:1px solid rgba(124,58,237,.15);margin-bottom:18px;font-size:13px;color:var(--t2);line-height:1.55}
-.hwb .i{color:var(--pu);font-size:17px;flex-shrink:0;margin-top:1px}
-.hwb strong{font-weight:600;color:var(--tx)}
-.lp{background:var(--pdim);border-radius:var(--rsm);padding:12px 14px;margin-bottom:16px;display:flex;flex-direction:column;gap:8px;border:1px solid rgba(124,58,237,.12)}
-.lpt{font-size:12.5px;color:var(--t2);font-weight:500}
-.lpb{height:4px;background:#d4c8fa;border-radius:2px;overflow:hidden}
-.lpf{height:100%;background:var(--pu);border-radius:2px;transition:width .35s}
+.ihint{text-align:center;font-size:11px;color:var(--t3);padding-top:6px}
+.tv{flex:1;overflow-y:auto;padding:20px 16px}.tvi{max-width:700px;margin:0 auto}
+.stl{font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.9px;text-transform:uppercase;margin:22px 0 10px;padding:0 2px}.stl:first-child{margin-top:0}
+.hwb{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--rsm);background:var(--pdim);border:1px solid rgba(109,40,217,.15);margin-bottom:16px;font-size:13px;color:var(--t2);line-height:1.55}
+.hwb .i{color:var(--pu);font-size:17px;flex-shrink:0;margin-top:1px}.hwb strong{font-weight:600;color:var(--tx)}
+.lp{background:var(--pdim);border-radius:var(--rsm);padding:12px 14px;margin-bottom:14px;display:flex;flex-direction:column;gap:8px;border:1px solid rgba(109,40,217,.12)}
+.lpt{font-size:12.5px;color:var(--t2);font-weight:500}.lpb{height:4px;background:#ddd6fe;border-radius:2px;overflow:hidden}.lpf{height:100%;background:var(--pu);border-radius:2px;transition:width .35s}
 .mcd{background:var(--sur);border:1.5px solid var(--bdr);border-radius:var(--rsm);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:12px}
 .mcd:hover{border-color:var(--bdr2);background:var(--s2)}.mcd.sel{border-color:var(--pl);background:var(--pdim)}.mcd.ldg{border-color:var(--pu)}
+.mcd.locked{opacity:.6;cursor:default}.mcd.locked:hover{border-color:var(--bdr);background:var(--sur)}
 .mic{width:40px;height:40px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700}
 .fq{background:#fef9c3;color:#a16207}.fl{background:#dbeafe;color:#1d4ed8}.fp{background:#fce7f3;color:#be185d}.fm{background:#d1fae5;color:#065f46}
 .mi2{flex:1;min-width:0}
 .mn{font-size:14px;font-weight:600;color:var(--tx);letter-spacing:-.2px}
-.md{font-size:12px;color:var(--t3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mtg{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
-.mt{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:6px}
-.mr{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
-.mram{font-size:11.5px;color:var(--t3);font-weight:500}
+.mdesc{font-size:12px;color:var(--t3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mtg{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}.mt{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:6px}
+.mr{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}.mram{font-size:11.5px;color:var(--t3);font-weight:500}
 .mchk{color:var(--gr)!important;font-size:18px!important}
-.mcd.locked{opacity:.65;cursor:default}
-.mcd.locked:hover{border-color:var(--bdr);background:var(--sur)}
-.lock-badge{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--pu);background:var(--pdim);padding:3px 8px;border-radius:8px}
-.lock-badge .i{font-size:13px}
+.lock-badge{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--pu);background:var(--pdim);padding:3px 8px;border-radius:8px}
 .mlb{padding:5px 12px;border-radius:8px;border:1.5px solid var(--pu);background:transparent;color:var(--pu);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fn);transition:all .14s}
 .mlb:hover{background:var(--pdim)}.mlb:disabled{border-color:var(--bdr);color:var(--t3);cursor:default}
-.plv{flex:1;overflow-y:auto;padding:20px 16px 40px}
-.plvi{max-width:700px;margin:0 auto}
-.plh{text-align:center;margin-bottom:26px}
-.plh h1{font-family:var(--sf);font-style:italic;font-size:30px;letter-spacing:-.5px;color:var(--tx);margin-bottom:6px}
-.plh p{font-size:14px;color:var(--t3)}
+.plv{flex:1;overflow-y:auto;padding:20px 16px 40px}.plvi{max-width:700px;margin:0 auto}
+.plh{text-align:center;margin-bottom:26px}.plh h1{font-family:var(--sf);font-style:italic;font-size:30px;letter-spacing:-.5px;color:var(--tx);margin-bottom:6px}.plh p{font-size:14px;color:var(--t3)}
 .plg{display:flex;flex-direction:column;gap:14px}
 .plc{background:var(--sur);border:1.5px solid var(--bdr);border-radius:18px;padding:22px;position:relative;animation:up .3s ease both;transition:transform .2s}
-.plc:hover{transform:translateY(-1px)}.plc.ft{border-color:var(--pu);box-shadow:0 4px 24px var(--pglow)}
+.plc:hover{transform:translateY(-1px)}.plc.ft{border-color:var(--pu);box-shadow:0 4px 20px var(--pglow)}
 .plbg{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--pu);color:#fff;padding:3px 13px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.4px;white-space:nowrap}
 .plt{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
 .plnm{font-size:17px;font-weight:700;color:var(--tx);letter-spacing:-.3px}
-.plpr{font-size:28px;font-weight:800;color:var(--tx);letter-spacing:-1.5px;line-height:1;text-align:right}
-.plpe{font-size:12px;color:var(--t3);text-align:right;margin-top:2px}
+.plpr{font-size:28px;font-weight:800;color:var(--tx);letter-spacing:-1.5px;line-height:1;text-align:right}.plpe{font-size:12px;color:var(--t3);text-align:right;margin-top:2px}
 .plds{font-size:13px;color:var(--t3);margin-bottom:16px;line-height:1.55}
 .plfl{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:18px}
-.pff{display:flex;align-items:center;gap:9px;font-size:13.5px}
-.pff .i{font-size:16px;flex-shrink:0}
-.pff.y{color:var(--t2)}.pff.y .i{color:var(--gr)}
-.pff.n{color:var(--t3)}.pff.n .i{color:var(--bdr2)}
+.pff{display:flex;align-items:center;gap:9px;font-size:13.5px}.pff .i{font-size:16px;flex-shrink:0}
+.pff.y{color:var(--t2)}.pff.y .i{color:var(--gr)}.pff.n{color:var(--t3)}.pff.n .i{color:var(--bdr2)}
 .plcta{width:100%;padding:11px;border-radius:10px;border:none;font-family:var(--fn);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s}
-.plcta.pri{background:var(--pu);color:#fff;box-shadow:0 3px 14px var(--pglow)}.plcta.pri:hover{background:var(--ph)}
+.plcta.pri{background:var(--pu);color:#fff;box-shadow:0 3px 12px var(--pglow)}.plcta.pri:hover{background:var(--ph)}
 .plcta.out{background:transparent;border:1.5px solid var(--bdr);color:var(--t2)}.plcta.out:hover{background:var(--s2)}
 .plcta:disabled{opacity:.45;cursor:default}
-.plnt{text-align:center;font-size:12px;color:var(--t3);margin-top:20px;line-height:1.65}
-.plnt a{color:var(--pu);text-decoration:none;font-weight:500}
-.gate{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;padding:28px;text-align:center;gap:16px;animation:sc .4s ease}
-.gate-logo{width:58px;height:58px;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(124,58,237,.15)}
-.gate-logo img{width:100%;height:100%;object-fit:contain;display:block}
+.plnt{text-align:center;font-size:12px;color:var(--t3);margin-top:20px;line-height:1.65}.plnt a{color:var(--pu);text-decoration:none;font-weight:500}
+.gate{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;padding:28px;text-align:center;gap:16px;animation:sc .4s ease;background:var(--bg)}
+.gate-logo{width:52px;height:52px;flex-shrink:0}.gate-logo img{width:100%;height:100%;object-fit:contain;display:block}
 .gate-title{font-family:var(--sf);font-style:italic;font-size:26px;color:var(--tx);letter-spacing:-.4px}
 .gate-msg{font-size:14px;color:var(--t2);max-width:280px;line-height:1.6}
 .gate-brs{display:flex;gap:10px}
 .gate-br{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 20px;background:var(--s2);border-radius:var(--rsm);border:1.5px solid var(--bdr);font-size:12px;color:var(--t2);font-weight:600;min-width:86px}
-.gate-br .i{font-size:26px;color:var(--pu)}
-.gate-note{font-size:12px;color:var(--t3);max-width:260px;line-height:1.55}
+.gate-br .i{font-size:26px;color:var(--pu)}.gate-note{font-size:12px;color:var(--t3);max-width:260px;line-height:1.55}
 .toast{position:fixed;bottom:calc(var(--mbh) + var(--sb) + 12px);left:50%;transform:translateX(-50%);background:#18181b;color:#fff;padding:7px 15px;border-radius:20px;font-size:13px;font-weight:500;z-index:1000;white-space:nowrap;pointer-events:none;animation:up .2s ease;box-shadow:0 4px 20px rgba(0,0,0,.22)}
-.mbn{display:none;flex-shrink:0;height:calc(var(--mbh) + var(--sb));padding-bottom:var(--sb);background:rgba(232,232,229,.97);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--bdr);z-index:10}
+.mbn{display:none;flex-shrink:0;height:calc(var(--mbh) + var(--sb));padding-bottom:var(--sb);background:rgba(228,228,224,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--bdr);z-index:10}
 .btab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:transparent;cursor:pointer;font-family:var(--fn);font-size:10.5px;font-weight:500;color:var(--t3);transition:color .15s}
-.btab.on{color:var(--pu)}.btab .i{font-size:22px;transition:transform .2s}.btab.on .i{transform:scale(1.06)}
+.btab.on{color:var(--pu)}.btab .i{font-size:22px;transition:transform .18s}.btab.on .i{transform:scale(1.06)}
 .spacer{height:16px;flex-shrink:0}.anch{height:1px}
-@media (max-width:768px){
-  .sidebar{display:none}.mtop{display:flex}.mbn{display:flex}
-  .msgs-in{padding:14px 14px 8px}
-  .ibar{padding:8px 12px calc(8px + var(--sb))}
-  .bub{font-size:14px}.wtitle{font-size:26px}
-}
-@media (min-width:769px){
-  .mtop{display:none}.mbn{display:none}
-  .toast{bottom:16px}
-}
+@media(max-width:768px){.sidebar{display:none}.mtop{display:flex}.mbn{display:flex}.msgs-in{padding:14px 14px 8px}.ibar{padding:8px 12px calc(8px + var(--sb))}.bub{font-size:14px}.wtitle{font-size:26px}}
+@media(min-width:769px){.mtop{display:none}.mbn{display:none}.toast{bottom:16px}}
 `;
 
 if (!document.getElementById('w-css')) {
@@ -319,16 +268,17 @@ if (!document.getElementById('w-css')) {
   document.head.appendChild(s);
 }
 
+/* ─── helpers ─────────────────────────────────────────────────────────────── */
 async function cachedLogo() {
   try {
     if ('caches' in window) {
-      const c = await caches.open('wayle-assets-v1');
-      const hit = await c.match(LOGO_URL);
+      const cache = await caches.open('wayle-assets-v1');
+      const hit = await cache.match(LOGO_URL);
       if (hit) return URL.createObjectURL(await hit.blob());
       const res = await fetch(LOGO_URL);
-      if (res.ok) { c.put(LOGO_URL, res.clone()); return URL.createObjectURL(await res.blob()); }
+      if (res.ok) { cache.put(LOGO_URL, res.clone()); return URL.createObjectURL(await res.blob()); }
     }
-  } catch {}
+  } catch(e) {}
   return LOGO_URL;
 }
 
@@ -339,37 +289,42 @@ async function detectCaps() {
   try {
     if (navigator.gpu) {
       const a = await navigator.gpu.requestAdapter({ powerPreference:'high-performance' });
-      if (a) { hasWebGPU = true; const info = await a.requestAdapterInfo().catch(()=>({})); gpuInfo = info?.description || info?.vendor || 'GPU active'; }
+      if (a) {
+        hasWebGPU = true;
+        const info = await a.requestAdapterInfo().catch(() => ({}));
+        gpuInfo = info?.description || info?.vendor || 'GPU active';
+      }
     }
-  } catch {}
+  } catch(e) {}
   return { isMobile, hasWebGPU, gpuInfo, hasSAB: typeof SharedArrayBuffer !== 'undefined', ram: navigator.deviceMemory || 4 };
 }
 
 class InferenceWorker {
-  constructor() { this.w=null; this.pending=new Map(); this.streams=new Map(); this.n=0; }
+  constructor() { this.w = null; this.pending = new Map(); this.streams = new Map(); this.n = 0; }
   init() {
-    this.w = new Worker('inference_worker.js'); // FIXED filename
+    this.w = new Worker('inference_worker.js');
     this.w.onmessage = ({ data }) => {
       const { type, id } = data;
-      const req = this.pending.get(id); const st = this.streams.get(id);
-      switch(type) {
-        case 'load_progress': req?.onProgress?.(data); break;
-        case 'load_done': req?.resolve(data); this.pending.delete(id); break;
-        case 'load_error': req?.reject(new Error(data.error)); this.pending.delete(id); break;
-        case 'token': st?.onToken(data.token, data.stats); break;
-        case 'done': st?.onDone(data.stats); this.streams.delete(id); this.pending.delete(id); break;
+      const req = this.pending.get(id);
+      const st  = this.streams.get(id);
+      switch (type) {
+        case 'load_progress':  req?.onProgress?.(data); break;
+        case 'load_done':      req?.resolve(data); this.pending.delete(id); break;
+        case 'load_error':     req?.reject(new Error(data.error)); this.pending.delete(id); break;
+        case 'token':          st?.onToken(data.token, data.stats); break;
+        case 'done':           st?.onDone(data.stats); this.streams.delete(id); this.pending.delete(id); break;
         case 'generate_error': st?.onError(new Error(data.error)); this.streams.delete(id); this.pending.delete(id); break;
-        case 'aborted': st?.onDone({aborted:true}); this.streams.delete(id); this.pending.delete(id); break;
-        default: req?.resolve(data); this.pending.delete(id);
+        case 'aborted':        st?.onDone({ aborted:true }); this.streams.delete(id); this.pending.delete(id); break;
+        default:               req?.resolve(data); this.pending.delete(id);
       }
     };
     this.w.onerror = e => console.error('[Worker]', e);
   }
-  send(type, payload, onProgress) {
+  loadModel(mid, onProgress) {
     return new Promise((resolve, reject) => {
       const id = ++this.n;
       this.pending.set(id, { resolve, reject, onProgress });
-      this.w.postMessage({ type, id, ...payload });
+      this.w.postMessage({ type:'load_model', id, modelId:mid });
     });
   }
   generate(prompt, opts, { onToken, onDone, onError }) {
@@ -379,63 +334,47 @@ class InferenceWorker {
     this.w.postMessage({ type:'generate', id, prompt, options:opts });
     return id;
   }
-  abort(id) { this.w.postMessage({ type:'abort', id }); }
-  loadModel(mid, onProgress) { return this.send('load_model', { modelId:mid }, onProgress); }
-  resetKV() { return this.send('reset_kv', {}); }
-  terminate() { this.w?.terminate(); }
+  abort(id)  { this.w.postMessage({ type:'abort', id }); }
+  resetKV()  { return new Promise((resolve, reject) => { const id = ++this.n; this.pending.set(id, { resolve, reject }); this.w.postMessage({ type:'reset_kv', id }); }); }
+  terminate(){ this.w?.terminate(); }
 }
 
+/* ─── markdown ────────────────────────────────────────────────────────────── */
 function md(text) {
   if (!text) return '';
   return text
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/```([\w]*)\n?([\s\S]*?)```/g,(_,l,c)=>`<pre class="cb"><span class="cl">${l||'code'}</span><code>${c.trim()}</code></pre>`)
-    .replace(/`([^`]+)`/g,'<code class="ic">$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g,'<em>$1</em>')
-    .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>')
-    .replace(/^[-*] (.+)$/gm,'<li>$1</li>').replace(/(<li>.*<\/li>\n?)+/g,m=>`<ul>${m}</ul>`)
-    .replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br/>')
-    .replace(/^(?!<[hupol])(.+)/,'<p>$1').replace(/([^>])$/,'$1</p>');
+    .replace(/```([\w]*)\n?([\s\S]*?)```/g, (_, l, c) => `<pre class="cb"><span class="cl">${l||'code'}</span><code>${c.trim()}</code></pre>`)
+    .replace(/`([^`]+)`/g, '<code class="ic">$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>').replace(/^## (.+)$/gm, '<h2>$1</h2>').replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^[-*] (.+)$/gm, '<li>$1</li>').replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+    .replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br/>')
+    .replace(/^(?!<[hupol])(.+)/, '<p>$1').replace(/([^>])$/, '$1</p>');
 }
 
-// Word-by-word blur-in streaming renderer
-function StreamingText({ content, streaming }) {
-  const prevWordsRef = useRef(0);
-  const tokens = useMemo(() => {
-    // Split into words but keep spaces
-    return content.split(/(\s+)/);
-  }, [content]);
-
-  useEffect(() => {
-    if (!streaming) prevWordsRef.current = tokens.length;
-  }, [streaming, tokens.length]);
-
-  if (!streaming) {
-    // Render final content with full markdown
-    return <span dangerouslySetInnerHTML={{__html: md(content) + ''}} />;
-  }
-
-  // During streaming: render words with blur-in for new ones
-  const prevCount = prevWordsRef.current;
+/* ─── streaming word-blur text ───────────────────────────────────────────── */
+function StreamingText({ content }) {
+  const parts = content.split(/(\s+)/);
   return (
     <span>
-      {tokens.map((tok, i) => {
-        const isNew = i >= prevCount;
-        if (/^\s+$/.test(tok)) return tok;
-        return <span key={i} className={isNew ? 'word-token' : ''} style={isNew ? {animationDelay:`${(i-prevCount)*0.04}s`} : {}}>{tok}</span>;
+      {parts.map((p, i) => {
+        if (/^\s+$/.test(p)) return p;
+        return <span key={i} className="wtok" style={{ animationDelay:`${i * 0.03}s` }}>{p}</span>;
       })}
       <span className="cur"/>
     </span>
   );
 }
 
+/* ─── UI components ───────────────────────────────────────────────────────── */
 function CopyBtn({ text }) {
   const [ok, setOk] = useState(false);
   return (
     <button className="mbtn" title="Copy"
-      onClick={()=>{ navigator.clipboard?.writeText(text); setOk(true); setTimeout(()=>setOk(false),1500); }}>
-      <span className="i f s14">{ok?'check':'content_copy'}</span>
+      onClick={() => { navigator.clipboard?.writeText(text); setOk(true); setTimeout(() => setOk(false), 1500); }}>
+      <span className="i f s14">{ok ? 'check' : 'content_copy'}</span>
     </button>
   );
 }
@@ -444,28 +383,27 @@ const Msg = React.memo(({ msg, logo, streaming }) => {
   const isUser = msg.role === 'user';
   const html = useMemo(() => md(msg.content), [msg.content]);
   return (
-    <div className={`msg ${isUser?'u':'a'}`}>
+    <div className={`msg ${isUser ? 'u' : 'a'}`}>
       <div className="mrow">
         {!isUser && <div className="av ai"><img src={logo} alt="W"/></div>}
         <div className="bub">
           {isUser ? (
             <>
-              {msg.image && <img src={msg.image} alt="upload" style={{display:'block',maxWidth:200,maxHeight:150,borderRadius:8,marginBottom:6,objectFit:'cover'}}/>}
+              {msg.image && <img src={msg.image} alt="upload" style={{display:'block',maxWidth:180,maxHeight:140,borderRadius:8,marginBottom:6,objectFit:'cover'}}/>}
               {msg.content}
             </>
-          ) : (
-            streaming
-              ? <StreamingText content={msg.content} streaming={true}/>
-              : <span dangerouslySetInnerHTML={{__html: html}}/>
-          )}
+          ) : streaming
+            ? <StreamingText content={msg.content}/>
+            : <span dangerouslySetInnerHTML={{__html: html}}/>
+          }
         </div>
         {isUser && <div className="av hu"><span className="i f s14">person</span></div>}
       </div>
       {!streaming && (
-        <div className="mmeta" style={{justifyContent:isUser?'flex-end':'flex-start',paddingLeft:isUser?0:36}}>
+        <div className="mmeta" style={{justifyContent: isUser ? 'flex-end' : 'flex-start', paddingLeft: isUser ? 0 : 36}}>
           <CopyBtn text={msg.content}/>
           {msg.tps && <span className="tmini">{msg.tps.toFixed(1)} t/s</span>}
-          <span className="mtime">{new Date(msg.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span>
+          <span className="mtime">{new Date(msg.ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
         </div>
       )}
     </div>
@@ -491,82 +429,86 @@ function FIcon({ family }) {
 
 function ModelsView({ caps, curMod, loadedModel, engState, loadProg, onLoad }) {
   function Card({ m }) {
-    const loaded = loadedModel === m.id;
+    const loaded  = loadedModel === m.id;
     const loading = engState === 'loading' && curMod?.id === m.id;
-    const locked = !m.free;
+    const locked  = !m.free;
     const tc = TIER_C[m.tier] || TIER_C.small;
     return (
-      <div className={`mcd ${loaded?'sel':''} ${loading?'ldg':''} ${locked?'locked':''}`} onClick={()=>!loading&&!locked&&onLoad(m)}>
+      <div className={`mcd${loaded?' sel':''}${loading?' ldg':''}${locked?' locked':''}`}
+           onClick={() => { if (!loading && !locked) onLoad(m); }}>
         <FIcon family={m.family}/>
         <div className="mi2">
           <div className="mn">{m.label}</div>
-          <div className="md">{m.description}</div>
+          <div className="mdesc">{m.description}</div>
           <div className="mtg">
-            {m.tags.map(t=><span key={t} className="mt" style={{background:tc.bg,color:tc.color}}>{t}</span>)}
+            {m.tags.map(t => <span key={t} className="mt" style={{background:tc.bg,color:tc.color}}>{t}</span>)}
             <span className="mt" style={{background:'#f1f5f9',color:'#64748b'}}>{m.quantization}</span>
           </div>
         </div>
         <div className="mr">
           <span className="mram">{m.ramGB} GB</span>
-          {locked ? <div className="lock-badge"><span className="i f s13">lock</span>Pro</div>
-            : loaded ? <span className="i f mchk">check_circle</span>
-            : loading ? <div style={{width:16,height:16,borderRadius:'50%',border:'2px solid #d4c8fa',borderTopColor:'var(--pu)',animation:'spin .7s linear infinite'}}/>
-            : <button className="mlb" disabled={engState==='loading'}>Load</button>}
+          {locked
+            ? <div className="lock-badge"><span className="i f s13">lock</span>Pro</div>
+            : loaded
+              ? <span className="i f mchk">check_circle</span>
+              : loading
+                ? <div style={{width:16,height:16,borderRadius:'50%',border:'2px solid #ddd6fe',borderTopColor:'var(--pu)',animation:'spin .7s linear infinite'}}/>
+                : <button className="mlb" disabled={engState==='loading'}>Load</button>
+          }
         </div>
       </div>
     );
   }
   return (
-    <div className="tv">
-      <div className="tvi">
-        {caps && (
-          <div className="hwb">
-            <span className="i f">memory</span>
-            <div><strong>{caps.gpuInfo||(caps.hasWebGPU?'WebGPU Active':'No WebGPU')}</strong>{' · '}{caps.ram} GB RAM · {caps.isMobile?'Mobile':'Desktop'}{caps.hasSAB&&' · SAB ✓'}</div>
+    <div className="tv"><div className="tvi">
+      {caps && (
+        <div className="hwb">
+          <span className="i f">memory</span>
+          <div>
+            <strong>{caps.gpuInfo || (caps.hasWebGPU ? 'WebGPU Active' : 'No WebGPU')}</strong>
+            {' · '}{caps.ram} GB RAM · {caps.isMobile ? 'Mobile' : 'Desktop'}{caps.hasSAB && ' · SAB ✓'}
           </div>
-        )}
-        {engState==='loading' && (
-          <div className="lp">
-            <div className="lpt">{loadProg.text}</div>
-            <div className="lpb"><div className="lpf" style={{width:`${loadProg.percent}%`}}/></div>
-          </div>
-        )}
-        <div className="stl">Free Models</div>
-        {MODELS.filter(m=>m.free).map(m=><Card key={m.id} m={m}/>)}
-        <div className="stl">Pro Models</div>
-        {MODELS.filter(m=>!m.free).map(m=><Card key={m.id} m={m}/>)}
-      </div>
-    </div>
+        </div>
+      )}
+      {engState === 'loading' && (
+        <div className="lp">
+          <div className="lpt">{loadProg.text}</div>
+          <div className="lpb"><div className="lpf" style={{width:`${loadProg.percent}%`}}/></div>
+        </div>
+      )}
+      <div className="stl">Free — 3 Models</div>
+      {MODELS.filter(m => m.free).map(m => <Card key={m.id} m={m}/>)}
+      <div className="stl">Pro Models</div>
+      {MODELS.filter(m => !m.free).map(m => <Card key={m.id} m={m}/>)}
+    </div></div>
   );
 }
 
 function PlansView() {
   return (
-    <div className="plv">
-      <div className="plvi">
-        <div className="plh"><h1>Choose your plan</h1><p>Start free. Your device does the thinking.</p></div>
-        <div className="plg">
-          {PLANS.map((p,i)=>(
-            <div key={p.id} className={`plc ${p.featured?'ft':''}`} style={{animationDelay:`${i*.08}s`}}>
-              {p.badge && <div className="plbg">{p.badge}</div>}
-              <div className="plt">
-                <div><div className="plnm">{p.name}</div><div className="plds">{p.description}</div></div>
-                <div><div className="plpr">{p.price}</div><div className="plpe">{p.period}</div></div>
-              </div>
-              <ul className="plfl">
-                {p.features.map((f,j)=>(
-                  <li key={j} className={`pff ${f.y?'y':'n'}`}>
-                    <span className="i f s16">{f.y?'check_circle':'cancel'}</span>{f.t}
-                  </li>
-                ))}
-              </ul>
-              <button className={`plcta ${p.id==='free'?'pri':'out'}`} disabled={!p.ctaActive}>{p.cta}</button>
+    <div className="plv"><div className="plvi">
+      <div className="plh"><h1>Choose your plan</h1><p>Start free. Your device does the thinking.</p></div>
+      <div className="plg">
+        {PLANS.map((p, i) => (
+          <div key={p.id} className={`plc${p.featured?' ft':''}`} style={{animationDelay:`${i*.08}s`}}>
+            {p.badge && <div className="plbg">{p.badge}</div>}
+            <div className="plt">
+              <div><div className="plnm">{p.name}</div><div className="plds">{p.description}</div></div>
+              <div><div className="plpr">{p.price}</div><div className="plpe">{p.period}</div></div>
             </div>
-          ))}
-        </div>
-        <div className="plnt">All on-device inference is <strong>100% private</strong> — no data leaves your device.<br/><a href="#">Learn more →</a></div>
+            <ul className="plfl">
+              {p.features.map((f, j) => (
+                <li key={j} className={`pff ${f.y?'y':'n'}`}>
+                  <span className="i f s16">{f.y?'check_circle':'cancel'}</span>{f.t}
+                </li>
+              ))}
+            </ul>
+            <button className={`plcta ${p.id==='free'?'pri':'out'}`} disabled={!p.ctaActive}>{p.cta}</button>
+          </div>
+        ))}
       </div>
-    </div>
+      <div className="plnt">All on-device inference is <strong>100% private</strong> — no data leaves your device.<br/><a href="#">Learn more →</a></div>
+    </div></div>
   );
 }
 
@@ -577,7 +519,7 @@ function Gate({ logo }) {
       <div className="gate-title">WebGPU Required</div>
       <p className="gate-msg">Wayle runs AI on your device using WebGPU. Please use a supported browser.</p>
       <div className="gate-brs">
-        {[['public','Chrome'],['explore','Edge'],['open_in_new','Opera']].map(([ic,lb])=>(
+        {[['public','Chrome'],['explore','Edge'],['open_in_new','Opera']].map(([ic,lb]) => (
           <div key={lb} className="gate-br"><span className="i f">{ic}</span>{lb}</div>
         ))}
       </div>
@@ -586,57 +528,78 @@ function Gate({ logo }) {
   );
 }
 
+/* ─── App ─────────────────────────────────────────────────────────────────── */
 function App() {
-  const [view, setView] = useState('chat');
-  const [msgs, setMsgs] = useState([]);
-  const [input, setInput] = useState('');
-  const [curMod, setCurMod] = useState(MODELS[1]);
+  const [view,        setView]        = useState('chat');
+  const [msgs,        setMsgs]        = useState([]);
+  const [input,       setInput]       = useState('');
+  const [curMod,      setCurMod]      = useState(MODELS[1]);
   const [loadedModel, setLoadedModel] = useState(null);
-  const [engState, setEngState] = useState('idle');
-  const [loadProg, setLoadProg] = useState({ text:'', percent:0 });
-  const [streaming, setStreaming] = useState(false);
+  const [engState,    setEngState]    = useState('idle');
+  const [loadProg,    setLoadProg]    = useState({ text:'', percent:0 });
+  const [streaming,   setStreaming]   = useState(false);
   const [streamStats, setStreamStats] = useState(null);
-  const [logo, setLogo] = useState(LOGO_URL);
-  const [toast, setToast] = useState(null);
-  const [caps, setCaps] = useState(null);
-  const [gated, setGated] = useState(false);
-  const [attachedImage, setAttachedImage] = useState(null); // {dataUrl, ocrText, ocrDone}
-  const [ocrLoading, setOcrLoading] = useState(false);
-  const wRef = useRef(null); const genIdRef = useRef(null);
-  const taRef = useRef(null); const botRef = useRef(null);
-  const fileRef = useRef(null);
+  const [logo,        setLogo]        = useState(LOGO_URL);
+  const [toast,       setToast]       = useState(null);
+  const [caps,        setCaps]        = useState(null);
+  const [gated,       setGated]       = useState(false);
+  const [attachedImg, setAttachedImg] = useState(null);
 
+  const wRef     = useRef(null);
+  const genIdRef = useRef(null);
+  const taRef    = useRef(null);
+  const botRef   = useRef(null);
+  const fileRef  = useRef(null);
+
+  /* ── init ── */
   useEffect(() => {
-    // Dismiss splash
     const splash = document.getElementById('splash');
-    if (splash) { splash.style.animation = 'sOut .4s ease forwards'; setTimeout(()=>splash.remove(), 420); }
+    if (splash) {
+      splash.style.animation = 'sOut .4s ease forwards';
+      setTimeout(() => splash.remove(), 420);
+    }
     document.getElementById('root').style.display = '';
 
     cachedLogo().then(setLogo);
     detectCaps().then(c => { setCaps(c); if (!c.hasWebGPU) setGated(true); });
-    try { const w = new InferenceWorker(); w.init(); wRef.current = w; } catch(e) { console.warn('Worker:', e); }
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+    try {
+      const w = new InferenceWorker();
+      w.init();
+      wRef.current = w;
+    } catch(e) {
+      console.warn('[Worker]', e);
+    }
+
     return () => wRef.current?.terminate();
   }, []);
 
-  const toast$ = useCallback((m, ms=2800) => { setToast(m); setTimeout(()=>setToast(null), ms); }, []);
+  const toast$ = useCallback((msg, ms=2800) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), ms);
+  }, []);
 
   useEffect(() => {
-    requestAnimationFrame(()=>botRef.current?.scrollIntoView({behavior:'smooth',block:'end'}));
+    requestAnimationFrame(() => botRef.current?.scrollIntoView({ behavior:'smooth', block:'end' }));
   }, [msgs.length, streaming]);
 
   const resize = useCallback(() => {
-    const el = taRef.current; if (!el) return;
+    const el = taRef.current;
+    if (!el) return;
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 140) + 'px';
   }, []);
 
   const loadModel = useCallback(async (m) => {
-    if (!wRef.current) return;
-    setCurMod(m); setEngState('loading'); setLoadProg({ text:'Initializing…', percent:0 });
+    if (!wRef.current) { toast$('Worker not ready'); return; }
+    setCurMod(m);
+    setEngState('loading');
+    setLoadProg({ text:'Initializing…', percent:0 });
     try {
       await wRef.current.loadModel(m.id, p => setLoadProg({ text:p.text, percent:p.percent }));
-      setLoadedModel(m.id); setEngState('ready'); toast$(`${m.label} loaded ✓`);
+      setLoadedModel(m.id);
+      setEngState('ready');
+      toast$(`${m.label} loaded ✓`);
     } catch(e) {
       setEngState('error');
       if (e.message === 'NO_WEBGPU') setGated(true);
@@ -644,99 +607,95 @@ function App() {
     }
   }, [toast$]);
 
-  // OCR: extract text from image using canvas
-  const runOCR = useCallback(async (dataUrl) => {
-    setOcrLoading(true);
-    try {
-      // Use browser's built-in canvas to get image data, then use Tesseract if available
-      // Fallback: just flag as image attached, prepend description to prompt
-      if (window.Tesseract) {
-        const result = await window.Tesseract.recognize(dataUrl, 'eng');
-        const text = result.data.text.trim();
-        setAttachedImage(prev => prev ? {...prev, ocrText: text, ocrDone: true} : null);
-        if (text) toast$('Text detected from image ✓');
-      } else {
-        setAttachedImage(prev => prev ? {...prev, ocrText: null, ocrDone: true} : null);
-      }
-    } catch(e) {
-      setAttachedImage(prev => prev ? {...prev, ocrText: null, ocrDone: true} : null);
-    }
-    setOcrLoading(false);
-  }, [toast$]);
-
+  /* ── image attach ── */
   const handleImageFile = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target.result;
-      setAttachedImage({ dataUrl, ocrText: null, ocrDone: false });
-      runOCR(dataUrl);
-    };
+    reader.onload = e => setAttachedImg({ dataUrl: e.target.result });
     reader.readAsDataURL(file);
-  }, [runOCR]);
+  }, []);
 
+  /* ── send ── */
   const handleSend = useCallback(async () => {
     const text = input.trim();
-    if ((!text && !attachedImage) || streaming) return;
-    if (engState === 'idle') { setInput(''); await loadModel(curMod); return; }
+    if ((!text && !attachedImg) || streaming) return;
+    if (!wRef.current) { toast$('Model engine not ready'); return; }
+    if (engState === 'idle') { await loadModel(curMod); return; }
     if (engState === 'loading') { toast$('Still loading — please wait'); return; }
+
     const uid = () => crypto.randomUUID?.() || Math.random().toString(36).slice(2);
-    // Build prompt: prepend OCR text if detected
-    let prompt = text;
-    if (attachedImage?.ocrText) prompt = `[Image text detected]: ${attachedImage.ocrText}\n\n${text || 'Please describe what you see in this text.'}`;
-    else if (attachedImage && !attachedImage.ocrText) prompt = text || 'I attached an image.';
-    const uMsg = { role:'user', content: text || '📷 Image attached', image: attachedImage?.dataUrl, ts:Date.now(), id:uid() };
-    setMsgs(p=>[...p, uMsg]);
-    setInput(''); setAttachedImage(null);
+    const prompt = text || 'I sent you an image.';
+
+    const uMsg = { role:'user', content: text || '📷', image: attachedImg?.dataUrl, ts:Date.now(), id:uid() };
+    setMsgs(p => [...p, uMsg]);
+    setInput('');
+    setAttachedImg(null);
     if (taRef.current) taRef.current.style.height = 'auto';
+
     const aMsg = { role:'assistant', content:'', ts:Date.now(), id:uid() };
-    setMsgs(p=>[...p, aMsg]);
-    setStreaming(true); setStreamStats(null);
+    setMsgs(p => [...p, aMsg]);
+    setStreaming(true);
+    setStreamStats(null);
+
     const gid = wRef.current.generate(prompt, { maxTokens:512, temperature:0.7, topP:0.9, topK:40 }, {
       onToken: (tok, stats) => {
         setStreamStats(stats);
-        setMsgs(p=>{ const c=[...p]; const l=c[c.length-1]; if(l.role==='assistant') c[c.length-1]={...l,content:l.content+tok}; return c; });
+        setMsgs(p => {
+          const c = [...p];
+          const l = c[c.length - 1];
+          if (l.role === 'assistant') c[c.length - 1] = { ...l, content: l.content + tok };
+          return c;
+        });
       },
       onDone: (stats) => {
-        setStreaming(false); genIdRef.current=null;
-        setMsgs(p=>{ const c=[...p]; const l=c[c.length-1]; if(l.role==='assistant') c[c.length-1]={...l,tps:stats?.totalMs?(stats.totalTokens/stats.totalMs*1000):null}; return c; });
+        setStreaming(false);
+        genIdRef.current = null;
+        setMsgs(p => {
+          const c = [...p];
+          const l = c[c.length - 1];
+          if (l.role === 'assistant') c[c.length - 1] = { ...l, tps: stats?.totalMs ? (stats.totalTokens / stats.totalMs * 1000) : null };
+          return c;
+        });
       },
       onError: (e) => {
-        setStreaming(false); genIdRef.current=null; toast$(`Error: ${e.message}`);
-        setMsgs(p=>{ const c=[...p]; const l=c[c.length-1]; if(l.role==='assistant'&&!l.content) c[c.length-1]={...l,content:'⚠️ Generation failed.'}; return c; });
+        setStreaming(false);
+        genIdRef.current = null;
+        toast$(`Error: ${e.message}`);
+        setMsgs(p => {
+          const c = [...p];
+          const l = c[c.length - 1];
+          if (l.role === 'assistant' && !l.content) c[c.length - 1] = { ...l, content:'⚠️ Generation failed.' };
+          return c;
+        });
       },
     });
     genIdRef.current = gid;
-  }, [input, attachedImage, streaming, engState, curMod, loadModel, toast$]);
+  }, [input, attachedImg, streaming, engState, curMod, loadModel, toast$]);
 
   const handleStop = () => { if (genIdRef.current) wRef.current?.abort(genIdRef.current); setStreaming(false); };
-  const handleKey = e => { if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
-  const canSend = (input.trim().length > 0 || attachedImage !== null) && !streaming && engState !== 'loading';
-  const onNewChat = () => { setMsgs([]); setAttachedImage(null); wRef.current?.resetKV(); setView('chat'); };
+  const handleKey  = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
+  const canSend    = (input.trim().length > 0 || attachedImg !== null) && !streaming && engState !== 'loading';
+  const onNewChat  = () => { setMsgs([]); setAttachedImg(null); wRef.current?.resetKV(); setView('chat'); };
 
-  const SUGG = ['Explain transformer models simply','Write a haiku about code',"What's 17 × 23?",'Help me debug my app'];
+  const SUGG = ['Explain transformer models simply', 'Write a haiku about code', "What's 17 × 23?", 'Help me debug my app'];
   const TABS = [['chat','chat_bubble','Chat'],['models','memory','Models'],['plans','diamond','Plans']];
 
   if (gated) return <Gate logo={logo}/>;
 
-  // Hidden file input (supports camera on mobile)
-  const ImgInput = (
-    <input ref={fileRef} type="file" accept="image/*" capture="environment"
-      style={{display:'none'}}
-      onChange={e=>{ const f=e.target.files?.[0]; if(f) handleImageFile(f); e.target.value=''; }}/>
-  );
-
   const ChatView = (
     <div className="chat">
-      {ImgInput}
+      {/* File picker — no capture attr so user gets gallery + camera choice */}
+      <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}}
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); e.target.value = ''; }}/>
+
       <div className="mbar">
-        <button className="mpill" onClick={()=>setView('models')}>
-          <span className={`dot ${loadedModel?'on':'off'}`}/>
+        <button className="mpill" onClick={() => setView('models')}>
+          <span className={`dot ${loadedModel ? 'on' : 'off'}`}/>
           {loadedModel ? curMod.label : 'No model loaded'}
           <span className="i s14" style={{marginLeft:2,color:'var(--t3)'}}>expand_more</span>
         </button>
         {streamStats && streaming && <span className="tbadge">{streamStats.tokensPerSec?.toFixed(1)} t/s</span>}
-        {engState==='loading' && (
+        {engState === 'loading' && (
           <div className="pw">
             <div className="mspin"/>
             <span className="pt">{loadProg.text}</span>
@@ -744,58 +703,55 @@ function App() {
           </div>
         )}
       </div>
+
       <div className="msgs">
         <div className="msgs-in">
           {msgs.length === 0 ? (
             <div className="welcome">
               <div className="wlogo"><img src={logo} alt="Wayle"/></div>
               <div className="wtitle">How can I help?</div>
-              {caps?.hasWebGPU && <div className="wgpu"><span className="i f s13">bolt</span>WebGPU · {caps.gpuInfo||'GPU Ready'}</div>}
+              {caps?.hasWebGPU && <div className="wgpu"><span className="i f s13">bolt</span>WebGPU · {caps.gpuInfo || 'GPU Ready'}</div>}
               <div className="wsub">{loadedModel ? `${curMod.label} · fully offline` : 'Select a model in Models to get started'}</div>
               <div className="chips">
-                {SUGG.map(s=>(
-                  <button key={s} className="chip" onClick={()=>{ setInput(s); taRef.current?.focus(); }}>{s}</button>
-                ))}
+                {SUGG.map(s => <button key={s} className="chip" onClick={() => { setInput(s); taRef.current?.focus(); }}>{s}</button>)}
               </div>
             </div>
           ) : (
             <>
-              {msgs.map((m,i)=>(
-                <Msg key={m.id||i} msg={m} logo={logo} streaming={streaming && i===msgs.length-1 && m.role==='assistant'}/>
+              {msgs.map((m, i) => (
+                <Msg key={m.id||i} msg={m} logo={logo} streaming={streaming && i === msgs.length-1 && m.role === 'assistant'}/>
               ))}
-              {streaming && msgs[msgs.length-1]?.role!=='assistant' && <Typing logo={logo}/>}
+              {streaming && msgs[msgs.length-1]?.role !== 'assistant' && <Typing logo={logo}/>}
             </>
           )}
           <div className="spacer"/><div ref={botRef} className="anch"/>
         </div>
       </div>
+
       <div className="ibar">
         <div className="iwrap">
-          {attachedImage && (
+          {attachedImg && (
             <div className="img-attach">
               <div className="img-preview">
-                <img src={attachedImage.dataUrl} alt="attached"/>
-                <button className="img-remove" onClick={()=>setAttachedImage(null)}>✕</button>
+                <img src={attachedImg.dataUrl} alt="attached"/>
+                <button className="img-remove" onClick={() => setAttachedImg(null)}>✕</button>
               </div>
-              {ocrLoading && <div className="img-ocr-pill"><div className="ocr-spin"/><span>Reading text…</span></div>}
-              {attachedImage.ocrDone && attachedImage.ocrText && <div className="img-ocr-pill"><span className="i f s13">text_fields</span><span>Text detected</span></div>}
-              {attachedImage.ocrDone && !attachedImage.ocrText && <div className="img-ocr-pill" style={{color:'var(--t2)',background:'var(--s2)',borderColor:'var(--bdr)'}}><span className="i s13">image</span><span>Image ready</span></div>}
+              <div className="img-pill"><span className="i f s13">image</span> Image ready</div>
             </div>
           )}
           <div className="ibox">
-            <button className="img-btn" title="Attach image or take photo"
-              onClick={()=>fileRef.current?.click()}>
+            <button className="img-btn" title="Attach image" onClick={() => fileRef.current?.click()}>
               <span className="i s18">add_photo_alternate</span>
             </button>
             <textarea ref={taRef} value={input}
-              onChange={e=>{ setInput(e.target.value); resize(); }}
+              onChange={e => { setInput(e.target.value); resize(); }}
               onKeyDown={handleKey}
-              placeholder={loadedModel?'Message Wayle…':'Load a model to start…'}
+              placeholder={loadedModel ? 'Message Wayle…' : 'Load a model to start…'}
               rows={1} disabled={streaming} autoComplete="off" autoCorrect="on" spellCheck/>
             {streaming
               ? <button className="snd stop" onClick={handleStop}><span className="i f s18">stop</span></button>
               : <button className="snd" onClick={handleSend} disabled={!canSend}>
-                  {engState==='loading' ? <div className="bspin"/> : <span className="i f s18">arrow_upward</span>}
+                  {engState === 'loading' ? <div className="bspin"/> : <span className="i f s18">arrow_upward</span>}
                 </button>
             }
           </div>
@@ -808,20 +764,20 @@ function App() {
   return (
     <div className="app">
       <aside className="sidebar">
-        <button className="sb-brand" onClick={()=>setView('chat')}>
+        <button className="sb-brand" onClick={() => setView('chat')}>
           <div className="sb-logo"><img src={logo} alt="Wayle"/></div>
           <span className="sb-name">Wayle</span>
         </button>
         <nav className="sb-nav">
-          {TABS.map(([id,ic,lb])=>(
-            <button key={id} className={`stab ${view===id?'on':''}`} onClick={()=>setView(id)}>
-              <span className={`i ${view===id?'f':''}`}>{ic}</span>{lb}
+          {TABS.map(([id, ic, lb]) => (
+            <button key={id} className={`stab${view===id?' on':''}`} onClick={() => setView(id)}>
+              <span className={`i${view===id?' f':''}`}>{ic}</span>{lb}
             </button>
           ))}
         </nav>
         <div className="sb-bot">
           <button className="nc" onClick={onNewChat}>
-            <span className="i" style={{fontSize:17}}>add_comment</span>New chat
+            <span className="i s18">add_comment</span>New chat
           </button>
         </div>
       </aside>
@@ -836,15 +792,15 @@ function App() {
         </div>
 
         <div className="cnt">
-          {view==='chat' && ChatView}
-          {view==='models' && <ModelsView caps={caps} curMod={curMod} loadedModel={loadedModel} engState={engState} loadProg={loadProg} onLoad={m=>{ loadModel(m); setView('chat'); }}/>}
-          {view==='plans' && <PlansView/>}
+          {view === 'chat'   && ChatView}
+          {view === 'models' && <ModelsView caps={caps} curMod={curMod} loadedModel={loadedModel} engState={engState} loadProg={loadProg} onLoad={m => { loadModel(m); setView('chat'); }}/>}
+          {view === 'plans'  && <PlansView/>}
         </div>
 
         <nav className="mbn" style={{display:'flex'}}>
-          {TABS.map(([id,ic,lb])=>(
-            <button key={id} className={`btab ${view===id?'on':''}`} onClick={()=>setView(id)}>
-              <span className={`i ${view===id?'f':''} s22`}>{ic}</span>{lb}
+          {TABS.map(([id, ic, lb]) => (
+            <button key={id} className={`btab${view===id?' on':''}`} onClick={() => setView(id)}>
+              <span className={`i${view===id?' f':''} s22`}>{ic}</span>{lb}
             </button>
           ))}
         </nav>
@@ -860,9 +816,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 
 <script>
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
 }
 </script>
 </body>
