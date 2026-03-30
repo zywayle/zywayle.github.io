@@ -9,12 +9,12 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://i.ibb.co/xSFJxP7F/wayle-dark.png",
+      "src": "Logo-w.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "https://i.ibb.co/xSFJxP7F/wayle-dark.png",
+      "src": "Logo-w.png",
       "sizes": "512x512",
       "type": "image/png"
     }
