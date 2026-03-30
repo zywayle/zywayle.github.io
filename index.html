@@ -347,7 +347,7 @@ const MODELS = [
   { id:'qwen2.5-1.5b', label:'Qwen 2.5', sublabel:'1.5B · INT4', family:'qwen', params:'1.5B', quantization:'INT4', ramGB:1.0, tags:['recommended','mobile'], description:'Best balance of speed and quality for mobile devices.', context:'4K ctx', tier:'small', free:true },
   { id:'qwen2.5-3b', label:'Qwen 2.5', sublabel:'3B · INT4', family:'qwen', params:'3B', quantization:'INT4', ramGB:2.0, tags:['balanced'], description:'Smartest free model — still fast on modern devices.', context:'8K ctx', tier:'medium', free:true },
   { id:'phi3.5-mini', label:'Phi-3.5 Mini', sublabel:'3.8B · INT4', family:'phi', params:'3.8B', quantization:'INT4', ramGB:2.4, tags:['smart','desktop'], description:"Microsoft's best small model. Great reasoning capabilities.", context:'4K ctx', tier:'medium', free:false },
-  { id:'llama3.2-3b', label:'Llama 3.2', sublabel:'3B · INT4', family:'llama', params:'3B', quantization:'INT4', ramGB:2.0, tags:['balanced'], description:'Meta's recommended model for desktop Chrome users.', context:'8K ctx', tier:'medium', free:false },
+  { id:'llama3.2-3b', label:'Llama 3.2', sublabel:'3B · INT4', family:'llama', params:'3B', quantization:'INT4', ramGB:2.0, tags:['balanced'], description:"Meta recommended model for desktop Chrome users.", context:'8K ctx', tier:'medium', free:false },
   { id:'mistral-7b', label:'Mistral 7B', sublabel:'7B · INT4', family:'mistral', params:'7B', quantization:'INT4', ramGB:4.5, tags:['powerful','desktop'], description:'Powerful 7B model for Pro subscribers. Best quality.', context:'8K ctx', tier:'large', free:false },
 ];
 
@@ -1037,7 +1037,7 @@ function AboutView({ logo, onPrivacy }) {
         React.createElement('h2', null, 'We Always Stay Local'),
         React.createElement('div', { className: 'info-card' },
           React.createElement('h3', null, '🔒 100% Private by Architecture'),
-          React.createElement('p', null, 'Wayle has no backend. There is no server that receives your messages. Your conversations exist only in your browser's memory and are cleared when you start a new chat. We cannot read your conversations because they are never sent to us.')
+          React.createElement('p', null, 'Wayle has no backend. There is no server that receives your messages. Your conversations exist only in your browser memory and are cleared when you start a new chat. We cannot read your conversations because they are never sent to us.')
         ),
         React.createElement('div', { className: 'info-card' },
           React.createElement('h3', null, '📦 Models Come From Hugging Face'),
@@ -1118,7 +1118,7 @@ function PrivacyView({ logo }) {
         React.createElement('div', { className: 'info-card' },
           React.createElement('span', { className: 'i f', style:{color:'var(--pu)'} }, 'lock'),
           React.createElement('h3', null, '100% Private by Architecture'),
-          React.createElement('p', null, 'Wayle has no backend. There is no server that receives your messages. Your conversations exist only in your browser's memory and are cleared when you start a new chat. We cannot read your conversations because they are never sent anywhere.')
+          React.createElement('p', null, 'Wayle has no backend. There is no server that receives your messages. Your conversations exist only in your browser memory and are cleared when you start a new chat. We cannot read your conversations because they are never sent anywhere.')
         ),
         React.createElement('div', { className: 'info-card' },
           React.createElement('span', { className: 'i f', style:{color:'var(--pu)'} }, 'devices'),
