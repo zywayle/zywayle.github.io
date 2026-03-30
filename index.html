@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
-  <meta name="theme-color" content="#edede9"/>
+  <meta name="theme-color" content="#c8c8c2"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <meta name="apple-mobile-web-app-title" content="Wayle"/>
@@ -17,14 +17,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%;overflow:hidden;background:#edede9;font-family:'Space Grotesk',sans-serif;-webkit-font-smoothing:antialiased}
-    #root{height:100%;display:none}
-    #splash{position:fixed;inset:0;z-index:9999;background:#edede9;display:flex;flex-direction:column;align-items:center;justify-content:center}
+    html,body{height:100%;overflow:hidden;background:#c8c8c2;font-family:'Space Grotesk',sans-serif;-webkit-font-smoothing:antialiased}
+    #root{height:100%;display:block}
+    #splash{position:fixed;inset:0;z-index:9999;background:#c8c8c2;display:flex;flex-direction:column;align-items:center;justify-content:center}
     #splash-logo{width:68px;height:68px;animation:sIn .55s cubic-bezier(.34,1.56,.64,1) both}
     #splash-logo img{width:100%;height:100%;object-fit:contain;display:block}
-    #splash-name{font-family:'Instrument Serif',serif;font-style:italic;font-size:30px;color:#1a1a16;letter-spacing:-.5px;margin-top:16px;animation:sIn .55s .1s cubic-bezier(.34,1.56,.64,1) both}
-    #splash-sub{font-size:13px;color:#909088;margin-top:6px;animation:sIn .45s .2s ease both}
-    #splash-spin{width:22px;height:22px;border-radius:50%;border:2.5px solid #d0d0cc;border-top-color:#6d28d9;margin-top:32px;animation:spin .8s linear infinite,sIn .4s .3s ease both}
+    #splash-name{font-family:'Instrument Serif',serif;font-style:italic;font-size:30px;color:#18180f;letter-spacing:-.5px;margin-top:16px;animation:sIn .55s .1s cubic-bezier(.34,1.56,.64,1) both}
+    #splash-sub{font-size:13px;color:#6a6a62;margin-top:6px;animation:sIn .45s .2s ease both}
+    #splash-spin{width:22px;height:22px;border-radius:50%;border:2.5px solid #a8a8a2;border-top-color:#6d28d9;margin-top:32px;animation:spin .8s linear infinite,sIn .4s .3s ease both}
     @keyframes sIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
     @keyframes sOut{to{opacity:0;transform:scale(.96)}}
     @keyframes spin{to{transform:rotate(360deg)}}
@@ -41,6 +41,257 @@
 
 <div id="root"></div>
 
+<!-- Inline the worker code so it works as a standalone file via Blob URL -->
+<script id="worker-src" type="text/plain">
+importScripts('https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js');
+
+const ORT_WASM_PATH = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
+ort.env.wasm.wasmPaths = ORT_WASM_PATH;
+ort.env.webgpu.powerPreference = 'high-performance';
+ort.env.webgpu.forceFallbackAdapter = false;
+
+const MODEL_REGISTRY = {
+  'qwen2.5-0.5b': {
+    label:'Qwen 2.5 · 0.5B',family:'qwen',params:'0.5B',quantization:'INT4',
+    context:2048,layers:24,heads:14,kvHeads:2,headDim:64,hiddenSize:896,vocabSize:151936,
+    baseUrl:'https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/onnx/',
+    files:['model_q4.onnx'],
+    tokenizer:'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer.json',
+    ramGB:0.4,tags:['fast','mobile'],
+  },
+  'qwen2.5-1.5b': {
+    label:'Qwen 2.5 · 1.5B',family:'qwen',params:'1.5B',quantization:'INT4',
+    context:4096,layers:28,heads:12,kvHeads:2,headDim:128,hiddenSize:1536,vocabSize:151936,
+    baseUrl:'https://huggingface.co/onnx-community/Qwen2.5-1.5B-Instruct/resolve/main/onnx/',
+    files:['model_q4.onnx'],
+    tokenizer:'https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct/resolve/main/tokenizer.json',
+    ramGB:1.0,tags:['fast','mobile'],
+  },
+  'qwen2.5-3b': {
+    label:'Qwen 2.5 · 3B',family:'qwen',params:'3B',quantization:'INT4',
+    context:8192,layers:36,heads:16,kvHeads:2,headDim:128,hiddenSize:2048,vocabSize:151936,
+    baseUrl:'https://huggingface.co/onnx-community/Qwen2.5-3B-Instruct/resolve/main/onnx/',
+    files:['model_q4.onnx'],
+    tokenizer:'https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/resolve/main/tokenizer.json',
+    ramGB:2.0,tags:['balanced','mobile'],
+  },
+  'phi3.5-mini': {
+    label:'Phi-3.5 Mini · 3.8B',family:'phi',params:'3.8B',quantization:'INT4',
+    context:4096,layers:32,heads:32,kvHeads:32,headDim:96,hiddenSize:3072,vocabSize:32064,
+    baseUrl:'https://huggingface.co/onnx-community/Phi-3.5-mini-instruct/resolve/main/onnx/',
+    files:['model_q4.onnx'],
+    tokenizer:'https://huggingface.co/microsoft/Phi-3.5-mini-instruct/resolve/main/tokenizer.json',
+    ramGB:2.4,tags:['smart','desktop'],
+  },
+  'llama3.2-3b': {
+    label:'Llama 3.2 · 3B',family:'llama',params:'3B',quantization:'INT4',
+    context:8192,layers:28,heads:24,kvHeads:8,headDim:128,hiddenSize:3072,vocabSize:128256,
+    baseUrl:'https://huggingface.co/onnx-community/Llama-3.2-3B-Instruct/resolve/main/onnx/',
+    files:['model_q4.onnx'],
+    tokenizer:'https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct/resolve/main/tokenizer.json',
+    ramGB:2.0,tags:['balanced'],
+  },
+};
+
+let session=null,currentModelId=null,modelConfig=null,kvCache=null,inferenceAborted=false,tokenizer=null;
+
+class KVCache {
+  constructor(config) {
+    const{layers,kvHeads,headDim,context}=config;
+    this.maxLen=context; this.currentLen=0; this.headDim=headDim; this.kvHeads=kvHeads;
+    this.buffers=[];
+    for(let l=0;l<layers;l++) this.buffers.push({key:new Float32Array(kvHeads*this.maxLen*headDim),value:new Float32Array(kvHeads*this.maxLen*headDim)});
+  }
+  reset(){this.currentLen=0;for(const b of this.buffers){b.key.fill(0);b.value.fill(0);}}
+  slide(){
+    const keep=Math.floor(this.maxLen/2),drop=this.currentLen-keep;
+    if(drop<=0)return;
+    const{kvHeads,headDim}=this;
+    for(const b of this.buffers)for(let h=0;h<kvHeads;h++){const s=headDim,o=h*this.maxLen*s;b.key.copyWithin(o,o+drop*s,o+this.currentLen*s);b.value.copyWithin(o,o+drop*s,o+this.currentLen*s);}
+    this.currentLen=keep;
+  }
+  needsSlide(){return this.currentLen>=this.maxLen-64;}
+}
+
+class SimpleTokenizer {
+  constructor(d){
+    this.data=d;
+    this.vocab=d.model?.vocab||{};
+    this.addedTokens={};
+    (d.added_tokens||[]).forEach(t=>{this.addedTokens[t.content]=t.id;});
+    this.idToToken={};
+    for(const[tok,id] of Object.entries(this.vocab)) this.idToToken[id]=tok;
+    for(const[tok,id] of Object.entries(this.addedTokens)) this.idToToken[id]=tok;
+  }
+  encode(text){return Array.from(new TextEncoder().encode(text)).map(b=>b+1);}
+  decode(ids){return ids.map(id=>(this.idToToken[id]||'').replace(/▁/g,' ').replace(/Ġ/g,' ')).join('');}
+  get bosId(){return this.data.bos_token_id??1;}
+  get eosId(){return this.data.eos_token_id??2;}
+}
+
+async function fetchWithProgress(url,onProgress){
+  const res=await fetch(url);
+  if(!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
+  const total=parseInt(res.headers.get('content-length')||'0');
+  const reader=res.body.getReader();
+  const chunks=[];let received=0;
+  while(true){const{done,value}=await reader.read();if(done)break;chunks.push(value);received+=value.byteLength;if(total>0)onProgress(received/total);}
+  const combined=new Uint8Array(received);let offset=0;
+  for(const chunk of chunks){combined.set(chunk,offset);offset+=chunk.byteLength;}
+  return combined.buffer;
+}
+
+async function loadModel(modelId,onProgress){
+  const config=MODEL_REGISTRY[modelId];
+  if(!config) throw new Error(`Unknown model: ${modelId}`);
+  onProgress({text:'Checking WebGPU…',percent:0});
+  if(!self.navigator?.gpu) throw new Error('NO_WEBGPU');
+  const adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'});
+  if(!adapter) throw new Error('NO_WEBGPU_ADAPTER');
+  onProgress({text:'Downloading model…',percent:2});
+  const modelBuffers=[];
+  for(let i=0;i<config.files.length;i++){
+    const url=config.baseUrl+config.files[i];
+    const buf=await fetchWithProgress(url,(p)=>{
+      onProgress({text:`Downloading ${config.files[i]}… ${Math.round(p*100)}%`,percent:Math.round(2+(i/config.files.length+p/config.files.length)*70)});
+    });
+    modelBuffers.push(buf);
+  }
+  onProgress({text:'Compiling WebGPU shaders…',percent:75});
+  const sessionOptions={executionProviders:[{name:'webgpu',deviceType:'gpu',powerPreference:'high-performance',preferredLayout:'NHWC'}],graphOptimizationLevel:'all',enableCpuMemArena:false,enableMemPattern:false,executionMode:'sequential',logSeverityLevel:3,interOpNumThreads:1,intraOpNumThreads:1};
+  const modelData=modelBuffers.length===1?modelBuffers[0]:(() => {const total=modelBuffers.reduce((a,b)=>a+b.byteLength,0);const m=new Uint8Array(total);let off=0;for(const b of modelBuffers){m.set(new Uint8Array(b),off);off+=b.byteLength;}return m.buffer;})();
+  onProgress({text:'Initializing session…',percent:85});
+  session=await ort.InferenceSession.create(modelData,sessionOptions);
+  onProgress({text:'Loading tokenizer…',percent:90});
+  try{const r=await fetch(config.tokenizer);tokenizer=new SimpleTokenizer(await r.json());}
+  catch{tokenizer=new SimpleTokenizer({model:{vocab:{},merges:[]},added_tokens:[]});}
+  onProgress({text:'Preallocating KV cache…',percent:95});
+  kvCache=new KVCache(config);
+  currentModelId=modelId; modelConfig=config;
+  onProgress({text:'Ready',percent:100});
+  return{success:true,config};
+}
+
+function buildPrompt(msg,sys,family){
+  switch(family){
+    case'qwen': return`<|im_start|>system\n${sys}<|im_end|>\n<|im_start|>user\n${msg}<|im_end|>\n<|im_start|>assistant\n`;
+    case'llama': return`<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${sys}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n${msg}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`;
+    case'phi': return`<|system|>\n${sys}<|end|>\n<|user|>\n${msg}<|end|>\n<|assistant|>\n`;
+    default: return`${sys}\n\nUser: ${msg}\nAssistant: `;
+  }
+}
+
+function buildFeeds(inputIds,positionId,pastLen){
+  const idsTensor=new ort.Tensor('int64',BigInt64Array.from(inputIds.map(BigInt)),[1,inputIds.length]);
+  const maskLen=pastLen+inputIds.length;
+  const maskTensor=new ort.Tensor('int64',new BigInt64Array(maskLen).fill(1n),[1,maskLen]);
+  const posTensor=new ort.Tensor('int64',BigInt64Array.from(inputIds.map((_,i)=>BigInt(positionId+i))),[1,inputIds.length]);
+  const feeds={input_ids:idsTensor,attention_mask:maskTensor,position_ids:posTensor};
+  if(kvCache&&pastLen>0){
+    for(let l=0;l<modelConfig.layers;l++){
+      const{key,value}=kvCache.buffers[l];const{kvHeads,headDim}=kvCache;
+      feeds[`past_key_values.${l}.key`]=new ort.Tensor('float32',key.slice(0,kvHeads*pastLen*headDim),[1,kvHeads,pastLen,headDim]);
+      feeds[`past_key_values.${l}.value`]=new ort.Tensor('float32',value.slice(0,kvHeads*pastLen*headDim),[1,kvHeads,pastLen,headDim]);
+    }
+  }
+  return feeds;
+}
+
+function updateKVFromResult(result,positionId){
+  if(!kvCache)return;
+  for(let l=0;l<modelConfig.layers;l++){
+    const kk=`present.${l}.key`,vk=`present.${l}.value`;
+    if(result[kk]){
+      const kd=result[kk].data,vd=result[vk].data;const{kvHeads,headDim}=kvCache;
+      const offset=(positionId+1)*headDim;
+      for(let h=0;h<kvHeads;h++){const s=h*offset,d=h*kvCache.maxLen*headDim;kvCache.buffers[l].key.set(kd.slice(s,s+offset),d);kvCache.buffers[l].value.set(vd.slice(s,s+offset),d);}
+    }
+  }
+}
+
+function extractLogits(result){
+  const k=Object.keys(result).find(k=>k.includes('logit')||k==='last_hidden_state'||k==='output');
+  if(!k) throw new Error('No logits in model output');
+  return result[k].data.slice(-modelConfig.vocabSize);
+}
+
+function sample(logits,temperature,topK,topP){
+  const temp=Math.max(temperature,1e-6);
+  const scaled=new Float32Array(logits.length);for(let i=0;i<logits.length;i++)scaled[i]=logits[i]/temp;
+  let maxVal=-Infinity;for(let i=0;i<scaled.length;i++)if(scaled[i]>maxVal)maxVal=scaled[i];
+  let sum=0;const probs=new Float32Array(scaled.length);for(let i=0;i<scaled.length;i++){probs[i]=Math.exp(scaled[i]-maxVal);sum+=probs[i];}
+  for(let i=0;i<probs.length;i++)probs[i]/=sum;
+  const indexed=Array.from(probs).map((p,i)=>[i,p]).sort((a,b)=>b[1]-a[1]).slice(0,topK);
+  let cumSum=0;const nucleus=[];
+  for(const[id,p] of indexed){nucleus.push([id,p]);cumSum+=p;if(cumSum>=topP)break;}
+  const ns=nucleus.reduce((s,[,p])=>s+p,0);let rand=Math.random()*ns,acc=0;
+  for(const[id,p] of nucleus){acc+=p;if(rand<=acc)return id;}
+  return nucleus[0][0];
+}
+
+async function* runInference(prompt,config={}){
+  if(!session) throw new Error('No model loaded');
+  if(kvCache.needsSlide())kvCache.slide();
+  inferenceAborted=false;
+  const maxNewTokens=config.maxTokens??512,temperature=config.temperature??0.7,topP=config.topP??0.9,topK=config.topK??50;
+  const sys='You are Wayle, a helpful, concise and smart AI assistant.';
+  const fullPrompt=buildPrompt(prompt,sys,modelConfig.family);
+  let inputIds=tokenizer.encode(fullPrompt);
+  if(inputIds.length>modelConfig.context-64)inputIds=inputIds.slice(-(modelConfig.context-64));
+  const eosTokens=new Set([tokenizer.eosId,...(modelConfig.family==='qwen'?[151645,151643]:[]),...(modelConfig.family==='llama'?[128001,128009]:[])]);
+  let positionId=kvCache.currentLen,generated=0,pastLen=0;
+  for(let i=0;i<inputIds.length;i++){
+    if(inferenceAborted)return;
+    if(i%4===0)await new Promise(r=>setTimeout(r,0));
+    try{const result=await session.run(buildFeeds([inputIds[i]],positionId+i,pastLen));updateKVFromResult(result,positionId+i);pastLen=positionId+i+1;}
+    catch(e){throw new Error(`Prefill failed at token ${i}: ${e.message}`);}
+  }
+  positionId+=inputIds.length;kvCache.currentLen=positionId;
+  let lastTokenId=inputIds[inputIds.length-1],tokenBuffer=[];
+  while(generated<maxNewTokens&&!inferenceAborted){
+    const feeds=buildFeeds([lastTokenId],positionId,pastLen);
+    let result;
+    try{result=await session.run(feeds);}catch(e){throw new Error(`Decode step ${generated} failed: ${e.message}`);}
+    const logits=extractLogits(result);
+    updateKVFromResult(result,positionId);
+    pastLen=positionId+1;positionId++;kvCache.currentLen=positionId;
+    const nextToken=sample(logits,temperature,topK,topP);
+    if(eosTokens.has(nextToken))break;
+    lastTokenId=nextToken;generated++;tokenBuffer.push(nextToken);
+    if(tokenBuffer.length>=3||generated===1){const text=tokenizer.decode(tokenBuffer);if(text)yield text;tokenBuffer=[];}
+    if(generated%4===0)await new Promise(r=>setTimeout(r,0));
+    if(kvCache.needsSlide()){kvCache.slide();positionId=kvCache.currentLen;}
+  }
+  if(tokenBuffer.length>0){const text=tokenizer.decode(tokenBuffer);if(text)yield text;}
+}
+
+self.onmessage=async({data})=>{
+  const{type,id}=data;
+  switch(type){
+    case'load_model':{
+      try{const r=await loadModel(data.modelId,p=>self.postMessage({type:'load_progress',id,...p}));self.postMessage({type:'load_done',id,config:r.config});}
+      catch(e){self.postMessage({type:'load_error',id,error:e.message});}
+      break;
+    }
+    case'generate':{
+      try{
+        const gen=runInference(data.prompt,data.options);let tokenCount=0;const t0=performance.now();
+        for await(const token of gen){
+          if(inferenceAborted)break;
+          tokenCount++;const elapsed=(performance.now()-t0)/1000;
+          self.postMessage({type:'token',id,token,stats:{tokensPerSec:tokenCount/elapsed,tokenCount}});
+        }
+        self.postMessage({type:'done',id,stats:{totalTokens:tokenCount,totalMs:performance.now()-t0}});
+      }catch(e){self.postMessage({type:'generate_error',id,error:e.message});}
+      break;
+    }
+    case'abort':{inferenceAborted=true;self.postMessage({type:'aborted',id});break;}
+    case'reset_kv':{if(kvCache)kvCache.reset();self.postMessage({type:'kv_reset',id});break;}
+    case'unload':{session=null;kvCache=null;currentModelId=null;modelConfig=null;self.postMessage({type:'unloaded',id});break;}
+  }
+};
+</script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
@@ -53,10 +304,10 @@ const LOGO_URL = "https://i.ibb.co/xSFJxP7F/wayle-dark.png";
 const MODELS = [
   { id:'qwen2.5-0.5b', label:'Qwen 2.5 · 0.5B', family:'qwen', params:'0.5B', quantization:'INT4', ramGB:0.4, tags:['fast','mobile'], description:'Ultra-fast, runs on any WebGPU device', tier:'nano', free:true },
   { id:'qwen2.5-1.5b', label:'Qwen 2.5 · 1.5B', family:'qwen', params:'1.5B', quantization:'INT4', ramGB:1.0, tags:['fast','mobile'], description:'Great balance for mobile — recommended', tier:'small', free:true },
-  { id:'qwen2.5-3b', label:'Qwen 2.5 · 3B', family:'qwen', params:'3B', quantization:'INT4', ramGB:2.0, tags:['balanced'], description:'Best mobile model — smart and still fast', tier:'medium', free:true },
-  { id:'phi3.5-mini', label:'Phi-3.5 Mini · 3.8B', family:'phi', params:'3.8B', quantization:'INT4', ramGB:2.4, tags:['smart','desktop'], description:"Microsoft's best small model", tier:'medium', free:false },
-  { id:'llama3.2-3b', label:'Llama 3.2 · 3B', family:'llama', params:'3B', quantization:'INT4', ramGB:2.0, tags:['balanced'], description:'Recommended for desktop Chrome', tier:'medium', free:false },
-  { id:'mistral-7b', label:'Mistral 7B', family:'mistral', params:'7B', quantization:'INT4', ramGB:4.5, tags:['smart','desktop'], description:'Powerful 7B model for Pro subscribers', tier:'large', free:false },
+  { id:'qwen2.5-3b',   label:'Qwen 2.5 · 3B',   family:'qwen', params:'3B',   quantization:'INT4', ramGB:2.0, tags:['balanced'],      description:'Best mobile model — smart and still fast', tier:'medium', free:true },
+  { id:'phi3.5-mini',  label:'Phi-3.5 Mini · 3.8B', family:'phi', params:'3.8B', quantization:'INT4', ramGB:2.4, tags:['smart','desktop'], description:"Microsoft's best small model", tier:'medium', free:false },
+  { id:'llama3.2-3b',  label:'Llama 3.2 · 3B',  family:'llama', params:'3B',  quantization:'INT4', ramGB:2.0, tags:['balanced'],      description:'Recommended for desktop Chrome', tier:'medium', free:false },
+  { id:'mistral-7b',   label:'Mistral 7B',       family:'mistral',params:'7B', quantization:'INT4', ramGB:4.5, tags:['smart','desktop'], description:'Powerful 7B model for Pro subscribers', tier:'large', free:false },
 ];
 
 const TIER_C = {
@@ -89,15 +340,15 @@ const PLANS = [
     ]},
 ];
 
-/* ─── CSS injected at runtime ─────────────────────────────────────────────── */
+/* ─── CSS ──────────────────────────────────────────────────────────────────── */
 const CSS = `
 :root{
-  --bg:#edede9;--sbg:#e4e4e0;--sur:#f0f0ec;
-  --s2:#e8e8e4;--s3:#d8d8d4;
-  --bdr:#cececa;--bdr2:#b8b8b4;
-  --tx:#1a1a16;--t2:#464640;--t3:#888880;
+  --bg:#c8c8c2;--sbg:#bcbcb6;--sur:#d0d0ca;
+  --s2:#b8b8b2;--s3:#ababA5;
+  --bdr:#a0a09a;--bdr2:#8a8a84;
+  --tx:#18180f;--t2:#36362e;--t3:#686860;
   --pu:#6d28d9;--ph:#5b21b6;--pl:#7c3aed;
-  --pdim:#ede9fe;--pglow:rgba(109,40,217,.12);
+  --pdim:#ede9fe;--pglow:rgba(109,40,217,.14);
   --gr:#15803d;--rd:#dc2626;
   --fn:'Space Grotesk',sans-serif;--sf:'Instrument Serif',serif;
   --sbw:260px;--rsm:12px;--hh:56px;
@@ -119,10 +370,11 @@ html,body,#root{height:100%;overflow:hidden;background:var(--bg)}
 @keyframes wordIn{from{opacity:0;filter:blur(5px)}to{opacity:1;filter:blur(0)}}
 .wtok{display:inline;animation:wordIn .22s ease both}
 .app{display:flex;height:100dvh;overflow:hidden;background:var(--bg)}
+/* ── sidebar ── */
 .sidebar{width:var(--sbw);flex-shrink:0;background:var(--sbg);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden;padding:calc(var(--st) + 14px) 0 calc(var(--sb) + 14px)}
 .sb-brand{display:flex;align-items:center;gap:10px;padding:2px 16px 20px;border:none;background:none;cursor:pointer;text-align:left}
 .sb-logo{width:28px;height:28px;flex-shrink:0}
-.sb-logo img{width:100%;height:100%;object-fit:contain;display:block}
+.sb-logo img{width:100%;height:100%;object-fit:contain;display:block;border-radius:0;background:none;box-shadow:none}
 .sb-name{font-family:var(--sf);font-style:italic;font-size:21px;letter-spacing:-.4px;color:var(--tx)}
 .sb-nav{display:flex;flex-direction:column;gap:1px;padding:0 8px;flex:1}
 .stab{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;border:none;background:transparent;cursor:pointer;font-family:var(--fn);font-size:14px;font-weight:500;color:var(--t2);transition:background .13s,color .13s;text-align:left;width:100%}
@@ -130,15 +382,17 @@ html,body,#root{height:100%;overflow:hidden;background:var(--bg)}
 .sb-bot{padding:8px;border-top:1px solid var(--bdr);margin-top:auto}
 .nc{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px;border-radius:10px;border:none;background:var(--pu);color:#fff;font-family:var(--fn);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s,transform .15s;box-shadow:0 2px 10px var(--pglow)}
 .nc:hover{background:var(--ph)}.nc:active{transform:scale(.96)}
+/* ── main ── */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-.mtop{display:none;align-items:center;height:calc(var(--hh) + var(--st));padding:var(--st) 14px 0;background:rgba(237,237,233,.96);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--bdr);flex-shrink:0;z-index:10}
+.mtop{display:none;align-items:center;height:calc(var(--hh) + var(--st));padding:var(--st) 14px 0;background:rgba(185,185,179,.96);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--bdr);flex-shrink:0;z-index:10}
 .mb{display:flex;align-items:center;gap:8px;flex:1}
 .mb-logo{width:26px;height:26px;flex-shrink:0}
-.mb-logo img{width:100%;height:100%;object-fit:contain;display:block}
+.mb-logo img{width:100%;height:100%;object-fit:contain;display:block;border-radius:0;background:none;box-shadow:none}
 .mb-name{font-family:var(--sf);font-style:italic;font-size:19px;color:var(--tx)}
 .ib{width:36px;height:36px;border-radius:9px;border:none;display:flex;align-items:center;justify-content:center;background:transparent;cursor:pointer;color:var(--t2);transition:background .12s;flex-shrink:0}
 .ib:active{background:var(--s3)}
 .cnt{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+/* ── chat ── */
 .chat{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0}
 .mbar{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--bdr);flex-shrink:0;min-height:42px;background:var(--sbg)}
 .mpill{display:flex;align-items:center;gap:6px;padding:5px 10px 5px 8px;border-radius:20px;background:var(--s2);border:1px solid var(--bdr);font-size:12.5px;font-weight:500;color:var(--t2);cursor:pointer;transition:background .13s;white-space:nowrap}
@@ -150,23 +404,27 @@ html,body,#root{height:100%;overflow:hidden;background:var(--bg)}
 .ptrk{width:64px;height:3px;background:#ddd6fe;border-radius:2px;overflow:hidden;flex-shrink:0}
 .pfil{height:100%;background:var(--pu);border-radius:2px;transition:width .3s}
 .mspin{width:14px;height:14px;border-radius:50%;border:2px solid #ddd6fe;border-top-color:var(--pu);animation:spin .7s linear infinite;flex-shrink:0}
+/* ── messages ── */
 .msgs{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .msgs-in{max-width:740px;margin:0 auto;padding:24px 20px 10px;display:flex;flex-direction:column;gap:2px;min-height:100%}
 .welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px 16px;animation:sc .35s ease}
 .wlogo{width:52px;height:52px;flex-shrink:0}
-.wlogo img{width:100%;height:100%;object-fit:contain;display:block}
+.wlogo img{width:100%;height:100%;object-fit:contain;display:block;border-radius:0;background:none;box-shadow:none}
 .wtitle{font-family:var(--sf);font-style:italic;font-size:28px;color:var(--tx);letter-spacing:-.5px;text-align:center}
-.wsub{font-size:13px;color:var(--t3);text-align:center;max-width:240px;line-height:1.6}
+.wsub{font-size:13px;color:var(--t3);text-align:center;max-width:260px;line-height:1.6}
 .wgpu{display:flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;background:#f0fdf4;border:1px solid #bbf7d0;font-size:12px;color:var(--gr);font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;max-width:500px}
 .chip{padding:8px 14px;border-radius:20px;border:1.5px solid var(--bdr);background:var(--sur);font-size:13px;color:var(--t2);font-weight:500;cursor:pointer;transition:all .15s;font-family:var(--fn)}
 .chip:hover{border-color:var(--pl);color:var(--pu);background:var(--pdim);transform:translateY(-1px)}.chip:active{transform:scale(.97)}
+/* ── message bubbles ── */
 .msg{display:flex;flex-direction:column;animation:mi .2s ease;padding:3px 0}
 .msg.u{align-items:flex-end}.msg.a{align-items:flex-start}
 .mrow{display:flex;align-items:flex-end;gap:8px;max-width:100%}.msg.u .mrow{flex-direction:row-reverse}
-.av{width:28px;height:28px;border-radius:50%;flex-shrink:0;overflow:hidden;align-self:flex-end;display:flex;align-items:center;justify-content:center}
-.av.ai{background:var(--pu)}.av.ai img{width:18px;height:18px;object-fit:contain;filter:brightness(0) invert(1)}
-.av.hu{background:var(--s3);border:1.5px solid var(--bdr)}.av.hu .i{font-size:14px;color:var(--t2)}
+.av{width:28px;height:28px;flex-shrink:0;align-self:flex-end;display:flex;align-items:center;justify-content:center}
+.av.ai{background:transparent}
+.av.ai img{width:28px;height:28px;object-fit:contain;display:block;border-radius:0;background:none;box-shadow:none;filter:none}
+.av.hu{border-radius:50%;background:var(--s3);border:1.5px solid var(--bdr)}
+.av.hu .i{font-size:14px;color:var(--t2)}
 .bub{padding:10px 15px;border-radius:18px;font-size:14.5px;line-height:1.65;word-break:break-word}
 .msg.u .bub{background:var(--pu);color:#fff;border-bottom-right-radius:5px;max-width:min(520px,calc(100% - 42px))}
 .msg.a .bub{background:transparent;color:var(--tx);padding:4px 2px;max-width:min(660px,calc(100% - 42px))}
@@ -189,6 +447,7 @@ html,body,#root{height:100%;overflow:hidden;background:var(--bg)}
 .dots{display:flex;gap:4px;align-items:center;padding:5px 0;height:28px}
 .dots span{width:6px;height:6px;border-radius:50%;background:var(--t3);animation:pulse 1.2s ease-in-out infinite}
 .dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+/* ── input bar ── */
 .ibar{flex-shrink:0;padding:10px 16px calc(10px + var(--sb));background:var(--bg);border-top:1px solid var(--bdr)}
 .iwrap{max-width:740px;margin:0 auto}
 .img-attach{display:flex;align-items:center;gap:8px;padding:0 2px 8px;flex-wrap:wrap}
@@ -208,6 +467,7 @@ html,body,#root{height:100%;overflow:hidden;background:var(--bg)}
 .snd.stop{background:var(--rd);box-shadow:0 2px 8px rgba(220,38,38,.2)}
 .bspin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;animation:spin .65s linear infinite}
 .ihint{text-align:center;font-size:11px;color:var(--t3);padding-top:6px}
+/* ── models view ── */
 .tv{flex:1;overflow-y:auto;padding:20px 16px}.tvi{max-width:700px;margin:0 auto}
 .stl{font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.9px;text-transform:uppercase;margin:22px 0 10px;padding:0 2px}.stl:first-child{margin-top:0}
 .hwb{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--rsm);background:var(--pdim);border:1px solid rgba(109,40,217,.15);margin-bottom:16px;font-size:13px;color:var(--t2);line-height:1.55}
@@ -228,6 +488,7 @@ html,body,#root{height:100%;overflow:hidden;background:var(--bg)}
 .lock-badge{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--pu);background:var(--pdim);padding:3px 8px;border-radius:8px}
 .mlb{padding:5px 12px;border-radius:8px;border:1.5px solid var(--pu);background:transparent;color:var(--pu);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fn);transition:all .14s}
 .mlb:hover{background:var(--pdim)}.mlb:disabled{border-color:var(--bdr);color:var(--t3);cursor:default}
+/* ── plans view ── */
 .plv{flex:1;overflow-y:auto;padding:20px 16px 40px}.plvi{max-width:700px;margin:0 auto}
 .plh{text-align:center;margin-bottom:26px}.plh h1{font-family:var(--sf);font-style:italic;font-size:30px;letter-spacing:-.5px;color:var(--tx);margin-bottom:6px}.plh p{font-size:14px;color:var(--t3)}
 .plg{display:flex;flex-direction:column;gap:14px}
@@ -246,15 +507,19 @@ html,body,#root{height:100%;overflow:hidden;background:var(--bg)}
 .plcta.out{background:transparent;border:1.5px solid var(--bdr);color:var(--t2)}.plcta.out:hover{background:var(--s2)}
 .plcta:disabled{opacity:.45;cursor:default}
 .plnt{text-align:center;font-size:12px;color:var(--t3);margin-top:20px;line-height:1.65}.plnt a{color:var(--pu);text-decoration:none;font-weight:500}
+/* ── gate ── */
 .gate{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;padding:28px;text-align:center;gap:16px;animation:sc .4s ease;background:var(--bg)}
-.gate-logo{width:52px;height:52px;flex-shrink:0}.gate-logo img{width:100%;height:100%;object-fit:contain;display:block}
+.gate-logo{width:52px;height:52px;flex-shrink:0}
+.gate-logo img{width:100%;height:100%;object-fit:contain;display:block;border-radius:0;background:none;box-shadow:none}
 .gate-title{font-family:var(--sf);font-style:italic;font-size:26px;color:var(--tx);letter-spacing:-.4px}
 .gate-msg{font-size:14px;color:var(--t2);max-width:280px;line-height:1.6}
 .gate-brs{display:flex;gap:10px}
 .gate-br{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 20px;background:var(--s2);border-radius:var(--rsm);border:1.5px solid var(--bdr);font-size:12px;color:var(--t2);font-weight:600;min-width:86px}
 .gate-br .i{font-size:26px;color:var(--pu)}.gate-note{font-size:12px;color:var(--t3);max-width:260px;line-height:1.55}
+/* ── toast ── */
 .toast{position:fixed;bottom:calc(var(--mbh) + var(--sb) + 12px);left:50%;transform:translateX(-50%);background:#18181b;color:#fff;padding:7px 15px;border-radius:20px;font-size:13px;font-weight:500;z-index:1000;white-space:nowrap;pointer-events:none;animation:up .2s ease;box-shadow:0 4px 20px rgba(0,0,0,.22)}
-.mbn{display:none;flex-shrink:0;height:calc(var(--mbh) + var(--sb));padding-bottom:var(--sb);background:rgba(228,228,224,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--bdr);z-index:10}
+/* ── mobile bottom nav ── */
+.mbn{display:none;flex-shrink:0;height:calc(var(--mbh) + var(--sb));padding-bottom:var(--sb);background:rgba(178,178,172,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--bdr);z-index:10}
 .btab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:transparent;cursor:pointer;font-family:var(--fn);font-size:10.5px;font-weight:500;color:var(--t3);transition:color .15s}
 .btab.on{color:var(--pu)}.btab .i{font-size:22px;transition:transform .18s}.btab.on .i{transform:scale(1.06)}
 .spacer{height:16px;flex-shrink:0}.anch{height:1px}
@@ -268,7 +533,23 @@ if (!document.getElementById('w-css')) {
   document.head.appendChild(s);
 }
 
-/* ─── helpers ─────────────────────────────────────────────────────────────── */
+/* ─── Worker factory ────────────────────────────────────────────────────────── */
+// Try loading inference_worker.js if alongside this file; fall back to inline blob
+function createWorker() {
+  const workerSrc = document.getElementById('worker-src')?.textContent || '';
+  const blob = new Blob([workerSrc], { type: 'application/javascript' });
+  const blobUrl = URL.createObjectURL(blob);
+  try {
+    const w = new Worker(blobUrl);
+    URL.revokeObjectURL(blobUrl);
+    return w;
+  } catch(e) {
+    URL.revokeObjectURL(blobUrl);
+    throw e;
+  }
+}
+
+/* ─── helpers ───────────────────────────────────────────────────────────────── */
 async function cachedLogo() {
   try {
     if ('caches' in window) {
@@ -299,10 +580,11 @@ async function detectCaps() {
   return { isMobile, hasWebGPU, gpuInfo, hasSAB: typeof SharedArrayBuffer !== 'undefined', ram: navigator.deviceMemory || 4 };
 }
 
+/* ─── InferenceWorker wrapper ───────────────────────────────────────────────── */
 class InferenceWorker {
   constructor() { this.w = null; this.pending = new Map(); this.streams = new Map(); this.n = 0; }
   init() {
-    this.w = new Worker('inference_worker.js');
+    this.w = createWorker();
     this.w.onmessage = ({ data }) => {
       const { type, id } = data;
       const req = this.pending.get(id);
@@ -315,7 +597,7 @@ class InferenceWorker {
         case 'done':           st?.onDone(data.stats); this.streams.delete(id); this.pending.delete(id); break;
         case 'generate_error': st?.onError(new Error(data.error)); this.streams.delete(id); this.pending.delete(id); break;
         case 'aborted':        st?.onDone({ aborted:true }); this.streams.delete(id); this.pending.delete(id); break;
-        default:               req?.resolve(data); this.pending.delete(id);
+        default:               req?.resolve?.(data); this.pending.delete(id);
       }
     };
     this.w.onerror = e => console.error('[Worker]', e);
@@ -334,12 +616,12 @@ class InferenceWorker {
     this.w.postMessage({ type:'generate', id, prompt, options:opts });
     return id;
   }
-  abort(id)  { this.w.postMessage({ type:'abort', id }); }
+  abort(id)  { this.w?.postMessage({ type:'abort', id }); }
   resetKV()  { return new Promise((resolve, reject) => { const id = ++this.n; this.pending.set(id, { resolve, reject }); this.w.postMessage({ type:'reset_kv', id }); }); }
   terminate(){ this.w?.terminate(); }
 }
 
-/* ─── markdown ────────────────────────────────────────────────────────────── */
+/* ─── Markdown renderer ─────────────────────────────────────────────────────── */
 function md(text) {
   if (!text) return '';
   return text
@@ -354,21 +636,18 @@ function md(text) {
     .replace(/^(?!<[hupol])(.+)/, '<p>$1').replace(/([^>])$/, '$1</p>');
 }
 
-/* ─── streaming word-blur text ───────────────────────────────────────────── */
+/* ─── Streaming word-blur ───────────────────────────────────────────────────── */
 function StreamingText({ content }) {
   const parts = content.split(/(\s+)/);
   return (
     <span>
-      {parts.map((p, i) => {
-        if (/^\s+$/.test(p)) return p;
-        return <span key={i} className="wtok" style={{ animationDelay:`${i * 0.03}s` }}>{p}</span>;
-      })}
+      {parts.map((p, i) => /^\s+$/.test(p) ? p : <span key={i} className="wtok" style={{animationDelay:`${i*0.03}s`}}>{p}</span>)}
       <span className="cur"/>
     </span>
   );
 }
 
-/* ─── UI components ───────────────────────────────────────────────────────── */
+/* ─── UI components ─────────────────────────────────────────────────────────── */
 function CopyBtn({ text }) {
   const [ok, setOk] = useState(false);
   return (
@@ -385,7 +664,7 @@ const Msg = React.memo(({ msg, logo, streaming }) => {
   return (
     <div className={`msg ${isUser ? 'u' : 'a'}`}>
       <div className="mrow">
-        {!isUser && <div className="av ai"><img src={logo} alt="W"/></div>}
+        {!isUser && <div className="av ai"><img src={logo} alt=""/></div>}
         <div className="bub">
           {isUser ? (
             <>
@@ -414,7 +693,7 @@ function Typing({ logo }) {
   return (
     <div className="msg a">
       <div className="mrow">
-        <div className="av ai"><img src={logo} alt="W"/></div>
+        <div className="av ai"><img src={logo} alt=""/></div>
         <div className="bub"><div className="dots"><span/><span/><span/></div></div>
       </div>
     </div>
@@ -465,8 +744,8 @@ function ModelsView({ caps, curMod, loadedModel, engState, loadProg, onLoad }) {
         <div className="hwb">
           <span className="i f">memory</span>
           <div>
-            <strong>{caps.gpuInfo || (caps.hasWebGPU ? 'WebGPU Active' : 'No WebGPU')}</strong>
-            {' · '}{caps.ram} GB RAM · {caps.isMobile ? 'Mobile' : 'Desktop'}{caps.hasSAB && ' · SAB ✓'}
+            <strong>{caps.hasWebGPU ? (caps.gpuInfo || 'WebGPU Active') : 'No WebGPU — use Chrome 113+'}</strong>
+            {' · '}{caps.ram} GB RAM · {caps.isMobile ? 'Mobile' : 'Desktop'}
           </div>
         </div>
       )}
@@ -512,23 +791,7 @@ function PlansView() {
   );
 }
 
-function Gate({ logo }) {
-  return (
-    <div className="gate">
-      <div className="gate-logo"><img src={logo} alt="Wayle"/></div>
-      <div className="gate-title">WebGPU Required</div>
-      <p className="gate-msg">Wayle runs AI on your device using WebGPU. Please use a supported browser.</p>
-      <div className="gate-brs">
-        {[['public','Chrome'],['explore','Edge'],['open_in_new','Opera']].map(([ic,lb]) => (
-          <div key={lb} className="gate-br"><span className="i f">{ic}</span>{lb}</div>
-        ))}
-      </div>
-      <p className="gate-note">Chrome 113+, Edge 113+, or Opera 99+</p>
-    </div>
-  );
-}
-
-/* ─── App ─────────────────────────────────────────────────────────────────── */
+/* ─── App ───────────────────────────────────────────────────────────────────── */
 function App() {
   const [view,        setView]        = useState('chat');
   const [msgs,        setMsgs]        = useState([]);
@@ -542,8 +805,8 @@ function App() {
   const [logo,        setLogo]        = useState(LOGO_URL);
   const [toast,       setToast]       = useState(null);
   const [caps,        setCaps]        = useState(null);
-  const [gated,       setGated]       = useState(false);
   const [attachedImg, setAttachedImg] = useState(null);
+  const [workerReady, setWorkerReady] = useState(false);
 
   const wRef     = useRef(null);
   const genIdRef = useRef(null);
@@ -553,32 +816,29 @@ function App() {
 
   /* ── init ── */
   useEffect(() => {
+    // Dismiss splash
     const splash = document.getElementById('splash');
     if (splash) {
       splash.style.animation = 'sOut .4s ease forwards';
       setTimeout(() => splash.remove(), 420);
     }
-    document.getElementById('root').style.display = '';
 
     cachedLogo().then(setLogo);
-    detectCaps().then(c => { setCaps(c); if (!c.hasWebGPU) setGated(true); });
+    detectCaps().then(setCaps);
 
     try {
       const w = new InferenceWorker();
       w.init();
       wRef.current = w;
+      setWorkerReady(true);
     } catch(e) {
-      console.warn('[Worker]', e);
+      console.warn('[Worker] init failed:', e);
     }
 
     return () => wRef.current?.terminate();
   }, []);
 
-  const toast$ = useCallback((msg, ms=2800) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), ms);
-  }, []);
-
+  // Auto-scroll on new messages
   useEffect(() => {
     requestAnimationFrame(() => botRef.current?.scrollIntoView({ behavior:'smooth', block:'end' }));
   }, [msgs.length, streaming]);
@@ -590,8 +850,14 @@ function App() {
     el.style.height = Math.min(el.scrollHeight, 140) + 'px';
   }, []);
 
+  const toast$ = useCallback((msg, ms=2800) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), ms);
+  }, []);
+
   const loadModel = useCallback(async (m) => {
     if (!wRef.current) { toast$('Worker not ready'); return; }
+    if (!m.free) { toast$('Pro model — coming soon'); return; }
     setCurMod(m);
     setEngState('loading');
     setLoadProg({ text:'Initializing…', percent:0 });
@@ -601,9 +867,12 @@ function App() {
       setEngState('ready');
       toast$(`${m.label} loaded ✓`);
     } catch(e) {
-      setEngState('error');
-      if (e.message === 'NO_WEBGPU') setGated(true);
-      else toast$(`Load failed: ${e.message}`);
+      setEngState('idle');
+      if (e.message === 'NO_WEBGPU' || e.message === 'NO_WEBGPU_ADAPTER') {
+        toast$('WebGPU not available — use Chrome 113+ on desktop', 4000);
+      } else {
+        toast$(`Load failed: ${e.message}`);
+      }
     }
   }, [toast$]);
 
@@ -619,12 +888,9 @@ function App() {
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if ((!text && !attachedImg) || streaming) return;
-    if (!wRef.current) { toast$('Model engine not ready'); return; }
-    if (engState === 'idle') { await loadModel(curMod); return; }
-    if (engState === 'loading') { toast$('Still loading — please wait'); return; }
 
     const uid = () => crypto.randomUUID?.() || Math.random().toString(36).slice(2);
-    const prompt = text || 'I sent you an image.';
+    const prompt = text || 'Describe the attached image.';
 
     const uMsg = { role:'user', content: text || '📷', image: attachedImg?.dataUrl, ts:Date.now(), id:uid() };
     setMsgs(p => [...p, uMsg]);
@@ -632,66 +898,99 @@ function App() {
     setAttachedImg(null);
     if (taRef.current) taRef.current.style.height = 'auto';
 
-    const aMsg = { role:'assistant', content:'', ts:Date.now(), id:uid() };
-    setMsgs(p => [...p, aMsg]);
+    const aId = uid();
+    setMsgs(p => [...p, { role:'assistant', content:'', ts:Date.now(), id:aId }]);
     setStreaming(true);
     setStreamStats(null);
 
-    const gid = wRef.current.generate(prompt, { maxTokens:512, temperature:0.7, topP:0.9, topK:40 }, {
-      onToken: (tok, stats) => {
-        setStreamStats(stats);
-        setMsgs(p => {
-          const c = [...p];
-          const l = c[c.length - 1];
-          if (l.role === 'assistant') c[c.length - 1] = { ...l, content: l.content + tok };
-          return c;
-        });
-      },
-      onDone: (stats) => {
-        setStreaming(false);
-        genIdRef.current = null;
-        setMsgs(p => {
-          const c = [...p];
-          const l = c[c.length - 1];
-          if (l.role === 'assistant') c[c.length - 1] = { ...l, tps: stats?.totalMs ? (stats.totalTokens / stats.totalMs * 1000) : null };
-          return c;
-        });
-      },
-      onError: (e) => {
-        setStreaming(false);
-        genIdRef.current = null;
-        toast$(`Error: ${e.message}`);
-        setMsgs(p => {
-          const c = [...p];
-          const l = c[c.length - 1];
-          if (l.role === 'assistant' && !l.content) c[c.length - 1] = { ...l, content:'⚠️ Generation failed.' };
-          return c;
-        });
-      },
-    });
-    genIdRef.current = gid;
-  }, [input, attachedImg, streaming, engState, curMod, loadModel, toast$]);
+    const appendToken = (tok, stats) => {
+      if (stats) setStreamStats(stats);
+      setMsgs(p => {
+        const c = [...p];
+        const l = c[c.length - 1];
+        if (l?.role === 'assistant') c[c.length - 1] = { ...l, content: l.content + tok };
+        return c;
+      });
+    };
 
-  const handleStop = () => { if (genIdRef.current) wRef.current?.abort(genIdRef.current); setStreaming(false); };
+    const finalize = (tps) => {
+      setStreaming(false);
+      genIdRef.current = null;
+      setMsgs(p => {
+        const c = [...p];
+        const l = c[c.length - 1];
+        if (l?.role === 'assistant') c[c.length - 1] = { ...l, tps };
+        return c;
+      });
+    };
+
+    // Real inference if model is loaded
+    if (wRef.current && engState === 'ready') {
+      const gid = wRef.current.generate(prompt, { maxTokens:512, temperature:0.7, topP:0.9, topK:40 }, {
+        onToken: (tok, stats) => appendToken(tok, stats),
+        onDone:  (stats) => finalize(stats?.totalMs ? stats.totalTokens / stats.totalMs * 1000 : null),
+        onError: (e) => {
+          setStreaming(false);
+          genIdRef.current = null;
+          toast$(`Error: ${e.message}`);
+          setMsgs(p => {
+            const c = [...p];
+            const l = c[c.length - 1];
+            if (l?.role === 'assistant' && !l.content) c[c.length - 1] = { ...l, content:'⚠️ Generation failed.' };
+            return c;
+          });
+        },
+      });
+      genIdRef.current = gid;
+      return;
+    }
+
+    // No model loaded — prompt user to load one
+    if (engState === 'loading') {
+      setStreaming(false);
+      setMsgs(p => p.slice(0, -2)); // remove the user+assistant msgs we just added
+      toast$('Still loading model — please wait');
+      return;
+    }
+
+    // No model at all — show friendly demo response
+    const noModelReply = `**No model loaded yet.** Go to the **Models** tab and tap a free model to download and run it on your device.\n\nWayle runs 100% offline using WebGPU — no data ever leaves your browser.`;
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i >= noModelReply.length) {
+        clearInterval(interval);
+        finalize(null);
+        return;
+      }
+      appendToken(noModelReply.slice(i, i + 4), null);
+      i += 4;
+    }, 16);
+  }, [input, attachedImg, streaming, engState, toast$]);
+
+  const handleStop = useCallback(() => {
+    if (genIdRef.current && wRef.current) wRef.current.abort(genIdRef.current);
+    setStreaming(false);
+    genIdRef.current = null;
+  }, []);
+
   const handleKey  = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
   const canSend    = (input.trim().length > 0 || attachedImg !== null) && !streaming && engState !== 'loading';
-  const onNewChat  = () => { setMsgs([]); setAttachedImg(null); wRef.current?.resetKV(); setView('chat'); };
+  const onNewChat  = () => { setMsgs([]); setAttachedImg(null); wRef.current?.resetKV().catch(()=>{}); setView('chat'); };
 
   const SUGG = ['Explain transformer models simply', 'Write a haiku about code', "What's 17 × 23?", 'Help me debug my app'];
   const TABS = [['chat','chat_bubble','Chat'],['models','memory','Models'],['plans','diamond','Plans']];
 
-  if (gated) return <Gate logo={logo}/>;
+  const curModData = MODELS.find(m => m.id === (loadedModel || curMod?.id)) || MODELS[1];
 
   const ChatView = (
     <div className="chat">
-      {/* File picker — no capture attr so user gets gallery + camera choice */}
       <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}}
         onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); e.target.value = ''; }}/>
 
       <div className="mbar">
         <button className="mpill" onClick={() => setView('models')}>
           <span className={`dot ${loadedModel ? 'on' : 'off'}`}/>
-          {loadedModel ? curMod.label : 'No model loaded'}
+          {loadedModel ? curModData.label : 'No model loaded'}
           <span className="i s14" style={{marginLeft:2,color:'var(--t3)'}}>expand_more</span>
         </button>
         {streamStats && streaming && <span className="tbadge">{streamStats.tokensPerSec?.toFixed(1)} t/s</span>}
@@ -711,7 +1010,7 @@ function App() {
               <div className="wlogo"><img src={logo} alt="Wayle"/></div>
               <div className="wtitle">How can I help?</div>
               {caps?.hasWebGPU && <div className="wgpu"><span className="i f s13">bolt</span>WebGPU · {caps.gpuInfo || 'GPU Ready'}</div>}
-              <div className="wsub">{loadedModel ? `${curMod.label} · fully offline` : 'Select a model in Models to get started'}</div>
+              <div className="wsub">{loadedModel ? `${curModData.label} · fully offline` : 'Load a model in the Models tab to get started'}</div>
               <div className="chips">
                 {SUGG.map(s => <button key={s} className="chip" onClick={() => { setInput(s); taRef.current?.focus(); }}>{s}</button>)}
               </div>
@@ -719,7 +1018,7 @@ function App() {
           ) : (
             <>
               {msgs.map((m, i) => (
-                <Msg key={m.id||i} msg={m} logo={logo} streaming={streaming && i === msgs.length-1 && m.role === 'assistant'}/>
+                <Msg key={m.id || i} msg={m} logo={logo} streaming={streaming && i === msgs.length-1 && m.role === 'assistant'}/>
               ))}
               {streaming && msgs[msgs.length-1]?.role !== 'assistant' && <Typing logo={logo}/>}
             </>
@@ -747,7 +1046,7 @@ function App() {
               onChange={e => { setInput(e.target.value); resize(); }}
               onKeyDown={handleKey}
               placeholder={loadedModel ? 'Message Wayle…' : 'Load a model to start…'}
-              rows={1} disabled={streaming} autoComplete="off" autoCorrect="on" spellCheck/>
+              rows={1} disabled={streaming || engState === 'loading'} autoComplete="off" autoCorrect="on" spellCheck/>
             {streaming
               ? <button className="snd stop" onClick={handleStop}><span className="i f s18">stop</span></button>
               : <button className="snd" onClick={handleSend} disabled={!canSend}>
