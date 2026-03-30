@@ -1223,6 +1223,11 @@ function SettingsModal({ theme, onTheme, onCacheReset, onFullReset, onClose }) {
               className: `theme-btn${theme==='dark'?' on':''}`,
               onClick: () => onTheme('dark')
             }, React.createElement('span', { className: 'i s16' }, 'dark_mode'), 'Dark'),
+            React.createElement('button', {
+              className: `theme-btn${theme==='light'?' on':''}`,
+              onClick: () => onTheme('light')
+            }, React.createElement('span', { className: 'i s16' }, 'light_mode'), 'Light')
+          )
         ),
         React.createElement('div', { className: 'modal-sep' }),
         React.createElement('div', { className: 'modal-section' },
