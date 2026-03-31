@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
-  <meta name="theme-color" content="#1e1e24"/>
+  <meta name="theme-color" content="#1e1e24" media="(prefers-color-scheme: dark)"/>
+  <meta name="theme-color" content="#f4f4f0" media="(prefers-color-scheme: light)"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <meta name="apple-mobile-web-app-title" content="Wayle"/>
   <meta name="description" content="Wayle — fast, private, on-device AI"/>
   <title>Wayle</title>
-  <link rel="manifest" href="manifest.json"/>
-  <link rel="icon" href="Logo-w.png"/>
-  <link rel="apple-touch-icon" href="Logo-w.png"/>
+  <link rel="icon" href="https://raw.githubusercontent.com/wayle-app/wayle/main/Logo-w.png"/>
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/wayle-app/wayle/main/Logo-w.png"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet"/>
@@ -43,11 +43,19 @@
 <body class="theme-dark">
 
 <div id="splash">
-  <div id="splash-logo"><img src="https://i.ibb.co/xSFJxP7F/wayle-dark.png" alt="Wayle"/></div>
+  <div id="splash-logo"><img id="splash-logo-img" src="https://raw.githubusercontent.com/wayle-app/wayle/main/Logo-w.png" alt="Wayle"/></div>
   <div id="splash-name">Wayle</div>
   <div id="splash-sub">On-device AI · 100% private</div>
   <div id="splash-spin"></div>
 </div>
+<script>
+(function(){
+  var t=localStorage.getItem('wayle-theme')||'dark';
+  document.body.className='theme-'+t;
+  var img=document.getElementById('splash-logo-img');
+  if(img&&t==='light') img.src='https://raw.githubusercontent.com/wayle-app/wayle/main/Logo-b.png';
+})();
+</script>
 
 <div id="root"></div>
 
@@ -154,9 +162,24 @@ async function loadModel(modelId,onProgress){
   const config=MODEL_REGISTRY[modelId];
   if(!config) throw new Error(`Unknown model: ${modelId}`);
   onProgress({text:'Checking WebGPU…',percent:0});
-  if(!self.navigator?.gpu) throw new Error('NO_WEBGPU');
-  const adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'});
-  if(!adapter) throw new Error('NO_WEBGPU_ADAPTER');
+
+  // WebGPU detection with proper Chrome handling
+  let useWebGPU = false;
+  if(self.navigator?.gpu){
+    try{
+      const adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'});
+      if(adapter){ useWebGPU=true; }
+    }catch(e){ console.warn('[GPU] WebGPU adapter request failed:',e.message); }
+  }
+  if(!useWebGPU){
+    // Try default power preference as fallback
+    try{
+      const adapter=await navigator.gpu.requestAdapter();
+      if(adapter) useWebGPU=true;
+    }catch(e){}
+  }
+  if(!useWebGPU) throw new Error('NO_WEBGPU');
+
   onProgress({text:'Downloading model…',percent:2});
   const modelBuffers=[];
   for(let i=0;i<config.files.length;i++){
@@ -167,10 +190,24 @@ async function loadModel(modelId,onProgress){
     modelBuffers.push(buf);
   }
   onProgress({text:'Compiling WebGPU shaders…',percent:75});
-  const sessionOptions={executionProviders:[{name:'webgpu',deviceType:'gpu',powerPreference:'high-performance',preferredLayout:'NHWC'}],graphOptimizationLevel:'all',enableCpuMemArena:false,enableMemPattern:false,executionMode:'sequential',logSeverityLevel:3,interOpNumThreads:1,intraOpNumThreads:1};
+
+  // Build session options — try webgpu first, fallback to wasm
+  const gpuOpts={executionProviders:[{name:'webgpu',powerPreference:'high-performance',preferredLayout:'NHWC'}],graphOptimizationLevel:'all',enableCpuMemArena:false,enableMemPattern:false,executionMode:'sequential',logSeverityLevel:3,interOpNumThreads:1,intraOpNumThreads:1};
+  const cpuOpts={executionProviders:['wasm'],graphOptimizationLevel:'all',executionMode:'sequential',logSeverityLevel:3};
+
   const modelData=modelBuffers.length===1?modelBuffers[0]:(() => {const total=modelBuffers.reduce((a,b)=>a+b.byteLength,0);const m=new Uint8Array(total);let off=0;for(const b of modelBuffers){m.set(new Uint8Array(b),off);off+=b.byteLength;}return m.buffer;})();
   onProgress({text:'Initializing session…',percent:85});
-  session=await ort.InferenceSession.create(modelData,sessionOptions);
+  try{
+    session=await ort.InferenceSession.create(modelData,gpuOpts);
+  }catch(gpuErr){
+    console.warn('[GPU] WebGPU session failed, trying WASM fallback:',gpuErr.message);
+    onProgress({text:'GPU init failed — trying CPU fallback…',percent:86});
+    try{
+      session=await ort.InferenceSession.create(modelData,cpuOpts);
+    }catch(cpuErr){
+      throw new Error(`Session init failed: ${gpuErr.message}`);
+    }
+  }
   onProgress({text:'Loading tokenizer…',percent:90});
   try{const r=await fetch(config.tokenizer);tokenizer=new SimpleTokenizer(await r.json());}
   catch{tokenizer=new SimpleTokenizer({model:{vocab:{},merges:[]},added_tokens:[]});}
@@ -331,7 +368,55 @@ async function runOCR(dataUrl, onProgress) {
 <script>
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
-// ─── Theme persistence ────────────────────────────────────────────────────────
+// ─── Version ──────────────────────────────────────────────────────────────────
+const APP_VERSION = '0.0.2';
+const VERSION_URL = 'https://raw.githubusercontent.com/wayle-app/wayle/main/version.json';
+
+async function checkForUpdate() {
+  try {
+    const r = await fetch(VERSION_URL + '?t=' + Date.now());
+    if (!r.ok) return null;
+    const data = await r.json();
+    return data; // { version, url, changelog }
+  } catch { return null; }
+}
+
+// ─── Inline SW registration (no external sw.js needed) ───────────────────────
+(function registerInlineSW() {
+  if (!('serviceWorker' in navigator)) return;
+  const swCode = `
+const CACHE = 'wayle-v${APP_VERSION}';
+const ASSETS = ['/'];
+self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
+self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  if (e.request.url.includes('huggingface.co') || e.request.url.includes('fonts.googleapis')) return;
+  e.respondWith(caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {
+    if (res.ok && e.request.url.startsWith(self.location.origin)) {
+      const clone = res.clone();
+      caches.open(CACHE).then(c => c.put(e.request, clone));
+    }
+    return res;
+  }).catch(() => caches.match('/'))));
+});
+`;
+  try {
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    const url = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(url).then(reg => {
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (nw) nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            window.dispatchEvent(new CustomEvent('sw-update-ready'));
+          }
+        });
+      });
+    }).catch(() => {});
+  } catch(e) {}
+})();
 function getStoredTheme() {
   try { return localStorage.getItem('wayle-theme') || 'dark'; } catch { return 'dark'; }
 }
@@ -340,9 +425,8 @@ function setStoredTheme(t) {
   document.body.className = 'theme-' + t;
 }
 
-const LOGO_DARK = "https://i.ibb.co/xSFJxP7F/wayle-dark.png"; // Logo-w.png (white logo for dark bg)
-const LOGO_LIGHT = "https://i.ibb.co/xSFJxP7F/wayle-dark.png"; // Logo-b.png (dark logo for light bg) — swap URLs when you host them
-const LOGO_URL = LOGO_DARK; // fallback
+const LOGO_DARK  = "https://raw.githubusercontent.com/wayle-app/wayle/main/Logo-w.png"; // white logo for dark bg
+const LOGO_LIGHT = "https://raw.githubusercontent.com/wayle-app/wayle/main/Logo-b.png"; // black logo for light bg
 
 const MODELS = [
   { id:'qwen2.5-0.5b', label:'Qwen 2.5', sublabel:'0.5B · INT4', family:'qwen', params:'0.5B', quantization:'INT4', ramGB:0.4, tags:['fast','mobile'], description:'Ultra-fast, runs on any WebGPU device. Best for quick tasks.', context:'2K ctx', tier:'nano', free:true },
@@ -386,6 +470,7 @@ const CSS_DARK = `
   --pu:#8b5cf6;--ph:#7c3aed;--pl:#a78bfa;
   --pdim:#1e1730;--pglow:rgba(139,92,246,.18);
   --ubub:#24242e;
+  --utx:#f0f0f8;
   --gr:#22c55e;--rd:#ef4444;--am:#f59e0b;
   --fn:'Space Grotesk',sans-serif;--sf:'Instrument Serif',serif;
   --sbw:260px;--rsm:12px;--hh:56px;
@@ -400,6 +485,7 @@ const CSS_LIGHT = `
   --pu:#6d28d9;--ph:#5b21b6;--pl:#7c3aed;
   --pdim:#ede9fe;--pglow:rgba(109,40,217,.14);
   --ubub:#e8e8e4;
+  --utx:#0a0a06;
   --gr:#15803d;--rd:#dc2626;--am:#d97706;
   --fn:'Space Grotesk',sans-serif;--sf:'Instrument Serif',serif;
   --sbw:260px;--rsm:12px;--hh:56px;
@@ -495,9 +581,9 @@ html,body,#root{height:100%;overflow:hidden;background:var(--bg)}
 .msg-role{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;margin-bottom:8px;color:var(--t3)}
 .msg-role .i{font-size:14px}
 .msg-body{font-size:15px;line-height:1.8;color:var(--tx);word-break:break-word}
-/* user msg — flat panel, slightly darker than BG */
-.msg.u{background:var(--ubub);margin:4px -10px;padding:13px 10px;border-radius:12px;border:none}
-.msg.u .msg-body{color:var(--tx);font-size:14.5px;line-height:1.7}
+/* user msg — no bubble, flat text like assistant but slightly brighter */
+.msg.u{background:transparent;margin:0;padding:14px 0;border-radius:0;border:none}
+.msg.u .msg-body{color:var(--utx);font-size:14.5px;line-height:1.7;font-weight:500}
 .msg.u .msg-body img{display:block;max-width:180px;max-height:140px;border-radius:8px;margin-bottom:6px;object-fit:cover}
 /* assistant msg — clean text, generous line-height */
 .msg.a{background:transparent;padding:14px 0}
@@ -508,9 +594,12 @@ html,body,#root{height:100%;overflow:hidden;background:var(--bg)}
 .msg-body ul,.msg-body ol{padding-left:20px;margin:6px 0}.msg-body li{margin:4px 0;line-height:1.65}
 .msg-body strong{font-weight:700;color:var(--tx)}.msg-body em{font-style:italic;color:var(--t2)}
 .msg-body hr{border:none;border-top:1px solid var(--bdr);margin:12px 0}
-.cb{position:relative;background:var(--sbg);border:1px solid var(--bdr);border-radius:12px;padding:14px 16px;overflow-x:auto;margin:10px 0}
+.cb{position:relative;background:var(--sbg);border:1px solid var(--bdr);border-radius:12px;padding:14px 16px 44px;overflow-x:auto;margin:10px 0}
 .cb code{font-family:'SF Mono','Fira Code',monospace;font-size:12.5px;line-height:1.7;color:var(--tx);white-space:pre;display:block}
-.cl{position:absolute;top:8px;right:12px;font-size:10px;color:var(--t3);font-family:var(--fn);text-transform:uppercase;letter-spacing:.6px;font-weight:600;background:var(--s2);padding:2px 7px;border-radius:5px}
+.cl{position:absolute;top:8px;left:12px;font-size:10px;color:var(--t3);font-family:var(--fn);text-transform:uppercase;letter-spacing:.6px;font-weight:600;background:var(--s2);padding:2px 7px;border-radius:5px}
+.cb-actions{position:absolute;bottom:0;left:0;right:0;display:flex;gap:6px;padding:8px 12px;background:var(--sbg);border-top:1px solid var(--bdr);border-radius:0 0 12px 12px}
+.cb-btn{padding:3px 11px;border-radius:6px;border:1px solid var(--bdr);background:var(--s2);color:var(--t2);font-family:var(--fn);font-size:11px;font-weight:600;cursor:pointer;transition:all .12s}
+.cb-btn:hover{background:var(--s3);color:var(--tx)}
 .ic{font-family:'SF Mono','Fira Code',monospace;font-size:12.5px;padding:2px 6px;background:var(--s2);border-radius:5px;border:1px solid var(--bdr);color:var(--pl)}
 .cur{display:inline-block;width:2px;height:.9em;background:var(--pu);margin-left:2px;vertical-align:text-bottom;animation:blink .75s step-end infinite}
 .mmeta{display:flex;align-items:center;gap:3px;margin-top:8px;opacity:0;transition:opacity .15s}
@@ -581,7 +670,59 @@ html,body,#root{height:100%;overflow:hidden;background:var(--bg)}
 .mlb{padding:5px 12px;border-radius:8px;border:1.5px solid var(--pu);background:transparent;color:var(--pu);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fn);transition:all .14s}
 .mlb:hover{background:var(--pdim)}.mlb:disabled{border-color:var(--bdr);color:var(--t3);cursor:default}
 .mctx{font-size:11px;color:var(--t3);background:var(--s2);padding:2px 7px;border-radius:6px;font-weight:500}
-/* plans view */
+/* model card v2 — fixed grid, no icons/emojis */
+.mc2-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+.mc2{background:var(--sur);border:1.5px solid var(--bdr);border-radius:14px;padding:14px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:8px}
+.mc2:hover:not(.locked){border-color:var(--pl);transform:translateY(-1px);box-shadow:0 4px 18px rgba(0,0,0,.1)}
+.mc2.sel{border-color:var(--pu);box-shadow:0 0 0 3px var(--pglow)}
+.mc2.locked{opacity:.6;cursor:default}
+.mc2.ldg{border-color:var(--pu)}
+.mc2-head{display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+.mc2-name{font-size:15px;font-weight:700;color:var(--tx);letter-spacing:-.2px;line-height:1.2}
+.mc2-params{font-size:11px;font-weight:700;color:var(--pl);background:var(--pdim);padding:2px 7px;border-radius:6px;white-space:nowrap;flex-shrink:0}
+.mc2-maker{font-size:11px;color:var(--t3);font-weight:500}
+.mc2-desc{font-size:12px;color:var(--t2);line-height:1.45;flex:1}
+.mc2-stats{display:flex;flex-wrap:wrap;gap:4px}
+.mc2-stat{font-size:10px;font-weight:600;color:var(--t3);background:var(--s2);padding:2px 6px;border-radius:5px}
+.mc2-dl{color:var(--t2)}
+.mc2-tags{display:flex;flex-wrap:wrap;gap:4px}
+.mc2-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:6px}
+.mc2-action{margin-top:2px}
+.mc2-btn{display:inline-flex;align-items:center;justify-content:center;padding:6px 14px;border-radius:8px;background:var(--pu);color:#fff;font-size:12px;font-weight:600;font-family:var(--fn)}
+.mc2-loaded{display:inline-flex;align-items:center;justify-content:center;padding:6px 14px;border-radius:8px;background:rgba(34,197,94,.12);color:var(--gr);font-size:12px;font-weight:700;border:1px solid rgba(34,197,94,.25)}
+.mc2-loading{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--pl)}
+.mc2-spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--bdr);border-top-color:var(--pu);animation:spin .7s linear infinite}
+.mc2-lock{display:inline-flex;align-items:center;justify-content:center;padding:6px 14px;border-radius:8px;background:var(--pdim);color:var(--pl);font-size:12px;font-weight:700}
+@media(max-width:480px){.mc2-grid{grid-template-columns:1fr}}
+/* download view */
+.dlv{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.dlv-in{max-width:520px;margin:0 auto;padding:20px 20px 40px;width:100%;display:flex;flex-direction:column;gap:20px}
+.dlv-hdr{display:flex;align-items:center;justify-content:space-between}
+.dlv-back{display:flex;align-items:center;gap:4px;border:none;background:transparent;color:var(--t2);cursor:pointer;font-family:var(--fn);font-size:13px;padding:6px 0}
+.dlv-back:hover{color:var(--tx)}
+.dlv-chat-btn{display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:10px;border:none;background:var(--pu);color:#fff;font-family:var(--fn);font-size:13px;font-weight:600;cursor:pointer;animation:up .3s ease}
+.dlv-chat-btn:hover{background:var(--ph)}
+.dlv-model{text-align:center}
+.dlv-model-name{font-family:var(--sf);font-style:italic;font-size:24px;color:var(--tx);letter-spacing:-.4px}
+.dlv-model-meta{font-size:13px;color:var(--t3);margin-top:3px}
+.dlv-ring-wrap{display:flex;justify-content:center;padding:10px 0}
+.dlv-ring{position:relative;width:140px;height:140px}
+.dlv-svg{width:100%;height:100%}
+.dlv-pct{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:var(--tx);letter-spacing:-1px}
+.dlv-phase{font-size:10px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-top:1px}
+.dlv-status{text-align:center;font-size:13px;color:var(--t2);min-height:20px}
+.dlv-stats{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;background:var(--sur);border:1px solid var(--bdr);border-radius:14px;padding:16px}
+.dlv-stat{text-align:center}
+.dlv-stat-val{font-size:15px;font-weight:700;color:var(--tx);letter-spacing:-.3px;word-break:break-all}
+.dlv-stat-lbl{font-size:10px;color:var(--t3);margin-top:2px;font-weight:500}
+.dlv-bar-wrap{padding:0 4px}
+.dlv-bar{height:5px;background:var(--s3);border-radius:3px;overflow:hidden}
+.dlv-bar-fill{height:100%;border-radius:3px;transition:width .4s ease}
+.dlv-hint{text-align:center;font-size:12.5px;color:var(--t3);line-height:1.6;padding:4px 8px;background:var(--s2);border-radius:10px}
+.dlv-hint strong{color:var(--t2)}
+.dlv-done-msg{text-align:center;font-size:14px;color:var(--gr);font-weight:600;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:12px 16px}
+@media(max-width:480px){.dlv-stats{grid-template-columns:1fr 1fr;gap:8px}.dlv-stat-val{font-size:13px}}
+
 .plv{flex:1;overflow-y:auto;padding:20px 16px 40px}.plvi{max-width:700px;margin:0 auto}
 .plh{text-align:center;margin-bottom:26px}.plh h1{font-family:var(--sf);font-style:italic;font-size:30px;letter-spacing:-.5px;color:var(--tx);margin-bottom:6px}.plh p{font-size:14px;color:var(--t3)}
 .pl-disclaimer{padding:12px 16px;border-radius:var(--rsm);background:var(--s2);border:1px solid var(--bdr);font-size:12.5px;color:var(--t2);line-height:1.6;margin-bottom:20px}
@@ -734,12 +875,20 @@ function md(text, streaming = false) {
   if (!text) return '';
   let t = text
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/```([\w]*)[\r\n]?([\s\S]*?)```/g, (_, l, c) => `<pre class="cb"><span class="cl">${l||'code'}</span><code>${c.trim()}</code></pre>`)
+    // Custom *["..."]* code block syntax → special data-cb block
+    .replace(/\*\["([\s\S]*?)"\]\*/g, (_, code) => {
+      const escaped = code.replace(/`/g,'&#96;');
+      return `<pre class="cb cb-dl" data-code="${encodeURIComponent(code)}"><span class="cl">code</span><code>${escaped}</code><div class="cb-actions"><button class="cb-btn" onclick="(function(el){navigator.clipboard.writeText(decodeURIComponent(el.closest('.cb-dl').dataset.code));el.textContent='Copied!';setTimeout(()=>el.textContent='Copy',1500)})(this)">Copy</button><button class="cb-btn" onclick="(function(el){var c=decodeURIComponent(el.closest('.cb-dl').dataset.code);var b=new Blob([c],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='code.txt';a.click()})(this)">Download</button></div></pre>`;
+    })
+    // Standard fenced code blocks
+    .replace(/```([\w]*)[\r\n]?([\s\S]*?)```/g, (_, l, c) => {
+      const lang = l || 'code';
+      const code = c.trim();
+      return `<pre class="cb cb-dl" data-code="${encodeURIComponent(code)}"><span class="cl">${lang}</span><code>${code}</code><div class="cb-actions"><button class="cb-btn" onclick="(function(el){navigator.clipboard.writeText(decodeURIComponent(el.closest('.cb-dl').dataset.code));el.textContent='Copied!';setTimeout(()=>el.textContent='Copy',1500)})(this)">Copy</button><button class="cb-btn" onclick="(function(el){var c=decodeURIComponent(el.closest('.cb-dl').dataset.code);var b=new Blob([c],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='code.${lang==='code'?'txt':lang}';a.click()})(this)">Download</button></div></pre>`;
+    })
     .replace(/`([^`]+)`/g, '<code class="ic">$1</code>')
-    // Bold: **text** — apply even mid-stream when closing ** present
     .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
-    // Italic: *text* — only when closing * is present (safe mid-stream)
-    .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+    .replace(/\*([^*[\n]+)\*/g, '<em>$1</em>')
     .replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>')
     .replace(/^[-*] (.+)$/gm,'<li>$1</li>').replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
     .replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br/>')
@@ -757,11 +906,23 @@ function StreamingMd({ content }) {
 }
 
 // ─── UI helpers ───────────────────────────────────────────────────────────────
+function stripMd(text) {
+  return text
+    .replace(/```[\w]*\n?([\s\S]*?)```/g, '$1')  // code blocks
+    .replace(/`([^`]+)`/g, '$1')                  // inline code
+    .replace(/\*\*([^*\n]+)\*\*/g, '$1')          // bold
+    .replace(/\*([^*\n]+)\*/g, '$1')              // italic
+    .replace(/^#{1,3} /gm, '')                    // headings
+    .replace(/^[-*] /gm, '• ')                    // bullets
+    .replace(/\n{3,}/g, '\n\n')                   // excess newlines
+    .trim();
+}
+
 function CopyBtn({ text }) {
   const [ok, setOk] = useState(false);
   return React.createElement('button', {
     className: 'mbtn', title: 'Copy',
-    onClick: () => { navigator.clipboard?.writeText(text); setOk(true); setTimeout(() => setOk(false), 1500); }
+    onClick: () => { navigator.clipboard?.writeText(stripMd(text)); setOk(true); setTimeout(() => setOk(false), 1500); }
   }, React.createElement('span', { className: 'i f s14' }, ok ? 'check' : 'content_copy'));
 }
 
@@ -808,89 +969,71 @@ function Typing() {
   );
 }
 
-// ─── Model Card Icon ──────────────────────────────────────────────────────────
-function ModelIcon({ family, theme }) {
-  // Material Symbols icons per family
-  const matIcons = { qwen:'water', llama:'pets', phi:'bolt', mistral:'air' };
-  const clsMap      = { qwen:'fq',       llama:'fl',       phi:'fp',       mistral:'fm'       };
-  const lightClsMap = { qwen:'fq-light', llama:'fl-light', phi:'fp-light', mistral:'fm-light' };
-  const cls = theme === 'light' ? (lightClsMap[family] || 'fq-light') : (clsMap[family] || 'fq');
-  const icon = matIcons[family] || 'smart_toy';
-  return React.createElement('div', { className: `mcd-ico ${cls}` },
-    React.createElement('span', { className:'i f', style:{fontSize:20} }, icon)
-  );
-}
 
-// ─── Models View (reworked) ───────────────────────────────────────────────────
-function ModelsView({ caps, curMod, loadedModel, engState, loadProg, onLoad, theme }) {
-  const creatorMap  = { qwen:'Alibaba · Qwen', llama:'Meta · Llama', phi:'Microsoft · Phi', mistral:'Mistral AI' };
-  const creatorIcon = { qwen:'water', llama:'pets', phi:'bolt', mistral:'air' };
+// ─── Models View — clean grid, no emojis, no icons ───────────────────────────
+function ModelsView({ caps, curMod, loadedModel, engState, loadProg, onLoad, theme, onStartDownload }) {
 
-  // Estimate download time based on model size (GB) and typical connection speeds
-  function dlEst(ramGB) {
-    // Approximate model file size ≈ ramGB * 1.05 (INT4 ONNX)
+  function dlEstDetails(ramGB) {
     const sizeMB = Math.round(ramGB * 1024 * 1.05);
-    const mb10  = Math.round(sizeMB / 10 / 60); // minutes on 10 Mbps
-    const mb100 = Math.round(sizeMB / 100 / 6); // seconds on 100 Mbps
-    const mb10s  = Math.round(sizeMB / 10 * 0.8);
-    return `~${sizeMB} MB · ${mb10 >= 1 ? mb10 + ' min' : mb10s + 's'} @ 10 Mbps · ${mb100 < 60 ? mb100 + 's' : Math.round(mb100/60) + ' min'} @ 100 Mbps`;
+    const slow = Math.round(sizeMB / 10 / 60);
+    const fast = Math.round(sizeMB / 100 / 6);
+    return { sizeMB, slow, fast };
   }
 
-  function Card({ m }) {
+  const familyLabel = { qwen:'Alibaba Qwen', llama:'Meta Llama', phi:'Microsoft Phi', mistral:'Mistral AI' };
+
+  function ModelCard({ m }) {
     const loaded  = loadedModel === m.id;
     const loading = engState === 'loading' && curMod?.id === m.id;
     const locked  = !m.free;
-    const tagColors = {
-      fast:        { background:'rgba(34,197,94,.12)',  color:'var(--gr)'  },
-      recommended: { background:'var(--pdim)',          color:'var(--pl)'  },
-      balanced:    { background:'var(--s2)',            color:'var(--t2)'  },
-      smart:       { background:'rgba(245,158,11,.12)', color:'var(--am)'  },
-      powerful:    { background:'rgba(239,68,68,.12)',  color:'var(--rd)'  },
-      mobile:      { background:'var(--s2)',            color:'var(--t3)'  },
-      desktop:     { background:'var(--s2)',            color:'var(--t3)'  },
-    };
+    const { sizeMB, slow, fast } = dlEstDetails(m.ramGB);
+
+    const tierColor = {
+      nano:   { bg:'rgba(34,197,94,.1)',   border:'rgba(34,197,94,.3)',   text:'#16a34a'   },
+      small:  { bg:'var(--pdim)',          border:'rgba(139,92,246,.25)', text:'var(--pl)' },
+      medium: { bg:'rgba(245,158,11,.1)',  border:'rgba(245,158,11,.3)', text:'#d97706'   },
+      large:  { bg:'rgba(239,68,68,.1)',   border:'rgba(239,68,68,.3)',  text:'#dc2626'   },
+    }[m.tier] || { bg:'var(--s2)', border:'var(--bdr)', text:'var(--t3)' };
 
     return React.createElement('div', {
-      className: `mcd${loaded?' sel':''}${loading?' ldg':''}${locked?' locked':''}`,
-      onClick: () => { if (!loading && !locked) onLoad(m); }
+      className: `mc2${loaded?' sel':''}${loading?' ldg':''}${locked?' locked':''}`,
+      onClick: () => { if (!loading && !locked) onStartDownload(m); }
     },
-      React.createElement('div', { className: 'mcd-top' },
-        React.createElement(ModelIcon, { family: m.family, theme }),
-        React.createElement('div', { className: 'mcd-info' },
-          React.createElement('div', { style:{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'} },
-            React.createElement('div', { className: 'mcd-name' }, m.label),
-            React.createElement('span', { style:{fontSize:11,color:'var(--t3)',fontWeight:500,background:'var(--s2)',padding:'1px 7px',borderRadius:6} }, m.sublabel)
-          ),
-          React.createElement('div', { style:{display:'flex',alignItems:'center',gap:4,fontSize:11,color:'var(--t3)',marginTop:2,fontWeight:500} },
-            React.createElement('span', { className:'i s13' }, creatorIcon[m.family] || 'smart_toy'),
-            creatorMap[m.family] || m.family
-          ),
-          React.createElement('div', { className: 'mcd-desc' }, m.description),
-          React.createElement('div', { style:{fontSize:11,color:'var(--t3)',marginTop:4,display:'flex',alignItems:'center',gap:4} },
-            React.createElement('span', { className:'i s13' }, 'download'),
-            dlEst(m.ramGB)
-          )
-        ),
-        React.createElement('div', { className: 'mcd-right' },
-          React.createElement('span', { className: 'mram' }, m.ramGB, ' GB'),
-          locked
-            ? React.createElement('div', { className: 'lock-badge' },
-                React.createElement('span', { className: 'i f s13' }, 'lock'), 'Pro'
-              )
-            : loaded
-              ? React.createElement('span', { className: 'i f mchk' }, 'check_circle')
-              : loading
-                ? React.createElement('div', { style:{width:16,height:16,borderRadius:'50%',border:'2px solid var(--bdr)',borderTopColor:'var(--pu)',animation:'spin .7s linear infinite'} })
-                : React.createElement('button', { className: 'mlb', disabled: engState==='loading' }, 'Load')
-        )
+      // Top: name + param badge
+      React.createElement('div', { className:'mc2-head' },
+        React.createElement('div', { className:'mc2-name' }, m.label),
+        React.createElement('span', { className:'mc2-params' }, m.params)
       ),
-      React.createElement('div', { className: 'mcd-tags' },
-        React.createElement('span', { className: 'mctx' }, m.context),
-        m.tags.map(t => React.createElement('span', {
-          key: t, className: 'mt', style: tagColors[t] || { background:'var(--s2)', color:'var(--t3)' }
-        }, t)),
-        React.createElement('span', { className: 'mt', style:{background:'var(--s2)',color:'var(--t3)'} }, m.quantization),
-        locked && React.createElement('span', { className: 'mt', style:{background:'var(--pdim)',color:'var(--pl)'} }, 'Pro only')
+      // Maker line
+      React.createElement('div', { className:'mc2-maker' }, familyLabel[m.family] || m.family),
+      // Description
+      React.createElement('div', { className:'mc2-desc' }, m.description),
+      // Stats row
+      React.createElement('div', { className:'mc2-stats' },
+        React.createElement('span', { className:'mc2-stat' }, m.context),
+        React.createElement('span', { className:'mc2-stat' }, m.quantization),
+        React.createElement('span', { className:'mc2-stat' }, m.ramGB + ' GB RAM'),
+        React.createElement('span', { className:'mc2-stat mc2-dl' }, sizeMB + ' MB')
+      ),
+      // Tags
+      React.createElement('div', { className:'mc2-tags' },
+        m.tags.filter(t => t !== 'mobile' && t !== 'desktop').map(t =>
+          React.createElement('span', { key:t, className:'mc2-tag', style:{background:tierColor.bg,border:`1px solid ${tierColor.border}`,color:tierColor.text} }, t)
+        ),
+        locked && React.createElement('span', { className:'mc2-tag', style:{background:'var(--pdim)',border:'1px solid rgba(139,92,246,.3)',color:'var(--pl)'} }, 'Pro')
+      ),
+      // Action
+      React.createElement('div', { className:'mc2-action' },
+        loaded
+          ? React.createElement('div', { className:'mc2-loaded' }, 'Active')
+          : loading
+            ? React.createElement('div', { className:'mc2-loading' },
+                React.createElement('div', { className:'mc2-spin' }),
+                React.createElement('span', null, loadProg.percent + '%')
+              )
+            : locked
+              ? React.createElement('div', { className:'mc2-lock' }, 'Pro')
+              : React.createElement('div', { className:'mc2-btn' }, 'Download')
       )
     );
   }
@@ -899,34 +1042,153 @@ function ModelsView({ caps, curMod, loadedModel, engState, loadProg, onLoad, the
     React.createElement('div', { className: 'tvi' },
       React.createElement('div', { className: 'models-header' },
         React.createElement('div', { className: 'models-h1' }, 'AI Models'),
-        React.createElement('div', { className: 'models-sub' }, 'All models run entirely on your device via WebGPU. No cloud, no tracking, no data ever leaves your browser.')
+        React.createElement('div', { className: 'models-sub' }, 'All models run on your device via WebGPU — no cloud, no tracking.')
       ),
       caps && React.createElement('div', { className: 'hwb' },
-        React.createElement('span', { className: 'i f' }, 'memory'),
         React.createElement('div', null,
           React.createElement('strong', null, caps.hasWebGPU ? (caps.gpuInfo || 'WebGPU Active') : 'No WebGPU — use Chrome 113+'),
           ' · ', caps.ram, ' GB RAM · ', caps.isMobile ? 'Mobile' : 'Desktop'
         )
       ),
       React.createElement('div', { className: 'hf-note' },
-        React.createElement('span', { className:'i f s14', style:{verticalAlign:'middle',marginRight:5,color:'var(--pl)'} }, 'package_2'),
-        React.createElement('strong', null, 'Source: '),
-        'Models are downloaded directly from ',
-        React.createElement('strong', null, 'huggingface.co'),
-        ' when you press Load. Wayle does not host, proxy, or pre-download any model weights. Models are cached in your browser after first download. ',
-        React.createElement('strong', null, 'Pro plans unlock larger models'),
-        ' — you pay for access to our engine & CDN, not the model weights, which are open-source.'
-      ),
-      engState === 'loading' && React.createElement('div', { className: 'lp' },
-        React.createElement('div', { className: 'lpt' }, loadProg.text),
-        React.createElement('div', { className: 'lpb' },
-          React.createElement('div', { className: 'lpf', style:{width:`${loadProg.percent}%`} })
-        )
+        React.createElement('strong', null, 'From Hugging Face · '),
+        'Models download directly from huggingface.co. Cached locally after first download. No proxy, no servers.'
       ),
       React.createElement('div', { className: 'stl' }, 'Free — 3 Models'),
-      MODELS.filter(m => m.free).map(m => React.createElement(Card, { key: m.id, m })),
+      React.createElement('div', { className: 'mc2-grid' },
+        MODELS.filter(m => m.free).map(m => React.createElement(ModelCard, { key: m.id, m }))
+      ),
       React.createElement('div', { className: 'stl' }, 'Pro Models'),
-      MODELS.filter(m => !m.free).map(m => React.createElement(Card, { key: m.id, m }))
+      React.createElement('div', { className: 'mc2-grid' },
+        MODELS.filter(m => !m.free).map(m => React.createElement(ModelCard, { key: m.id, m }))
+      )
+    )
+  );
+}
+
+// ─── Download Page — live progress overlay ────────────────────────────────────
+function DownloadView({ model, engState, loadProg, onCancel, onContinueChat, caps }) {
+  const [elapsed,   setElapsed]   = React.useState(0);
+  const [eta,       setEta]       = React.useState(null); // seconds remaining
+  const startRef   = React.useRef(Date.now());
+  const firstPctRef= React.useRef(null); // { pct, ts } — first non-zero snapshot for slope
+
+  // Tick every second
+  React.useEffect(() => {
+    const t = setInterval(() => setElapsed(Math.floor((Date.now() - startRef.current) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // ETA: as soon as percent > 2% record the first snapshot, then extrapolate linearly
+  React.useEffect(() => {
+    const pct = loadProg.percent;
+    if (pct <= 2 || pct >= 100) { if (pct >= 100) setEta(0); return; }
+    if (!firstPctRef.current) firstPctRef.current = { pct, ts: Date.now() };
+    const { pct: p0, ts: t0 } = firstPctRef.current;
+    const deltaPct = pct - p0;
+    if (deltaPct < 1) return; // need at least 1% delta to get a reliable slope
+    const elapsed_ms = Date.now() - t0;
+    const msPerPct = elapsed_ms / deltaPct;
+    const remaining = Math.round(((100 - pct) * msPerPct) / 1000);
+    setEta(remaining > 0 ? remaining : 0);
+  }, [loadProg.percent]);
+
+  const sizeMB = model ? Math.round(model.ramGB * 1024 * 1.05) : 0;
+  const downloadedMB = model ? Math.round(sizeMB * Math.min(loadProg.percent / 72, 1)) : 0; // download is ~0-72% of progress
+  const isDownloading = loadProg.percent > 0 && loadProg.percent < 72;
+  const isCompiling = loadProg.percent >= 72 && loadProg.percent < 100;
+  const isDone = engState === 'ready' || loadProg.percent >= 100;
+
+  function fmtSecs(s) {
+    if (!s || s <= 0) return '—';
+    if (s < 60) return s + 's';
+    return Math.floor(s/60) + 'm ' + (s%60) + 's';
+  }
+  function fmtElapsed(s) {
+    if (s < 60) return s + 's';
+    return Math.floor(s/60) + 'm ' + (s%60) + 's';
+  }
+
+  const phase = isDone ? 'done' : isCompiling ? 'compiling' : isDownloading ? 'downloading' : 'starting';
+  const phaseLabel = { done:'Ready', compiling:'Compiling shaders', downloading:'Downloading', starting:'Initializing' }[phase];
+
+  return React.createElement('div', { className:'dlv' },
+    React.createElement('div', { className:'dlv-in' },
+
+      // Header
+      React.createElement('div', { className:'dlv-hdr' },
+        React.createElement('button', { className:'dlv-back', onClick: onCancel },
+          React.createElement('span', { className:'i s18' }, 'arrow_back'), 'Models'
+        ),
+        isDone && React.createElement('button', { className:'dlv-chat-btn', onClick: onContinueChat },
+          'Start chatting', React.createElement('span', { className:'i s18' }, 'arrow_forward')
+        )
+      ),
+
+      // Model info
+      model && React.createElement('div', { className:'dlv-model' },
+        React.createElement('div', { className:'dlv-model-name' }, model.label),
+        React.createElement('div', { className:'dlv-model-meta' }, model.params, ' · ', model.quantization, ' · ', sizeMB, ' MB')
+      ),
+
+      // Big progress ring area
+      React.createElement('div', { className:'dlv-ring-wrap' },
+        React.createElement('div', { className:'dlv-ring' },
+          React.createElement('svg', { viewBox:'0 0 120 120', className:'dlv-svg' },
+            React.createElement('circle', { cx:60, cy:60, r:52, fill:'none', stroke:'var(--s3)', strokeWidth:7 }),
+            React.createElement('circle', { cx:60, cy:60, r:52, fill:'none', stroke: isDone ? 'var(--gr)' : 'var(--pu)', strokeWidth:7,
+              strokeDasharray: `${2*Math.PI*52}`,
+              strokeDashoffset: `${2*Math.PI*52*(1 - loadProg.percent/100)}`,
+              strokeLinecap:'round',
+              style:{ transition:'stroke-dashoffset .4s ease, stroke .3s', transform:'rotate(-90deg)', transformOrigin:'center' }
+            })
+          ),
+          React.createElement('div', { className:'dlv-pct' }, isDone ? '✓' : loadProg.percent + '%'),
+          React.createElement('div', { className:'dlv-phase' }, phaseLabel)
+        )
+      ),
+
+      // Status text
+      React.createElement('div', { className:'dlv-status' }, loadProg.text || 'Preparing…'),
+
+      // Live stats grid
+      React.createElement('div', { className:'dlv-stats' },
+        React.createElement('div', { className:'dlv-stat' },
+          React.createElement('div', { className:'dlv-stat-val' }, fmtElapsed(elapsed)),
+          React.createElement('div', { className:'dlv-stat-lbl' }, 'Elapsed')
+        ),
+        React.createElement('div', { className:'dlv-stat' },
+          React.createElement('div', { className:'dlv-stat-val' },
+            isDone ? '✓' : eta === null ? '…' : eta === 0 ? '<1s' : fmtSecs(eta)
+          ),
+          React.createElement('div', { className:'dlv-stat-lbl' }, 'Est. remaining')
+        ),
+        React.createElement('div', { className:'dlv-stat' },
+          React.createElement('div', { className:'dlv-stat-val' }, isDownloading ? downloadedMB + ' MB' : isDone ? sizeMB + ' MB' : '—'),
+          React.createElement('div', { className:'dlv-stat-lbl' }, 'Downloaded')
+        ),
+        React.createElement('div', { className:'dlv-stat' },
+          React.createElement('div', { className:'dlv-stat-val' }, caps?.gpuInfo || (caps?.hasWebGPU ? 'GPU' : 'CPU')),
+          React.createElement('div', { className:'dlv-stat-lbl' }, 'Device')
+        )
+      ),
+
+      // Progress bar
+      React.createElement('div', { className:'dlv-bar-wrap' },
+        React.createElement('div', { className:'dlv-bar' },
+          React.createElement('div', { className:'dlv-bar-fill', style:{width:`${loadProg.percent}%`, background: isDone ? 'var(--gr)' : 'var(--pu)'} })
+        )
+      ),
+
+      // Done message / hint
+      isDone
+        ? React.createElement('div', { className:'dlv-done-msg' },
+            React.createElement('span', { style:{fontSize:18} }, '🎉'),
+            ' ', model?.label, ' is ready! Tap "Start chatting" above.'
+          )
+        : React.createElement('div', { className:'dlv-hint' },
+            'You can ', React.createElement('strong', null, 'browse other screens'), ' while the model downloads in the background.'
+          )
     )
   );
 }
@@ -1207,6 +1469,22 @@ function PrivacyView({ logo }) {
 
 // ─── Settings Modal ───────────────────────────────────────────────────────────
 function SettingsModal({ theme, onTheme, onCacheReset, onFullReset, onClose }) {
+  const [updateInfo, setUpdateInfo] = useState(null); // { version, url, changelog }
+  const [checking, setChecking]     = useState(false);
+  const [checked,  setChecked]      = useState(false);
+
+  const checkUpdate = async () => {
+    setChecking(true);
+    const info = await checkForUpdate();
+    setChecking(false);
+    setChecked(true);
+    if (info && info.version && info.version !== APP_VERSION) {
+      setUpdateInfo(info);
+    } else {
+      setUpdateInfo(null);
+    }
+  };
+
   return React.createElement('div', { className: 'modal-overlay', onClick: e => e.target === e.currentTarget && onClose() },
     React.createElement('div', { className: 'modal' },
       React.createElement('div', { className: 'modal-head' },
@@ -1216,6 +1494,8 @@ function SettingsModal({ theme, onTheme, onCacheReset, onFullReset, onClose }) {
         )
       ),
       React.createElement('div', { className: 'modal-body' },
+
+        // Theme
         React.createElement('div', { className: 'modal-section' },
           React.createElement('div', { className: 'modal-label' }, 'Theme'),
           React.createElement('div', { className: 'theme-btns' },
@@ -1230,6 +1510,36 @@ function SettingsModal({ theme, onTheme, onCacheReset, onFullReset, onClose }) {
           )
         ),
         React.createElement('div', { className: 'modal-sep' }),
+
+        // Version + update
+        React.createElement('div', { className: 'modal-section' },
+          React.createElement('div', { className: 'modal-label' }, 'Version'),
+          React.createElement('div', { style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 0'} },
+            React.createElement('span', { style:{fontSize:13,color:'var(--t2)',fontWeight:500} },
+              'Wayle ', React.createElement('span', { style:{color:'var(--pl)',fontWeight:700} }, 'v' + APP_VERSION)
+            ),
+            updateInfo
+              ? React.createElement('a', {
+                  href: updateInfo.url || '#', target:'_blank',
+                  style:{fontSize:12,fontWeight:700,color:'#fff',background:'var(--pu)',padding:'4px 10px',borderRadius:8,textDecoration:'none',display:'flex',alignItems:'center',gap:4}
+                }, React.createElement('span', { className:'i f s13' }, 'system_update'), 'v' + updateInfo.version + ' available')
+              : React.createElement('button', {
+                  onClick: checkUpdate,
+                  style:{fontSize:12,fontWeight:600,color:'var(--pl)',background:'var(--pdim)',border:'1px solid rgba(139,92,246,.25)',padding:'4px 10px',borderRadius:8,cursor:'pointer',fontFamily:'var(--fn)',display:'flex',alignItems:'center',gap:4}
+                },
+                checking
+                  ? React.createElement('div', { style:{width:10,height:10,borderRadius:'50%',border:'2px solid var(--bdr)',borderTopColor:'var(--pu)',animation:'spin .7s linear infinite'} })
+                  : React.createElement('span', { className:'i f s13' }, 'refresh'),
+                checking ? 'Checking…' : checked ? 'Up to date ✓' : 'Check for update'
+              )
+          ),
+          updateInfo?.changelog && React.createElement('div', { style:{fontSize:11,color:'var(--t2)',background:'var(--s2)',padding:'8px 10px',borderRadius:8,lineHeight:1.55,marginTop:4} },
+            updateInfo.changelog
+          )
+        ),
+        React.createElement('div', { className: 'modal-sep' }),
+
+        // Memory
         React.createElement('div', { className: 'modal-section' },
           React.createElement('div', { className: 'modal-label' }, 'Memory'),
           React.createElement('button', { className: 'danger-btn', onClick: () => { onCacheReset(); onClose(); } },
@@ -1257,13 +1567,14 @@ function App() {
   const [loadProg,    setLoadProg]    = useState({ text:'', percent:0 });
   const [streaming,   setStreaming]   = useState(false);
   const [streamStats, setStreamStats] = useState(null);
-  const [logo,        setLogo]        = useState(LOGO_DARK);
+  const [logo,        setLogo]        = useState('');
   const [toast,       setToast]       = useState(null);
   const [caps,        setCaps]        = useState(null);
   const [attachedImg, setAttachedImg] = useState(null);
   const [theme,       setTheme]       = useState(getStoredTheme);
   const [showSettings,setShowSettings]= useState(false);
-  const [ocrState,    setOcrState]    = useState(null); // null | 'running' | number(%)
+  const [ocrState,    setOcrState]    = useState(null);
+  const [dlModel,     setDlModel]     = useState(null); // model currently being downloaded / shown
 
   const wRef     = useRef(null);
   const genIdRef = useRef(null);
@@ -1311,8 +1622,10 @@ function App() {
     if (!wRef.current) { toast$('Worker not ready'); return; }
     if (!m.free) { toast$('Pro model — coming soon'); return; }
     setCurMod(m);
+    setDlModel(m);
     setEngState('loading');
     setLoadProg({ text:'Initializing…', percent:0 });
+    setView('download');
     try {
       await wRef.current.loadModel(m.id, p => setLoadProg({ text:p.text, percent:p.percent }));
       setLoadedModel(m.id);
@@ -1320,6 +1633,7 @@ function App() {
       toast$(`${m.label} loaded`);
     } catch(e) {
       setEngState('idle');
+      setView('models');
       if (e.message === 'NO_WEBGPU' || e.message === 'NO_WEBGPU_ADAPTER') {
         toast$('WebGPU not available — use Chrome 113+ on desktop', 4000);
       } else {
@@ -1365,11 +1679,15 @@ function App() {
     let displayContent = text;
 
     if (attachedImg) {
-      const ocrNote = attachedImg.ocrText
-        ? `\n\n[Image attached. OCR text extracted from image:\n${attachedImg.ocrText}]`
-        : '\n\n[Image attached. This model can only read text from images via OCR. No visual content was extracted.]';
-      prompt = (text || 'Describe or analyze the attached content.') + ocrNote;
-      displayContent = text || 'Image';
+      if (attachedImg.ocrText) {
+        // Hidden template prompt — user only sees their own text
+        const userText = text || 'Please analyze the content of this image.';
+        prompt = `${userText}\n\n<image_content>\n${attachedImg.ocrText}\n</image_content>`;
+        displayContent = text || 'Analyze image';
+      } else {
+        prompt = (text || 'Describe or analyze the attached content.') + '\n\n[Image attached — no text could be extracted via OCR.]';
+        displayContent = text || 'Analyze image';
+      }
     }
 
     const uMsg = { role:'user', content: displayContent, image: attachedImg?.dataUrl, ts:Date.now(), id:uid() };
@@ -1442,8 +1760,9 @@ function App() {
     setTimeout(() => location.reload(), 2500);
   };
 
-  const SUGG = ['Explain transformers simply', 'Write a haiku about privacy', "What's 17 x 23?", 'Debug this: console.log(1 + "1")'];
+  const SUGG = ['Explain something to me', 'Help me write something', 'Review or fix my code'];
   const TABS = [['chat','chat_bubble','Chat'],['models','memory','Models'],['plans','diamond','Plans']];
+  const activeTab = view === 'download' ? 'models' : view;
   const curModData = MODELS.find(m => m.id === (loadedModel || curMod?.id)) || MODELS[1];
 
   const ChatView = React.createElement('div', { className: 'chat' },
@@ -1541,8 +1860,8 @@ function App() {
       ),
       React.createElement('nav', { className:'sb-nav' },
         TABS.map(([id,ic,lb]) => React.createElement('button', {
-          key:id, className:`stab${view===id?' on':''}`, onClick:()=>setView(id)
-        }, React.createElement('span', { className:`i${view===id?' f':''}` }, ic), lb))
+          key:id, className:`stab${activeTab===id?' on':''}`, onClick:()=>setView(id)
+        }, React.createElement('span', { className:`i${activeTab===id?' f':''}` }, ic), lb))
       ),
       React.createElement('div', { className:'sb-bot' },
         React.createElement('button', { className:'nc', onClick:onNewChat },
@@ -1574,8 +1893,16 @@ function App() {
         )
       ),
       React.createElement('div', { className:'cnt' },
-        view==='chat'    && ChatView,
-        view==='models'  && React.createElement(ModelsView, { caps, curMod, loadedModel, engState, loadProg, theme, onLoad: m => { loadModel(m); setView('chat'); } }),
+        view==='chat'     && ChatView,
+        view==='download' && React.createElement(DownloadView, {
+          model: dlModel, engState, loadProg, caps,
+          onCancel: () => setView('models'),
+          onContinueChat: () => { setView('chat'); }
+        }),
+        view==='models'  && React.createElement(ModelsView, { caps, curMod, loadedModel, engState, loadProg, theme,
+          onLoad: m => loadModel(m),
+          onStartDownload: m => loadModel(m)
+        }),
         view==='plans'   && React.createElement(PlansView, { onLearnMore: ()=>setView('privacy') }),
         (view==='about' || view==='privacy') && React.createElement('div', { style:{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'} },
           React.createElement('div', { style:{display:'flex',alignItems:'center',gap:8,padding:'10px 16px',borderBottom:'1px solid var(--bdr)',flexShrink:0,background:'var(--sbg)'} },
@@ -1591,8 +1918,8 @@ function App() {
       ),
       React.createElement('nav', { className:'mbn', style:{display:'flex'} },
         TABS.map(([id,ic,lb]) => React.createElement('button', {
-          key:id, className:`btab${view===id?' on':''}`, onClick:()=>setView(id)
-        }, React.createElement('span', { className:`i${view===id?' f':''} s22` }, ic), lb))
+          key:id, className:`btab${activeTab===id?' on':''}`, onClick:()=>setView(id)
+        }, React.createElement('span', { className:`i${activeTab===id?' f':''} s22` }, ic), lb))
       )
     ),
     toast && React.createElement('div', { className:'toast' }, toast),
@@ -1609,10 +1936,7 @@ function App() {
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
 </script>
 
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
-}
-</script>
+
+
 </body>
 </html>
