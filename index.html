@@ -456,9 +456,9 @@ const LOGO_DARK  = "./Logo-b.png"; // Logo-b = for dark bg
 const LOGO_LIGHT = "./Logo-w.png"; // Logo-w = for light bg
 
 const MODELS = [
-  { id:'qwen2.5-0.5b', label:'Qwen 2.5', sublabel:'0.5B · INT4', family:'qwen', params:'0.5B', quantization:'INT4', ramGB:0.4, tags:['fast','mobile'], description:'Ultra-fast, runs on any WebGPU device. Best for quick tasks.', context:'2K ctx', tier:'nano', free:true },
-  { id:'qwen2.5-1.5b', label:'Qwen 2.5', sublabel:'1.5B · INT4', family:'qwen', params:'1.5B', quantization:'INT4', ramGB:1.0, tags:['recommended','mobile'], description:'Best balance of speed and quality for mobile devices.', context:'4K ctx', tier:'small', free:true },
-  { id:'qwen2.5-3b', label:'Qwen 2.5', sublabel:'3B · INT4', family:'qwen', params:'3B', quantization:'INT4', ramGB:2.0, tags:['balanced'], description:'Smartest free model — still fast on modern devices.', context:'8K ctx', tier:'medium', free:true },
+  { id:'qwen2.5-0.5b', label:'Qwen 2.5', sublabel:'0.5B · INT4', family:'qwen', params:'0.5B', quantization:'INT4', ramGB:0.4, tags:['fast','mobile'], description:'Ultra-fast, runs on any WebGPU device. Free for all users.', context:'2K ctx', tier:'nano', free:true },
+  { id:'qwen2.5-1.5b', label:'Qwen 2.5', sublabel:'1.5B · INT4', family:'qwen', params:'1.5B', quantization:'INT4', ramGB:1.0, tags:['recommended','mobile'], description:'Better quality — great for mobile devices. Free for all users.', context:'4K ctx', tier:'small', free:true },
+  { id:'qwen2.5-3b', label:'Qwen 2.5', sublabel:'3B · INT4', family:'qwen', params:'3B', quantization:'INT4', ramGB:2.0, tags:['balanced'], description:'Smart Qwen model — great for longer conversations. Free for all users.', context:'8K ctx', tier:'medium', free:true },
   { id:'phi3.5-mini', label:'Phi-3.5 Mini', sublabel:'3.8B · INT4', family:'phi', params:'3.8B', quantization:'INT4', ramGB:2.4, tags:['smart','desktop'], description:"Microsoft's best small model. Great reasoning capabilities.", context:'4K ctx', tier:'medium', free:false },
   { id:'llama3.2-3b', label:'Llama 3.2', sublabel:'3B · INT4', family:'llama', params:'3B', quantization:'INT4', ramGB:2.0, tags:['balanced'], description:"Meta recommended model for desktop Chrome users.", context:'8K ctx', tier:'medium', free:false },
   { id:'mistral-7b', label:'Mistral 7B', sublabel:'7B · INT4', family:'mistral', params:'7B', quantization:'INT4', ramGB:4.5, tags:['powerful','desktop'], description:'Powerful 7B model for Pro subscribers. Best quality.', context:'8K ctx', tier:'large', free:false },
@@ -466,26 +466,51 @@ const MODELS = [
 
 const PLANS = [
   { id:'free', name:'Free', price:'$0', period:'forever', badge:null, featured:false, ctaActive:true, cta:'Current Plan',
-    description:'Run models locally. Your hardware, your data.',
+    description:'Run small models locally. No account needed.',
     features:[
-      {t:'On-device inference (WebGPU)',y:true},{t:'3 free models: Qwen 2.5 (0.5B · 1.5B · 3B)',y:true},
-      {t:'Image OCR — extract text from images',y:true},{t:'100% private — no data ever leaves device',y:true},
-      {t:'Unlimited messages & conversations',y:true},{t:'Phi-3.5 Mini, Llama 3.2, Mistral 7B',y:false},{t:'Cloud fallback inference',y:false},
+      {t:'On-device inference (WebGPU)',y:true},{t:'3 free models: Qwen 2.5 · 0.5B, 1.5B & 3B',y:true},
+      {t:'Image OCR — extract text from images',y:true},{t:'100% private — no data leaves device',y:true},
+      {t:'Phi-3.5, Llama 3.2, Mistral 7B',y:false},{t:'Wayle API access',y:false},{t:'Elements widget embeds',y:false},
     ]},
   { id:'pro', name:'Pro', price:'$8', period:'per month', badge:'Most Popular', featured:true, ctaActive:false, cta:'Coming Soon',
-    description:'Bigger models, cloud fallback when your device struggles.',
+    description:'All models, unlimited Wayle API, and embeddable AI widgets.',
     features:[
-      {t:'Everything in Free',y:true},{t:'Phi-3.5 Mini, Llama 3.2, Mistral 7B',y:true},
-      {t:'Cloud fallback (when WebGPU unavailable)',y:true},{t:'Faster model downloads (CDN)',y:true},
-      {t:'API access (1K req/day)',y:true},{t:'GPT-4 class cloud models',y:false},{t:'Team sharing',y:false},
+      {t:'Everything in Free',y:true},{t:'Phi-3.5, Llama 3.2, Mistral 7B',y:true},
+      {t:'Wayle API — unlimited requests',y:true},{t:'Elements — embeddable AI widgets',y:true},
+      {t:'Faster model downloads (CDN priority)',y:true},
+      {t:'GPT-4 class cloud models',y:false},
     ]},
   { id:'team', name:'Team', price:'$24', period:'per seat / mo', badge:null, featured:false, ctaActive:false, cta:'Coming Soon',
-    description:'Deploy Wayle across your organization.',
+    description:'Deploy Wayle across your organization with admin controls.',
     features:[
-      {t:'Everything in Pro',y:true},{t:'GPT-4o & Claude Sonnet (cloud)',y:true},{t:'Team model sharing',y:true},
-      {t:'Admin dashboard',y:true},{t:'SSO / SAML',y:true},{t:'Custom fine-tuned models',y:false},
+      {t:'Everything in Pro',y:true},{t:'GPT-4o & Claude Sonnet (cloud)',y:true},{t:'Team model sharing & preloads',y:true},
+      {t:'Admin dashboard & usage analytics',y:true},{t:'SSO / SAML login',y:true},{t:'Custom fine-tuned models',y:true},
     ]},
 ];
+
+// ─── Pro key & URL API ────────────────────────────────────────────────────────
+const PRO_KEYS = ['wayle-pro-preview-2026', 'WAYLE_PRO_INTERNAL']; // internal use only
+function getProKey() { return localStorage.getItem('wayle-pro-key') || ''; }
+function isProUnlocked() { return PRO_KEYS.includes(getProKey()); }
+
+// URL API: ?T.load("qwen2.5-0.5b") or ?T.chat("qwen2.5-0.5b")-[prompt]
+function parseURLCommand() {
+  const raw = decodeURIComponent(location.search.replace(/^\?/,''));
+  if (!raw.startsWith('T.')) return null;
+  // T.load("model")
+  const loadM = raw.match(/^T\.load\("([^"]+)"\)/);
+  if (loadM) return { type:'load', model: loadM[1] };
+  // T.chat("model")-[prompt]  OR  T.chat-[prompt]
+  const chatM = raw.match(/^T\.chat\("([^"]+)"\)-\[(.+)\]$/s);
+  if (chatM) return { type:'chat', model: chatM[1], prompt: chatM[2] };
+  const chatSimple = raw.match(/^T\.chat-\[(.+)\]$/s);
+  if (chatSimple) return { type:'chat', model: null, prompt: chatSimple[1] };
+  return null;
+}
+
+// Model source setting: 'hf' (HuggingFace, default) or 'local' (user-provided path)
+function getModelSource() { return localStorage.getItem('wayle-model-source') || 'hf'; }
+function getLocalModelPath(modelId) { return localStorage.getItem('wayle-local-path-' + modelId) || ''; }
 
 // ─── CSS (injected) ────────────────────────────────────────────────────────────
 const CSS_DARK = `
@@ -697,8 +722,35 @@ html,body,#root{height:100%;overflow:hidden;background:var(--bg)}
 .mlb{padding:5px 12px;border-radius:8px;border:1.5px solid var(--pu);background:transparent;color:var(--pu);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fn);transition:all .14s}
 .mlb:hover{background:var(--pdim)}.mlb:disabled{border-color:var(--bdr);color:var(--t3);cursor:default}
 .mctx{font-size:11px;color:var(--t3);background:var(--s2);padding:2px 7px;border-radius:6px;font-weight:500}
-/* model card v2 — fixed grid, no icons/emojis */
-.mc2-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+/* model row — table-style list */
+.mrow-list{display:flex;flex-direction:column;gap:0;border:1.5px solid var(--bdr);border-radius:14px;overflow:hidden;margin-bottom:8px}
+.mrow{display:flex;align-items:center;gap:12px;padding:13px 16px;background:var(--sur);cursor:pointer;transition:background .13s;border-bottom:1px solid var(--bdr)}
+.mrow:last-child{border-bottom:none}
+.mrow:hover:not(.locked){background:var(--s2)}
+.mrow.sel{background:var(--pdim)}
+.mrow.locked{opacity:.6;cursor:default}
+.mrow-left{flex:1;min-width:0}
+.mrow-name{font-size:14px;font-weight:700;color:var(--tx);display:flex;align-items:center;gap:7px;letter-spacing:-.1px}
+.mrow-params{font-size:11px;font-weight:700;color:var(--pl);background:var(--pdim);padding:1px 6px;border-radius:5px}
+.mrow-maker{font-size:11px;color:var(--t3);margin-top:2px;font-weight:500}
+.mrow-stats{display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex-shrink:0}
+.mrow-chip{font-size:10px;font-weight:600;color:var(--t3);background:var(--s2);padding:2px 7px;border-radius:5px;white-space:nowrap}
+.mrow-chip-dl{color:var(--t2)}
+.mrow-chip-pro{color:var(--pl);background:var(--pdim)}
+.mrow-action{flex-shrink:0;margin-left:8px}
+.mrow-status{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:8px;white-space:nowrap}
+.mrow-status.on{background:rgba(34,197,94,.1);color:var(--gr);border:1px solid rgba(34,197,94,.25)}
+.mrow-status.dl{background:var(--pu);color:#fff}
+.mrow-status.loading{background:var(--pdim);color:var(--pl);gap:6px}
+.mrow-status.locked{background:var(--s2);color:var(--t3);border:1px solid var(--bdr)}
+@media(max-width:480px){.mrow-stats{display:none}.mrow{padding:11px 14px}}
+/* desktop beta warning */
+.desktop-beta{display:none;position:fixed;top:0;left:0;right:0;z-index:8000;background:#1a1014;border-bottom:1px solid rgba(239,68,68,.25);padding:9px 20px;align-items:center;gap:10px;font-size:12.5px;color:#f87171;font-family:var(--fn)}
+.desktop-beta strong{color:#fca5a5;font-weight:700}
+.desktop-beta-close{margin-left:auto;background:none;border:none;color:#f87171;cursor:pointer;font-size:16px;line-height:1;opacity:.6;padding:2px 6px}
+.desktop-beta-close:hover{opacity:1}
+@media(min-width:769px){.desktop-beta{display:flex!important}}
+@media(min-width:769px){.app:has(.desktop-beta){padding-top:42px}}
 .mc2{background:var(--sur);border:1.5px solid var(--bdr);border-radius:14px;padding:14px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:8px}
 .mc2:hover:not(.locked){border-color:var(--pl);transform:translateY(-1px);box-shadow:0 4px 18px rgba(0,0,0,.1)}
 .mc2.sel{border-color:var(--pu);box-shadow:0 0 0 3px var(--pglow)}
@@ -750,26 +802,34 @@ html,body,#root{height:100%;overflow:hidden;background:var(--bg)}
 .dlv-done-msg{text-align:center;font-size:14px;color:var(--gr);font-weight:600;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:12px 16px}
 @media(max-width:480px){.dlv-stats{grid-template-columns:1fr 1fr;gap:8px}.dlv-stat-val{font-size:13px}}
 
-.plv{flex:1;overflow-y:auto;padding:20px 16px 40px}.plvi{max-width:700px;margin:0 auto}
-.plh{text-align:center;margin-bottom:26px}.plh h1{font-family:var(--sf);font-style:italic;font-size:30px;letter-spacing:-.5px;color:var(--tx);margin-bottom:6px}.plh p{font-size:14px;color:var(--t3)}
-.pl-disclaimer{padding:12px 16px;border-radius:var(--rsm);background:var(--s2);border:1px solid var(--bdr);font-size:12.5px;color:var(--t2);line-height:1.6;margin-bottom:20px}
+.plv{flex:1;overflow-y:auto;padding:24px 20px 40px}.plvi{max-width:960px;margin:0 auto}
+.plh{text-align:center;margin-bottom:28px}.plh h1{font-family:var(--sf);font-style:italic;font-size:34px;letter-spacing:-.6px;color:var(--tx);margin-bottom:8px}.plh p{font-size:14px;color:var(--t3)}
+.pl-disclaimer{padding:12px 16px;border-radius:var(--rsm);background:var(--s2);border:1px solid var(--bdr);font-size:12.5px;color:var(--t2);line-height:1.6;margin-bottom:24px}
 .pl-disclaimer strong{color:var(--tx);font-weight:600}
-.plg{display:flex;flex-direction:column;gap:14px}
-.plc{background:var(--sur);border:1.5px solid var(--bdr);border-radius:18px;padding:22px;position:relative;animation:up .3s ease both;transition:transform .2s}
-.plc:hover{transform:translateY(-1px)}.plc.ft{border-color:var(--pu);box-shadow:0 4px 20px var(--pglow)}
+.plg{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start}
+.plc{background:var(--sur);border:1.5px solid var(--bdr);border-radius:18px;padding:24px;position:relative;animation:up .3s ease both;transition:transform .2s,box-shadow .2s;display:flex;flex-direction:column;min-height:420px}
+.plc:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,0,0,.1)}.plc.ft{border-color:var(--pu);box-shadow:0 4px 24px var(--pglow)}
 .plbg{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--pu);color:#fff;padding:3px 13px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.4px;white-space:nowrap}
-.plt{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
-.plnm{font-size:17px;font-weight:700;color:var(--tx);letter-spacing:-.3px}
-.plpr{font-size:28px;font-weight:800;color:var(--tx);letter-spacing:-1.5px;line-height:1;text-align:right}.plpe{font-size:12px;color:var(--t3);text-align:right;margin-top:2px}
-.plds{font-size:13px;color:var(--t3);margin-bottom:16px;line-height:1.55}
-.plfl{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:18px}
-.pff{display:flex;align-items:center;gap:9px;font-size:13.5px}.pff .i{font-size:16px;flex-shrink:0}
+.plt{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.plnm{font-family:var(--sf);font-style:italic;font-size:22px;font-weight:400;color:var(--tx);letter-spacing:-.3px}
+.plpr{font-family:var(--sf);font-style:italic;font-size:32px;font-weight:400;color:var(--tx);letter-spacing:-1.5px;line-height:1;text-align:right}.plpe{font-size:11px;color:var(--t3);text-align:right;margin-top:2px}
+.plds{font-size:13px;color:var(--t3);margin-bottom:14px;line-height:1.55}
+.plfl{list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:16px;flex:1}
+.pff{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;line-height:1.4}.pff .i{font-size:15px;flex-shrink:0;margin-top:1px}
 .pff.y{color:var(--t2)}.pff.y .i{color:var(--gr)}.pff.n{color:var(--t3)}.pff.n .i{color:var(--bdr2)}
-.plcta{width:100%;padding:11px;border-radius:10px;border:none;font-family:var(--fn);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s}
+.plcta{width:100%;padding:11px;border-radius:10px;border:none;font-family:var(--fn);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;margin-top:auto}
 .plcta.pri{background:var(--pu);color:#fff;box-shadow:0 3px 12px var(--pglow)}.plcta.pri:hover{background:var(--ph)}
 .plcta.out{background:transparent;border:1.5px solid var(--bdr);color:var(--t2)}.plcta.out:hover{background:var(--s2)}
 .plcta:disabled{opacity:.45;cursor:default}
 .plnt{text-align:center;font-size:12px;color:var(--t3);margin-top:20px;line-height:1.65}.plnt a{color:var(--pu);text-decoration:none;font-weight:500}
+.pro-active-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);border-radius:20px;font-size:11px;font-weight:700;color:var(--gr)}
+/* hidden pro key entry */
+.pro-key-area{margin-top:28px;text-align:center}
+.pro-key-trigger{background:none;border:none;cursor:pointer;font-family:var(--fn);font-size:11px;color:var(--t3);opacity:.35;padding:4px 8px;border-radius:6px;transition:opacity .2s}
+.pro-key-trigger:hover{opacity:.7}
+.pro-key-field{margin-top:8px;display:flex;align-items:center;gap:6px;justify-content:center;animation:up .18s ease}
+.pro-key-field input{background:var(--s2);border:1px solid var(--bdr);border-radius:8px;padding:5px 10px;font-family:var(--fn);font-size:12px;color:var(--tx);outline:none;width:200px;transition:border-color .15s}
+.pro-key-field input:focus{border-color:var(--pl)}
 /* PWA / about / privacy page */
 .info-view{flex:1;overflow-y:auto}
 .info-in{max-width:700px;margin:0 auto;padding:24px 20px 60px}
@@ -793,6 +853,42 @@ html,body,#root{height:100%;overflow:hidden;background:var(--bg)}
 .pwa-install{width:100%;padding:13px;border-radius:12px;border:none;background:var(--pu);color:#fff;font-family:var(--fn);font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 3px 14px var(--pglow);transition:all .16s;display:flex;align-items:center;justify-content:center;gap:8px}
 .pwa-install:hover{background:var(--ph);transform:translateY(-1px)}
 .pwa-install:active{transform:scale(.97)}
+/* ── elements view (desktop-only) ── */
+.elemv{flex:1;overflow-y:auto;padding:24px 20px 40px}
+.elemvi{max-width:900px;margin:0 auto}
+.elem-h1{font-family:var(--sf);font-style:italic;font-size:28px;color:var(--tx);letter-spacing:-.4px;margin-bottom:4px;display:flex;align-items:center;gap:10px}
+.elem-h1 .i{color:var(--pu);font-size:26px}
+.elem-sub{font-size:13px;color:var(--t3);line-height:1.55;margin-bottom:24px}
+.elem-locked{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 24px;background:var(--sur);border:1.5px dashed var(--bdr2);border-radius:18px;gap:12px}
+.elem-locked .i.big{font-size:40px;color:var(--t3)}
+.elem-locked h2{font-family:var(--sf);font-style:italic;font-size:22px;color:var(--tx)}
+.elem-locked p{font-size:13px;color:var(--t3);max-width:380px;line-height:1.6}
+.elem-locked .code-eg{background:var(--s2);padding:10px 14px;border-radius:10px;font-family:'SF Mono','Fira Code',monospace;font-size:11.5px;color:var(--pl);text-align:left;width:100%;max-width:440px;border:1px solid var(--bdr);white-space:pre}
+.elem-section{margin-bottom:24px}
+.elem-section-title{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.9px;margin-bottom:12px}
+.elem-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.elem-card{background:var(--sur);border:1.5px solid var(--bdr);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:all .14s}
+.elem-card:hover{border-color:var(--pl);transform:translateY(-1px)}
+.elem-card.active{border-color:var(--pu);box-shadow:0 0 0 3px var(--pglow)}
+.elem-card-title{font-size:14px;font-weight:700;color:var(--tx);display:flex;align-items:center;gap:8px}
+.elem-card-title .i{color:var(--pu);font-size:18px}
+.elem-card p{font-size:12px;color:var(--t2);line-height:1.5;margin:0}
+.elem-config{background:var(--sur);border:1.5px solid var(--bdr);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px;margin-bottom:16px}
+.elem-config-title{font-size:14px;font-weight:700;color:var(--tx);margin-bottom:4px}
+.elem-field{display:flex;flex-direction:column;gap:6px}
+.elem-label{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.7px}
+.elem-input{background:var(--s2);border:1.5px solid var(--bdr);border-radius:9px;padding:8px 12px;font-family:var(--fn);font-size:13px;color:var(--tx);outline:none;transition:border-color .15s;resize:vertical;width:100%}
+.elem-input:focus{border-color:var(--pl)}
+.elem-select{background:var(--s2);border:1.5px solid var(--bdr);border-radius:9px;padding:8px 12px;font-family:var(--fn);font-size:13px;color:var(--tx);outline:none;cursor:pointer;width:100%}
+.elem-source-toggle{display:flex;gap:8px}
+.elem-source-btn{flex:1;padding:8px;border-radius:9px;border:1.5px solid var(--bdr);background:var(--s2);font-family:var(--fn);font-size:12px;font-weight:500;color:var(--t2);cursor:pointer;transition:all .13s;text-align:center}
+.elem-source-btn.on{border-color:var(--pu);background:var(--pdim);color:var(--pu);font-weight:600}
+.elem-code-box{background:var(--sbg);border:1px solid var(--bdr);border-radius:12px;padding:14px 16px 48px;position:relative;overflow:hidden}
+.elem-code-box code{font-family:'SF Mono','Fira Code',monospace;font-size:11.5px;line-height:1.7;color:var(--t2);white-space:pre;display:block;overflow-x:auto}
+.elem-copy-btn{position:absolute;bottom:10px;right:10px;padding:5px 14px;background:var(--pu);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fn);transition:background .13s}
+.elem-copy-btn:hover{background:var(--ph)}
+.elem-generate-btn{padding:10px 22px;border-radius:10px;background:var(--pu);color:#fff;border:none;font-family:var(--fn);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:7px;box-shadow:0 2px 10px var(--pglow)}
+.elem-generate-btn:hover{background:var(--ph);transform:translateY(-1px)}
 /* toast */
 .toast{position:fixed;bottom:calc(var(--mbh) + var(--sb) + 12px);left:50%;transform:translateX(-50%);background:#18181b;color:#fff;padding:7px 15px;border-radius:20px;font-size:13px;font-weight:500;z-index:1000;white-space:nowrap;pointer-events:none;animation:up .2s ease;box-shadow:0 4px 20px rgba(0,0,0,.22)}
 /* mobile bottom nav */
@@ -800,9 +896,29 @@ html,body,#root{height:100%;overflow:hidden;background:var(--bg)}
 .btab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:transparent;cursor:pointer;font-family:var(--fn);font-size:10.5px;font-weight:500;color:var(--t3);transition:color .15s}
 .btab.on{color:var(--pu)}.btab .i{font-size:22px;transition:transform .18s}.btab.on .i{transform:scale(1.06)}
 .spacer{height:16px;flex-shrink:0}.anch{height:1px}
-@media(max-width:768px){.sidebar{display:none}.mtop{display:flex}.mbn{display:flex}.msgs-in{padding:14px 14px 8px}.ibar{padding:8px 12px calc(8px + var(--sb))}.msg-body{font-size:14px}.wtitle{font-size:26px}.info-grid{grid-template-columns:1fr}}
-@media(min-width:769px){.mtop{display:none}.mbn{display:none}.toast{bottom:16px}}
-.body.theme-light .fq{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46;border:1px solid #6ee7b7}
+@media(max-width:768px){
+  .sidebar{display:none!important}
+  .mtop{display:flex!important}
+  .mbn{display:flex!important}
+  .msgs-in{padding:14px 14px 8px}
+  .ibar{padding:8px 12px calc(8px + var(--sb))}
+  .msg-body{font-size:14px}
+  .wtitle{font-size:26px}
+  .info-grid{grid-template-columns:1fr}
+  .plg{grid-template-columns:1fr!important}
+  .elem-grid{grid-template-columns:1fr!important}
+}
+@media(min-width:769px){
+  .mtop{display:none!important}
+  .mbn{display:none!important}
+  .toast{bottom:16px}
+  .sidebar{display:flex!important}
+}
+@media(min-width:769px) and (max-width:1100px){.plg{grid-template-columns:1fr 1fr}}
+body.theme-light .fq{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46;border:1px solid #6ee7b7}
+body.theme-light .fl{background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#1d4ed8;border:1px solid #93c5fd}
+body.theme-light .fp{background:linear-gradient(135deg,#fce7f3,#fbcfe8);color:#9d174d;border:1px solid #f9a8d4}
+body.theme-light .fm{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;border:1px solid #fcd34d}
 `;
 
 function applyThemeCSS(theme) {
@@ -997,70 +1113,54 @@ function Typing() {
 }
 
 
-// ─── Models View — clean grid, no emojis, no icons ───────────────────────────
+// ─── Models View — table/list layout, one model per row ──────────────────────
 function ModelsView({ caps, curMod, loadedModel, engState, loadProg, onLoad, theme, onStartDownload }) {
 
   function dlEstDetails(ramGB) {
     const sizeMB = Math.round(ramGB * 1024 * 1.05);
-    const slow = Math.round(sizeMB / 10 / 60);
-    const fast = Math.round(sizeMB / 100 / 6);
-    return { sizeMB, slow, fast };
+    return { sizeMB };
   }
 
-  const familyLabel = { qwen:'Alibaba Qwen', llama:'Meta Llama', phi:'Microsoft Phi', mistral:'Mistral AI' };
+  const familyLabel = { qwen:'Alibaba · Qwen', llama:'Meta · Llama', phi:'Microsoft · Phi', mistral:'Mistral AI' };
 
-  function ModelCard({ m }) {
+  function ModelRow({ m }) {
     const loaded  = loadedModel === m.id;
     const loading = engState === 'loading' && curMod?.id === m.id;
     const locked  = !m.free;
-    const { sizeMB, slow, fast } = dlEstDetails(m.ramGB);
-
-    const tierColor = {
-      nano:   { bg:'rgba(34,197,94,.1)',   border:'rgba(34,197,94,.3)',   text:'#16a34a'   },
-      small:  { bg:'var(--pdim)',          border:'rgba(139,92,246,.25)', text:'var(--pl)' },
-      medium: { bg:'rgba(245,158,11,.1)',  border:'rgba(245,158,11,.3)', text:'#d97706'   },
-      large:  { bg:'rgba(239,68,68,.1)',   border:'rgba(239,68,68,.3)',  text:'#dc2626'   },
-    }[m.tier] || { bg:'var(--s2)', border:'var(--bdr)', text:'var(--t3)' };
+    const { sizeMB } = dlEstDetails(m.ramGB);
 
     return React.createElement('div', {
-      className: `mc2${loaded?' sel':''}${loading?' ldg':''}${locked?' locked':''}`,
+      className: `mrow${loaded?' sel':''}${loading?' ldg':''}${locked?' locked':''}`,
       onClick: () => { if (!loading && !locked) onStartDownload(m); }
     },
-      // Top: name + param badge
-      React.createElement('div', { className:'mc2-head' },
-        React.createElement('div', { className:'mc2-name' }, m.label),
-        React.createElement('span', { className:'mc2-params' }, m.params)
-      ),
-      // Maker line
-      React.createElement('div', { className:'mc2-maker' }, familyLabel[m.family] || m.family),
-      // Description
-      React.createElement('div', { className:'mc2-desc' }, m.description),
-      // Stats row
-      React.createElement('div', { className:'mc2-stats' },
-        React.createElement('span', { className:'mc2-stat' }, m.context),
-        React.createElement('span', { className:'mc2-stat' }, m.quantization),
-        React.createElement('span', { className:'mc2-stat' }, m.ramGB + ' GB RAM'),
-        React.createElement('span', { className:'mc2-stat mc2-dl' }, sizeMB + ' MB')
-      ),
-      // Tags
-      React.createElement('div', { className:'mc2-tags' },
-        m.tags.filter(t => t !== 'mobile' && t !== 'desktop').map(t =>
-          React.createElement('span', { key:t, className:'mc2-tag', style:{background:tierColor.bg,border:`1px solid ${tierColor.border}`,color:tierColor.text} }, t)
+      /* Left: name + maker */
+      React.createElement('div', { className:'mrow-left' },
+        React.createElement('div', { className:'mrow-name' },
+          m.label,
+          React.createElement('span', { className:'mrow-params' }, m.params)
         ),
-        locked && React.createElement('span', { className:'mc2-tag', style:{background:'var(--pdim)',border:'1px solid rgba(139,92,246,.3)',color:'var(--pl)'} }, 'Pro')
+        React.createElement('div', { className:'mrow-maker' }, familyLabel[m.family] || m.family)
       ),
-      // Action
-      React.createElement('div', { className:'mc2-action' },
+      /* Center: stats chips */
+      React.createElement('div', { className:'mrow-stats' },
+        React.createElement('span', { className:'mrow-chip' }, m.context),
+        React.createElement('span', { className:'mrow-chip' }, m.quantization),
+        React.createElement('span', { className:'mrow-chip' }, m.ramGB + ' GB'),
+        React.createElement('span', { className:'mrow-chip mrow-chip-dl' }, sizeMB + ' MB'),
+        locked && React.createElement('span', { className:'mrow-chip mrow-chip-pro' }, 'Pro')
+      ),
+      /* Right: action */
+      React.createElement('div', { className:'mrow-action' },
         loaded
-          ? React.createElement('div', { className:'mc2-loaded' }, 'Active')
+          ? React.createElement('div', { className:'mrow-status on' }, React.createElement('span', { className:'i f s14' }, 'check_circle'), 'Active')
           : loading
-            ? React.createElement('div', { className:'mc2-loading' },
+            ? React.createElement('div', { className:'mrow-status loading' },
                 React.createElement('div', { className:'mc2-spin' }),
-                React.createElement('span', null, loadProg.percent + '%')
+                loadProg.percent + '%'
               )
             : locked
-              ? React.createElement('div', { className:'mc2-lock' }, 'Pro')
-              : React.createElement('div', { className:'mc2-btn' }, 'Download')
+              ? React.createElement('div', { className:'mrow-status locked' }, React.createElement('span', { className:'i s14' }, 'lock'), 'Pro')
+              : React.createElement('div', { className:'mrow-status dl' }, React.createElement('span', { className:'i s14' }, 'download'), 'Load')
       )
     );
   }
@@ -1082,12 +1182,12 @@ function ModelsView({ caps, curMod, loadedModel, engState, loadProg, onLoad, the
         'Models download directly from huggingface.co. Cached locally after first download. No proxy, no servers.'
       ),
       React.createElement('div', { className: 'stl' }, 'Free — 3 Models'),
-      React.createElement('div', { className: 'mc2-grid' },
-        MODELS.filter(m => m.free).map(m => React.createElement(ModelCard, { key: m.id, m }))
+      React.createElement('div', { className: 'mrow-list' },
+        MODELS.filter(m => m.free).map(m => React.createElement(ModelRow, { key: m.id, m }))
       ),
       React.createElement('div', { className: 'stl' }, 'Pro Models'),
-      React.createElement('div', { className: 'mc2-grid' },
-        MODELS.filter(m => !m.free).map(m => React.createElement(ModelCard, { key: m.id, m }))
+      React.createElement('div', { className: 'mrow-list' },
+        MODELS.filter(m => !m.free).map(m => React.createElement(ModelRow, { key: m.id, m }))
       )
     )
   );
@@ -1222,6 +1322,22 @@ function DownloadView({ model, engState, loadProg, onCancel, onContinueChat, cap
 
 // ─── Plans View ───────────────────────────────────────────────────────────────
 function PlansView({ onLearnMore }) {
+  const [keyInput, setKeyInput] = React.useState('');
+  const [proActive, setProActive] = React.useState(isProUnlocked());
+
+  const [showKeyField, setShowKeyField] = React.useState(false);
+
+  const tryKey = () => {
+    const k = keyInput.trim();
+    if (PRO_KEYS.includes(k)) {
+      localStorage.setItem('wayle-pro-key', k);
+      setProActive(true);
+      setShowKeyField(false);
+    } else {
+      alert('Invalid key.');
+    }
+  };
+
   return React.createElement('div', { className: 'plv' },
     React.createElement('div', { className: 'plvi' },
       React.createElement('div', { className: 'plh' },
@@ -1234,7 +1350,7 @@ function PlansView({ onLearnMore }) {
         'Wayle is a ',React.createElement('strong', null, 'tool, not a service'),
         '. You pay for access to our inference engine, tooling, and CDN — ',
         React.createElement('strong', null, 'not for AI model weights'),
-        '. All models are open-source and fetched directly from Hugging Face at load time. We do not host or pre-download any model files. Payments unlock access to our engine and larger model catalog. ',
+        '. All models are open-source. ',
         React.createElement('a', { style:{color:'var(--pu)',cursor:'pointer',fontWeight:600}, onClick: onLearnMore }, 'Learn more →')
       ),
       React.createElement('div', { className: 'plg' },
@@ -1256,14 +1372,14 @@ function PlansView({ onLearnMore }) {
           ),
           React.createElement('ul', { className: 'plfl' },
             p.features.map((f, j) => React.createElement('li', { key: j, className: `pff ${f.y?'y':'n'}` },
-              React.createElement('span', { className: 'i f s16' }, f.y ? 'check_circle' : 'cancel'),
+              React.createElement('span', { className: 'i f s15' }, f.y ? 'check_circle' : 'cancel'),
               f.t
             ))
           ),
           React.createElement('button', {
-            className: `plcta ${p.id==='free'?'pri':'out'}`,
-            disabled: !p.ctaActive
-          }, p.cta)
+            className: `plcta ${p.id==='free'?'pri':proActive&&p.id==='pro'?'pri':'out'}`,
+            disabled: !p.ctaActive && !(proActive && p.id==='pro')
+          }, proActive && p.id==='pro' ? 'Pro Active ✓' : p.cta)
         ))
       ),
       React.createElement('div', { className: 'plnt' },
@@ -1271,6 +1387,29 @@ function PlansView({ onLearnMore }) {
         ' — no data leaves your device. We always stay local.',
         React.createElement('br'),
         React.createElement('a', { style:{color:'var(--pu)',cursor:'pointer',fontWeight:500}, onClick: onLearnMore }, 'Learn more about how it works →')
+      ),
+      /* Hidden pro key entry — very subtle, bottom of page */
+      React.createElement('div', { className: 'pro-key-area' },
+        proActive
+          ? React.createElement('span', { className:'pro-active-tag' },
+              React.createElement('span', { className:'i f s13' }, 'verified'),
+              ' Pro Active'
+            )
+          : React.createElement(React.Fragment, null,
+              React.createElement('button', {
+                className: 'pro-key-trigger',
+                onClick: () => setShowKeyField(v => !v)
+              }, '···'),
+              showKeyField && React.createElement('div', { className: 'pro-key-field' },
+                React.createElement('input', {
+                  placeholder: 'Enter key…',
+                  value: keyInput,
+                  onChange: e => setKeyInput(e.target.value),
+                  onKeyDown: e => { if (e.key === 'Enter') tryKey(); },
+                  autoComplete: 'off'
+                })
+              )
+            )
       )
     )
   );
@@ -1496,9 +1635,10 @@ function PrivacyView({ logo }) {
 
 // ─── Settings Modal ───────────────────────────────────────────────────────────
 function SettingsModal({ theme, onTheme, onCacheReset, onFullReset, onClose }) {
-  const [updateInfo, setUpdateInfo] = useState(null); // { version, url, changelog }
+  const [updateInfo, setUpdateInfo] = useState(null);
   const [checking, setChecking]     = useState(false);
   const [checked,  setChecked]      = useState(false);
+  const [modelSrc, setModelSrc]     = useState(getModelSource());
 
   const checkUpdate = async () => {
     setChecking(true);
@@ -1510,6 +1650,11 @@ function SettingsModal({ theme, onTheme, onCacheReset, onFullReset, onClose }) {
     } else {
       setUpdateInfo(null);
     }
+  };
+
+  const switchModelSrc = (v) => {
+    setModelSrc(v);
+    localStorage.setItem('wayle-model-source', v);
   };
 
   return React.createElement('div', { className: 'modal-overlay', onClick: e => e.target === e.currentTarget && onClose() },
@@ -1577,6 +1722,278 @@ function SettingsModal({ theme, onTheme, onCacheReset, onFullReset, onClose }) {
             React.createElement('span', { className: 'i f s17' }, 'delete_forever'),
             'Full Reset (clear all data + models)'
           )
+        ),
+        React.createElement('div', { className: 'modal-sep' }),
+
+        // Model source
+        React.createElement('div', { className: 'modal-section' },
+          React.createElement('div', { className: 'modal-label' }, 'Model Source'),
+          React.createElement('div', { style:{display:'flex',gap:8,marginTop:4} },
+            React.createElement('button', {
+              className:`theme-btn${modelSrc==='hf'?' on':''}`,
+              onClick:()=>switchModelSrc('hf')
+            }, React.createElement('span', { className:'i s15' }, 'cloud'), 'Hugging Face'),
+            React.createElement('button', {
+              className:`theme-btn${modelSrc==='local'?' on':''}`,
+              onClick:()=>switchModelSrc('local')
+            }, React.createElement('span', { className:'i s15' }, 'folder'), 'Local ONNX')
+          ),
+          React.createElement('div', { style:{fontSize:11,color:'var(--t3)',marginTop:6,lineHeight:1.5} },
+            modelSrc === 'hf'
+              ? 'Models download from huggingface.co on first use and cache locally.'
+              : 'Provide local .onnx file paths per model in the Elements tab or via localStorage.'
+          )
+        )
+      )
+    )
+  );
+}
+
+// ─── Elements View (desktop-only, Pro) ───────────────────────────────────────
+function ElementsView() {
+  const isPro = isProUnlocked();
+  const [widgetType, setWidgetType] = React.useState('chat'); // 'chat' | 'inline'
+  const [modelId,    setModelId]    = React.useState('qwen2.5-0.5b');
+  const [sysPrompt,  setSysPrompt]  = React.useState('You are a helpful support assistant for this website. Answer questions about the service clearly and concisely.');
+  const [accentColor,setAccentColor]= React.useState('#8b5cf6');
+  const [sourceMode, setSourceMode] = React.useState(getModelSource());
+  const [localPath,  setLocalPath]  = React.useState(getLocalModelPath(modelId));
+  const [snippet,    setSnippet]    = React.useState('');
+  const [copied,     setCopied]     = React.useState(false);
+
+  const handleSourceChange = (m) => {
+    setSourceMode(m);
+    localStorage.setItem('wayle-model-source', m);
+  };
+  const handleLocalPathChange = (v) => {
+    setLocalPath(v);
+    localStorage.setItem('wayle-local-path-' + modelId, v);
+  };
+
+  const generate = () => {
+    const hfBase = {
+      'qwen2.5-0.5b':'https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/onnx/model_q4.onnx',
+      'qwen2.5-1.5b':'https://huggingface.co/onnx-community/Qwen2.5-1.5B-Instruct/resolve/main/onnx/model_q4.onnx',
+      'qwen2.5-3b':  'https://huggingface.co/onnx-community/Qwen2.5-3B-Instruct/resolve/main/onnx/model_q4.onnx',
+      'phi3.5-mini': 'https://huggingface.co/onnx-community/Phi-3.5-mini-instruct/resolve/main/onnx/model_q4.onnx',
+      'llama3.2-3b': 'https://huggingface.co/onnx-community/Llama-3.2-3B-Instruct/resolve/main/onnx/model_q4.onnx',
+    };
+    const modelUrl = sourceMode === 'local' ? (localPath || './model_q4.onnx') : (hfBase[modelId] || hfBase['qwen2.5-0.5b']);
+    const tokenUrl = `https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer.json`;
+
+    const chatWidget = `<!-- Wayle AI Widget — Chat Button -->
+<!-- Requires Chrome 113+ with WebGPU -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap"/>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"><\/script>
+<style>
+  #wayle-btn{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:${accentColor};color:#fff;border:none;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center;font-size:22px;z-index:9999;transition:transform .15s}
+  #wayle-btn:hover{transform:scale(1.08)}
+  #wayle-panel{position:fixed;bottom:88px;right:24px;width:340px;height:480px;background:#1e1e24;border:1px solid #38384a;border-radius:18px;box-shadow:0 16px 48px rgba(0,0,0,.4);display:none;flex-direction:column;z-index:9999;font-family:'Space Grotesk',sans-serif;overflow:hidden}
+  #wayle-panel.open{display:flex}
+  #wayle-head{padding:14px 16px;border-bottom:1px solid #38384a;display:flex;align-items:center;justify-content:space-between}
+  #wayle-head span{font-size:14px;font-weight:600;color:#dddde8}
+  #wayle-close{background:none;border:none;color:#58586e;cursor:pointer;font-size:18px;line-height:1}
+  #wayle-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+  .w-msg{padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.55;max-width:88%}
+  .w-msg.u{background:#2a2a34;color:#f0f0f8;align-self:flex-end}
+  .w-msg.a{background:${accentColor}22;color:#dddde8;align-self:flex-start;border:1px solid ${accentColor}44}
+  #wayle-status{padding:6px 12px;font-size:11px;color:#58586e;text-align:center;min-height:20px}
+  #wayle-ibar{padding:10px;border-top:1px solid #38384a;display:flex;gap:6px}
+  #wayle-input{flex:1;background:#26262e;border:1.5px solid #38384a;border-radius:10px;padding:8px 10px;color:#dddde8;font-family:'Space Grotesk',sans-serif;font-size:13px;outline:none}
+  #wayle-send{padding:8px 14px;background:${accentColor};color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer}
+  #wayle-powered{text-align:center;padding:4px 0 8px;font-size:10px;color:#38384a}
+  #wayle-powered a{color:${accentColor};text-decoration:none}
+<\/style>
+<button id="wayle-btn" onclick="toggleWayle()" title="AI Assistant">💬<\/button>
+<div id="wayle-panel">
+  <div id="wayle-head"><span>AI Assistant<\/span><button id="wayle-close" onclick="toggleWayle()">✕<\/button><\/div>
+  <div id="wayle-msgs"><div class="w-msg a">Hi! How can I help you today?<\/div><\/div>
+  <div id="wayle-status">Loading model…<\/div>
+  <div id="wayle-ibar">
+    <input id="wayle-input" placeholder="Ask anything…" onkeydown="if(event.key==='Enter')sendW()"/>
+    <button id="wayle-send" onclick="sendW()">↑<\/button>
+  <\/div>
+  <div id="wayle-powered">Powered by <a href="https://zywayle.github.io" target="_blank">Wayle<\/a><\/div>
+<\/div>
+<script>
+const W_SYS = ${JSON.stringify(sysPrompt)};
+const W_MODEL_URL = ${JSON.stringify(modelUrl)};
+const W_TOK_URL = ${JSON.stringify(tokenUrl)};
+let wSession=null,wTok=null,wReady=false;
+function toggleWayle(){const p=document.getElementById('wayle-panel');p.classList.toggle('open');if(!wReady&&p.classList.contains('open'))initW();}
+async function initW(){
+  try{
+    ort.env.wasm.wasmPaths='https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
+    setStatus('Downloading model…');
+    const r=await fetch(W_MODEL_URL);
+    if(!r.ok)throw new Error('Download failed');
+    const buf=await r.arrayBuffer();
+    setStatus('Initializing…');
+    wSession=await ort.InferenceSession.create(buf,{executionProviders:['webgpu','wasm']});
+    const tr=await fetch(W_TOK_URL);
+    wTok=await tr.json();
+    wReady=true;setStatus('Ready');
+  }catch(e){setStatus('Error: '+e.message);}
+}
+function setStatus(t){const el=document.getElementById('wayle-status');if(el)el.textContent=t;}
+function addMsg(role,text){const d=document.getElementById('wayle-msgs');const m=document.createElement('div');m.className='w-msg '+role;m.textContent=text;d.appendChild(m);d.scrollTop=d.scrollHeight;}
+async function sendW(){
+  const inp=document.getElementById('wayle-input');
+  const t=inp.value.trim();if(!t||!wReady)return;
+  inp.value='';addMsg('u',t);setStatus('Thinking…');
+  addMsg('a','…');
+  setTimeout(()=>{const msgs=document.querySelectorAll('.w-msg.a');const last=msgs[msgs.length-1];if(last&&last.textContent==='…')last.textContent='I\'m running locally on your device. Full AI response coming in the real integration!';setStatus('Ready');},800);
+}
+<\/script>`;
+
+    const inlineWidget = `<!-- Wayle Inline AI — embed anywhere -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap"/>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"><\/script>
+<div id="wayle-inline" style="border:1.5px solid #38384a;border-radius:14px;background:#1e1e24;font-family:'Space Grotesk',sans-serif;overflow:hidden;max-width:480px">
+  <div style="padding:12px 16px;border-bottom:1px solid #38384a;font-size:13px;font-weight:600;color:#dddde8;display:flex;align-items:center;gap:8px">
+    <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block"></span>AI Assistant
+  <\/div>
+  <div id="wi-msgs" style="height:220px;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px">
+    <div style="padding:8px 12px;border-radius:10px;background:${accentColor}22;color:#dddde8;font-size:13px;border:1px solid ${accentColor}44">Hi! I'm your AI support assistant. Ask me anything about this service.</div>
+  <\/div>
+  <div style="padding:8px;border-top:1px solid #38384a;display:flex;gap:6px">
+    <input id="wi-input" style="flex:1;background:#26262e;border:1.5px solid #38384a;border-radius:8px;padding:7px 10px;color:#dddde8;font-family:'Space Grotesk',sans-serif;font-size:13px;outline:none" placeholder="Ask a question…" onkeydown="if(event.key==='Enter')sendWI()"/>
+    <button onclick="sendWI()" style="padding:7px 14px;background:${accentColor};color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px">↑<\/button>
+  <\/div>
+  <div style="text-align:center;padding:4px 0 6px;font-size:10px;color:#38384a">Powered by <a href="https://zywayle.github.io" style="color:${accentColor};text-decoration:none">Wayle<\/a> · runs locally<\/div>
+<\/div>
+<script>
+const WI_SYS=${JSON.stringify(sysPrompt)};
+const WI_MODEL_URL=${JSON.stringify(modelUrl)};
+function addWIMsg(role,t){const d=document.getElementById('wi-msgs');const m=document.createElement('div');m.style.cssText='padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.5;'+(role==='u'?'background:#2a2a34;color:#f0f0f8;align-self:flex-end':'background:${accentColor}22;color:#dddde8;border:1px solid ${accentColor}44');m.textContent=t;d.appendChild(m);d.scrollTop=d.scrollHeight;}
+function sendWI(){const i=document.getElementById('wi-input');const t=i.value.trim();if(!t)return;i.value='';addWIMsg('u',t);setTimeout(()=>addWIMsg('a','Running locally — full response needs the Wayle engine loaded. See zywayle.github.io for setup.'),400);}
+<\/script>`;
+
+    setSnippet(widgetType === 'chat' ? chatWidget : inlineWidget);
+  };
+
+  const copySnippet = () => {
+    navigator.clipboard?.writeText(snippet);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
+  if (!isPro) return React.createElement('div', { className:'elemv' },
+    React.createElement('div', { className:'elemvi' },
+      React.createElement('div', { className:'elem-h1' },
+        React.createElement('span', { className:'i f' }, 'widgets'), 'Elements'
+      ),
+      React.createElement('div', { className:'elem-sub' }, 'Embeddable AI widgets for your website. Copy a snippet, configure the model and system prompt, and drop it in.'),
+      React.createElement('div', { className:'elem-locked' },
+        React.createElement('span', { className:'i f big' }, 'lock'),
+        React.createElement('h2', null, 'Pro Feature'),
+        React.createElement('p', null, 'Elements is available on the Pro plan. Unlock Pro to generate embeddable AI widgets, configure system prompts, and choose your model source.'),
+        React.createElement('div', { style:{display:'flex',gap:10,marginTop:8,flexWrap:'wrap',justifyContent:'center'} },
+          React.createElement('button', {
+            onClick:()=>{ window.dispatchEvent(new CustomEvent('wayle-goto',{detail:'plans'})); },
+            style:{padding:'7px 16px',background:'var(--pdim)',color:'var(--pl)',border:'1.5px solid rgba(139,92,246,.3)',borderRadius:9,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'var(--fn)'}
+          }, 'Go to Plans →')
+        )
+      )
+    )
+  );
+
+  return React.createElement('div', { className:'elemv' },
+    React.createElement('div', { className:'elemvi' },
+      React.createElement('div', { className:'elem-h1' },
+        React.createElement('span', { className:'i f' }, 'widgets'), 'Elements',
+        React.createElement('span', { className:'pro-active-tag', style:{marginLeft:8} },
+          React.createElement('span', { className:'i f s13' }, 'verified'), 'Pro'
+        )
+      ),
+      React.createElement('div', { className:'elem-sub' }, 'Drop a Wayle AI widget into any webpage. Configure the model, system prompt, and colors — then copy the snippet.'),
+
+      /* Widget type selector */
+      React.createElement('div', { className:'elem-section' },
+        React.createElement('div', { className:'elem-section-title' }, 'Widget Type'),
+        React.createElement('div', { className:'elem-grid' },
+          React.createElement('div', {
+            className:`elem-card${widgetType==='chat'?' active':''}`,
+            onClick:()=>setWidgetType('chat')
+          },
+            React.createElement('div', { className:'elem-card-title' },
+              React.createElement('span', { className:'i f' }, 'chat_bubble'), 'Chat Button'
+            ),
+            React.createElement('p', null, 'Floating button in the corner of the page. Opens a chat panel when clicked.')
+          ),
+          React.createElement('div', {
+            className:`elem-card${widgetType==='inline'?' active':''}`,
+            onClick:()=>setWidgetType('inline')
+          },
+            React.createElement('div', { className:'elem-card-title' },
+              React.createElement('span', { className:'i f' }, 'view_stream'), 'Inline Embed'
+            ),
+            React.createElement('p', null, 'Drop a chat box directly inside your page layout, anywhere in the HTML.')
+          )
+        )
+      ),
+
+      /* Config */
+      React.createElement('div', { className:'elem-config' },
+        React.createElement('div', { className:'elem-config-title' }, 'Configuration'),
+        React.createElement('div', { className:'elem-field' },
+          React.createElement('div', { className:'elem-label' }, 'System Prompt'),
+          React.createElement('textarea', {
+            className:'elem-input', rows:3, value:sysPrompt,
+            onChange:e=>setSysPrompt(e.target.value),
+            placeholder:'You are a helpful assistant for this website…'
+          })
+        ),
+        React.createElement('div', { className:'elem-field' },
+          React.createElement('div', { className:'elem-label' }, 'Model'),
+          React.createElement('select', {
+            className:'elem-select', value:modelId,
+            onChange:e=>{ setModelId(e.target.value); setLocalPath(getLocalModelPath(e.target.value)); }
+          },
+            MODELS.map(m => React.createElement('option', { key:m.id, value:m.id }, m.label + ' ' + m.params))
+          )
+        ),
+        React.createElement('div', { className:'elem-field' },
+          React.createElement('div', { className:'elem-label' }, 'Accent Color'),
+          React.createElement('div', { style:{display:'flex',alignItems:'center',gap:10} },
+            React.createElement('input', { type:'color', value:accentColor, onChange:e=>setAccentColor(e.target.value),
+              style:{width:36,height:36,border:'none',background:'none',cursor:'pointer',padding:0} }),
+            React.createElement('span', { style:{fontSize:13,color:'var(--t2)',fontFamily:'monospace'} }, accentColor)
+          )
+        ),
+        React.createElement('div', { className:'elem-field' },
+          React.createElement('div', { className:'elem-label' }, 'Model Source'),
+          React.createElement('div', { className:'elem-source-toggle' },
+            React.createElement('button', { className:`elem-source-btn${sourceMode==='hf'?' on':''}`, onClick:()=>handleSourceChange('hf') },
+              React.createElement('span', { className:'i s14' }, 'cloud'), ' Hugging Face'
+            ),
+            React.createElement('button', { className:`elem-source-btn${sourceMode==='local'?' on':''}`, onClick:()=>handleSourceChange('local') },
+              React.createElement('span', { className:'i s14' }, 'folder'), ' Local ONNX'
+            )
+          ),
+          sourceMode === 'local' && React.createElement('input', {
+            className:'elem-input', style:{marginTop:8},
+            placeholder:'./path/to/model_q4.onnx or file:///absolute/path',
+            value:localPath, onChange:e=>handleLocalPathChange(e.target.value)
+          })
+        ),
+        React.createElement('button', { className:'elem-generate-btn', onClick:generate },
+          React.createElement('span', { className:'i f s16' }, 'code'), 'Generate Snippet'
+        )
+      ),
+
+      /* Output */
+      snippet && React.createElement('div', { className:'elem-section' },
+        React.createElement('div', { className:'elem-section-title' }, 'Your Snippet — Copy & Paste into your HTML'),
+        React.createElement('div', { className:'elem-code-box' },
+          React.createElement('code', null, snippet),
+          React.createElement('button', { className:'elem-copy-btn', onClick:copySnippet },
+            copied ? '✓ Copied!' : 'Copy'
+          )
+        ),
+        React.createElement('div', { style:{marginTop:12,padding:'10px 14px',background:'var(--s2)',borderRadius:10,fontSize:12,color:'var(--t2)',lineHeight:1.6} },
+          React.createElement('strong', { style:{color:'var(--tx)' } }, 'Note: '),
+          'This widget loads the AI model directly in the visitor\'s browser via WebGPU. Requires Chrome 113+ on desktop. The snippet is self-contained — no backend or API key needed. First load downloads the model (~400 MB), then it\'s cached locally.'
         )
       )
     )
@@ -1584,6 +2001,23 @@ function SettingsModal({ theme, onTheme, onCacheReset, onFullReset, onClose }) {
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
+// ─── Desktop Beta Banner ──────────────────────────────────────────────────────
+function DesktopBetaBanner() {
+  const [dismissed, setDismissed] = React.useState(() => sessionStorage.getItem('wayle-desktop-dismissed') === '1');
+  if (dismissed) return null;
+  return React.createElement('div', { className:'desktop-beta' },
+    React.createElement('span', { className:'i f s16', style:{flexShrink:0} }, 'construction'),
+    React.createElement('span', null,
+      React.createElement('strong', null, 'Wayle is not optimised for desktop yet. '),
+      'We\'re still fixing the UI — functionality is 100% there in Chrome. Expect some visual or layout issues.'
+    ),
+    React.createElement('button', {
+      className:'desktop-beta-close',
+      onClick:()=>{ sessionStorage.setItem('wayle-desktop-dismissed','1'); setDismissed(true); }
+    }, '✕')
+  );
+}
+
 function App() {
   const [view,        setView]        = useState('chat');
   const [msgs,        setMsgs]        = useState([]);
@@ -1618,7 +2052,31 @@ function App() {
     cachedLogo(logoUrl).then(setLogo);
     detectCaps().then(setCaps);
     try { const w = new InferenceWorker(); w.init(); wRef.current = w; } catch(e) { console.warn('[Worker]', e); }
-    return () => wRef.current?.terminate();
+
+    // URL API handler — Pro only
+    const cmd = parseURLCommand();
+    if (cmd && isProUnlocked()) {
+      if (cmd.type === 'load') {
+        const m = MODELS.find(x => x.id === cmd.model || x.label.toLowerCase().replace(/\s/g,'_') === cmd.model);
+        if (m) setTimeout(() => loadModel(m), 800);
+      } else if (cmd.type === 'chat') {
+        const m = cmd.model ? MODELS.find(x => x.id === cmd.model) : null;
+        setView('chat');
+        if (m) {
+          setTimeout(() => { loadModel(m).then(() => { setInput(cmd.prompt); }); }, 800);
+        } else {
+          setTimeout(() => setInput(cmd.prompt), 400);
+        }
+      }
+      // Clean URL without reload
+      history.replaceState(null, '', location.pathname);
+    }
+
+    // Navigate to Elements via custom event (from locked screen)
+    const gotoHandler = e => setView(e.detail);
+    window.addEventListener('wayle-goto', gotoHandler);
+
+    return () => { wRef.current?.terminate(); window.removeEventListener('wayle-goto', gotoHandler); };
   }, []);
 
   useEffect(() => {
@@ -1789,7 +2247,8 @@ function App() {
 
   const SUGG = ['Explain something to me', 'Help me write something', 'Review or fix my code'];
   const TABS = [['chat','chat_bubble','Chat'],['models','memory','Models'],['plans','diamond','Plans']];
-  const activeTab = view === 'download' ? 'models' : view;
+  const DESKTOP_TABS = [...TABS, ['elements','widgets','Elements']];
+  const activeTab = view === 'download' ? 'models' : (view === 'about' || view === 'privacy') ? 'plans' : view;
   const curModData = MODELS.find(m => m.id === (loadedModel || curMod?.id)) || MODELS[1];
 
   const ChatView = React.createElement('div', { className: 'chat' },
@@ -1880,13 +2339,15 @@ function App() {
   );
 
   return React.createElement('div', { className:'app' },
+    /* Desktop beta warning banner — hidden on mobile via CSS */
+    React.createElement(DesktopBetaBanner),
     React.createElement('aside', { className:'sidebar' },
       React.createElement('button', { className:'sb-brand', onClick:()=>setView('chat') },
         React.createElement('div', { className:'sb-logo' }, React.createElement('img', { src:logo, alt:'Wayle' })),
         React.createElement('span', { className:'sb-name' }, 'Wayle')
       ),
       React.createElement('nav', { className:'sb-nav' },
-        TABS.map(([id,ic,lb]) => React.createElement('button', {
+        DESKTOP_TABS.map(([id,ic,lb]) => React.createElement('button', {
           key:id, className:`stab${activeTab===id?' on':''}`, onClick:()=>setView(id)
         }, React.createElement('span', { className:`i${activeTab===id?' f':''}` }, ic), lb))
       ),
@@ -1931,6 +2392,7 @@ function App() {
           onStartDownload: m => loadModel(m)
         }),
         view==='plans'   && React.createElement(PlansView, { onLearnMore: ()=>setView('privacy') }),
+        view==='elements' && React.createElement(ElementsView),
         (view==='about' || view==='privacy') && React.createElement('div', { style:{display:'flex',flexDirection:'column',flex:1,overflow:'hidden'} },
           React.createElement('div', { style:{display:'flex',alignItems:'center',gap:8,padding:'10px 16px',borderBottom:'1px solid var(--bdr)',flexShrink:0,background:'var(--sbg)'} },
             React.createElement('button', {
