@@ -91,276 +91,761 @@ importScripts('https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.
 
 const ORT_WASM_PATH = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
 ort.env.wasm.wasmPaths = ORT_WASM_PATH;
+ort.env.wasm.numThreads = Math.min(navigator.hardwareConcurrency || 2, 4);
 ort.env.webgpu.powerPreference = 'high-performance';
 ort.env.webgpu.forceFallbackAdapter = false;
 
+// ─── Model registry ───────────────────────────────────────────────────────────
 const MODEL_REGISTRY = {
   'qwen2.5-0.5b': {
-    label:'Qwen 2.5 · 0.5B',family:'qwen',params:'0.5B',quantization:'INT4',
-    context:2048,layers:24,heads:14,kvHeads:2,headDim:64,hiddenSize:896,vocabSize:151936,
+    label:'Qwen 2.5 · 0.5B', family:'qwen', params:'0.5B', quantization:'INT4',
+    context:2048, layers:24, heads:14, kvHeads:2, headDim:64, hiddenSize:896, vocabSize:151936,
     baseUrl:'https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct/resolve/main/onnx/',
     files:['model_q4.onnx'],
     tokenizer:'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/resolve/main/tokenizer.json',
-    ramGB:0.4,tags:['fast','mobile'],
+    ramGB:0.4, tags:['fast','mobile'],
   },
   'qwen2.5-1.5b': {
-    label:'Qwen 2.5 · 1.5B',family:'qwen',params:'1.5B',quantization:'INT4',
-    context:4096,layers:28,heads:12,kvHeads:2,headDim:128,hiddenSize:1536,vocabSize:151936,
+    label:'Qwen 2.5 · 1.5B', family:'qwen', params:'1.5B', quantization:'INT4',
+    context:4096, layers:28, heads:12, kvHeads:2, headDim:128, hiddenSize:1536, vocabSize:151936,
     baseUrl:'https://huggingface.co/onnx-community/Qwen2.5-1.5B-Instruct/resolve/main/onnx/',
     files:['model_q4.onnx'],
     tokenizer:'https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct/resolve/main/tokenizer.json',
-    ramGB:1.0,tags:['fast','mobile'],
+    ramGB:1.0, tags:['fast','mobile'],
   },
   'qwen2.5-3b': {
-    label:'Qwen 2.5 · 3B',family:'qwen',params:'3B',quantization:'INT4',
-    context:8192,layers:36,heads:16,kvHeads:2,headDim:128,hiddenSize:2048,vocabSize:151936,
+    label:'Qwen 2.5 · 3B', family:'qwen', params:'3B', quantization:'INT4',
+    context:8192, layers:36, heads:16, kvHeads:2, headDim:128, hiddenSize:2048, vocabSize:151936,
     baseUrl:'https://huggingface.co/onnx-community/Qwen2.5-3B-Instruct/resolve/main/onnx/',
     files:['model_q4.onnx'],
     tokenizer:'https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/resolve/main/tokenizer.json',
-    ramGB:2.0,tags:['balanced','mobile'],
+    ramGB:2.0, tags:['balanced','mobile'],
   },
   'phi3.5-mini': {
-    label:'Phi-3.5 Mini · 3.8B',family:'phi',params:'3.8B',quantization:'INT4',
-    context:4096,layers:32,heads:32,kvHeads:32,headDim:96,hiddenSize:3072,vocabSize:32064,
+    label:'Phi-3.5 Mini · 3.8B', family:'phi', params:'3.8B', quantization:'INT4',
+    context:4096, layers:32, heads:32, kvHeads:32, headDim:96, hiddenSize:3072, vocabSize:32064,
     baseUrl:'https://huggingface.co/onnx-community/Phi-3.5-mini-instruct/resolve/main/onnx/',
     files:['model_q4.onnx'],
     tokenizer:'https://huggingface.co/microsoft/Phi-3.5-mini-instruct/resolve/main/tokenizer.json',
-    ramGB:2.4,tags:['smart','desktop'],
+    ramGB:2.4, tags:['smart','desktop'],
   },
   'llama3.2-3b': {
-    label:'Llama 3.2 · 3B',family:'llama',params:'3B',quantization:'INT4',
-    context:8192,layers:28,heads:24,kvHeads:8,headDim:128,hiddenSize:3072,vocabSize:128256,
+    label:'Llama 3.2 · 3B', family:'llama', params:'3B', quantization:'INT4',
+    context:8192, layers:28, heads:24, kvHeads:8, headDim:128, hiddenSize:3072, vocabSize:128256,
     baseUrl:'https://huggingface.co/onnx-community/Llama-3.2-3B-Instruct/resolve/main/onnx/',
     files:['model_q4.onnx'],
     tokenizer:'https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct/resolve/main/tokenizer.json',
-    ramGB:2.0,tags:['balanced'],
+    ramGB:2.0, tags:['balanced'],
   },
 };
 
-let session=null,currentModelId=null,modelConfig=null,kvCache=null,inferenceAborted=false,tokenizer=null;
+// ─── EOS token sets per family ────────────────────────────────────────────────
+const EOS_TOKENS = {
+  qwen:   new Set([151643, 151644, 151645]), // <|endoftext|> <|im_start|> <|im_end|>
+  llama:  new Set([128001, 128008, 128009]), // <|end_of_text|> <|eot_id|> <|eom_id|>
+  phi:    new Set([32000, 32007]),            // <|endoftext|> <|end|>
+  mistral:new Set([2]),
+};
 
+let session=null, currentModelId=null, modelConfig=null, kvCache=null,
+    inferenceAborted=false, tokenizer=null;
+
+// ─── KV-Cache ─────────────────────────────────────────────────────────────────
+// Stores past key/value tensors so each decode step only processes one new token.
+// Uses a sliding-window eviction when context is nearly full (keeps last 50%).
 class KVCache {
-  constructor(config) {
-    const{layers,kvHeads,headDim,context}=config;
-    this.maxLen=context; this.currentLen=0; this.headDim=headDim; this.kvHeads=kvHeads;
-    this.buffers=[];
-    for(let l=0;l<layers;l++) this.buffers.push({key:new Float32Array(kvHeads*this.maxLen*headDim),value:new Float32Array(kvHeads*this.maxLen*headDim)});
+  constructor(cfg) {
+    const { layers, kvHeads, headDim, context } = cfg;
+    this.maxLen = context;
+    this.currentLen = 0;
+    this.kvHeads = kvHeads;
+    this.headDim = headDim;
+    this.layers = layers;
+    // Pre-allocate flat Float32 buffers: [kvHeads × maxLen × headDim]
+    this.keys   = new Array(layers).fill(null).map(() => new Float32Array(kvHeads * context * headDim));
+    this.values = new Array(layers).fill(null).map(() => new Float32Array(kvHeads * context * headDim));
   }
-  reset(){this.currentLen=0;for(const b of this.buffers){b.key.fill(0);b.value.fill(0);}}
-  slide(){
-    const keep=Math.floor(this.maxLen/2),drop=this.currentLen-keep;
-    if(drop<=0)return;
-    const{kvHeads,headDim}=this;
-    for(const b of this.buffers)for(let h=0;h<kvHeads;h++){const s=headDim,o=h*this.maxLen*s;b.key.copyWithin(o,o+drop*s,o+this.currentLen*s);b.value.copyWithin(o,o+drop*s,o+this.currentLen*s);}
-    this.currentLen=keep;
+
+  reset() {
+    this.currentLen = 0;
+    for (let l = 0; l < this.layers; l++) { this.keys[l].fill(0); this.values[l].fill(0); }
   }
-  needsSlide(){return this.currentLen>=this.maxLen-64;}
+
+  // Evict the oldest half of the context, keeping system prompt + recent turns
+  slide() {
+    const keep = Math.floor(this.maxLen * 0.55); // keep 55% so we don't thrash
+    const drop = this.currentLen - keep;
+    if (drop <= 0) return;
+    const { kvHeads, headDim, maxLen } = this;
+    const stride = headDim; // elements per position per head
+    for (let l = 0; l < this.layers; l++) {
+      for (let h = 0; h < kvHeads; h++) {
+        const base = h * maxLen * stride;
+        this.keys[l].copyWithin(base, base + drop * stride, base + this.currentLen * stride);
+        this.values[l].copyWithin(base, base + drop * stride, base + this.currentLen * stride);
+      }
+    }
+    this.currentLen = keep;
+  }
+
+  needsSlide() { return this.currentLen >= this.maxLen - 128; }
+
+  // Write present_k/v from a decode result into the cache at `pos`
+  writeStep(result, pos) {
+    const { kvHeads, headDim, maxLen } = this;
+    for (let l = 0; l < this.layers; l++) {
+      const kTensor = result[`present.${l}.key`];
+      const vTensor = result[`present.${l}.value`];
+      if (!kTensor) continue;
+      const kd = kTensor.data;
+      const vd = vTensor.data;
+      // kTensor shape: [1, kvHeads, seqLen, headDim] — seqLen = pos+1 here
+      const seqLen = pos + 1;
+      for (let h = 0; h < kvHeads; h++) {
+        const srcOff = h * seqLen * headDim;
+        const dstOff = h * maxLen * headDim;
+        // Copy only the newest position (the last headDim elements of this head)
+        const newPos = srcOff + pos * headDim;
+        this.keys[l].set(kd.subarray(newPos, newPos + headDim), dstOff + pos * headDim);
+        this.values[l].set(vd.subarray(newPos, newPos + headDim), dstOff + pos * headDim);
+      }
+    }
+  }
+
+  // Build past_key_values feed tensors up to `len` positions
+  buildFeedTensors(len) {
+    const { kvHeads, headDim, maxLen, layers } = this;
+    const out = {};
+    for (let l = 0; l < layers; l++) {
+      const kSlice = this.keys[l].slice(0, kvHeads * len * headDim);
+      const vSlice = this.values[l].slice(0, kvHeads * len * headDim);
+      out[`past_key_values.${l}.key`]   = new ort.Tensor('float32', kSlice, [1, kvHeads, len, headDim]);
+      out[`past_key_values.${l}.value`] = new ort.Tensor('float32', vSlice, [1, kvHeads, len, headDim]);
+    }
+    return out;
+  }
 }
 
-class SimpleTokenizer {
-  constructor(d){
-    this.data=d;
-    this.vocab=d.model?.vocab||{};
-    this.addedTokens={};
-    (d.added_tokens||[]).forEach(t=>{this.addedTokens[t.content]=t.id;});
-    this.idToToken={};
-    for(const[tok,id] of Object.entries(this.vocab)) this.idToToken[id]=tok;
-    for(const[tok,id] of Object.entries(this.addedTokens)) this.idToToken[id]=tok;
-  }
-  encode(text){return Array.from(new TextEncoder().encode(text)).map(b=>b+1);}
-  decode(ids){return ids.map(id=>(this.idToToken[id]||'').replace(/▁/g,' ').replace(/Ġ/g,' ')).join('');}
-  get bosId(){return this.data.bos_token_id??1;}
-  get eosId(){return this.data.eos_token_id??2;}
-}
+// ─── BPE Tokenizer ────────────────────────────────────────────────────────────
+// Implements proper BPE merges as defined in tokenizer.json.
+// Handles Qwen/Llama/Phi byte-level and SentencePiece-style vocabularies.
+class BPETokenizer {
+  constructor(data) {
+    this.data = data;
+    const modelData = data.model || {};
 
-async function fetchWithProgress(url,onProgress){
-  const res=await fetch(url);
-  if(!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
-  const total=parseInt(res.headers.get('content-length')||'0');
-  const reader=res.body.getReader();
-  const chunks=[];let received=0;
-  while(true){const{done,value}=await reader.read();if(done)break;chunks.push(value);received+=value.byteLength;if(total>0)onProgress(received/total);}
-  const combined=new Uint8Array(received);let offset=0;
-  for(const chunk of chunks){combined.set(chunk,offset);offset+=chunk.byteLength;}
-  return combined.buffer;
-}
-
-async function loadModel(modelId,onProgress){
-  const config=MODEL_REGISTRY[modelId];
-  if(!config) throw new Error(`Unknown model: ${modelId}`);
-  onProgress({text:'Checking WebGPU…',percent:0});
-
-  // WebGPU detection with proper Chrome handling
-  let useWebGPU = false;
-  if(self.navigator?.gpu){
-    try{
-      const adapter=await navigator.gpu.requestAdapter({powerPreference:'high-performance'});
-      if(adapter){ useWebGPU=true; }
-    }catch(e){ console.warn('[GPU] WebGPU adapter request failed:',e.message); }
-  }
-  if(!useWebGPU){
-    // Try default power preference as fallback
-    try{
-      const adapter=await navigator.gpu.requestAdapter();
-      if(adapter) useWebGPU=true;
-    }catch(e){}
-  }
-  if(!useWebGPU) throw new Error('NO_WEBGPU');
-
-  onProgress({text:'Downloading model…',percent:2});
-  const modelBuffers=[];
-  for(let i=0;i<config.files.length;i++){
-    const url=config.baseUrl+config.files[i];
-    const buf=await fetchWithProgress(url,(p)=>{
-      onProgress({text:`Downloading ${config.files[i]}… ${Math.round(p*100)}%`,percent:Math.round(2+(i/config.files.length+p/config.files.length)*70)});
+    // Build vocab: token string → id
+    this.vocab = {};
+    if (modelData.vocab) {
+      Object.assign(this.vocab, modelData.vocab);
+    }
+    // Added / special tokens override
+    this.specialTokens = {};
+    (data.added_tokens || []).forEach(t => {
+      this.vocab[t.content] = t.id;
+      this.specialTokens[t.content] = t.id;
     });
-    modelBuffers.push(buf);
+    if (data.special_tokens_map) {
+      for (const v of Object.values(data.special_tokens_map)) {
+        const content = typeof v === 'string' ? v : v?.content;
+        if (content && data.added_tokens) {
+          const match = data.added_tokens.find(t => t.content === content);
+          if (match) this.specialTokens[content] = match.id;
+        }
+      }
+    }
+
+    // id → token string
+    this.idToToken = {};
+    for (const [tok, id] of Object.entries(this.vocab)) this.idToToken[id] = tok;
+
+    // BPE merge table: "A B" → rank (lower = applied first)
+    this.merges = {};
+    (modelData.merges || []).forEach((m, i) => { this.merges[m] = i; });
+
+    // Byte-level: build the GPT-2-style byte → unicode mapping
+    this._buildByteMap();
+
+    // Pre-build inverse byte map for decoding
+    this.byteDecoder = {};
+    for (const [k, v] of Object.entries(this.byteEncoder)) {
+      this.byteDecoder[v] = parseInt(k);
+    }
+
+    // Detect tokenizer style
+    const firstToken = Object.keys(this.vocab)[0] || '';
+    this.isSPM = firstToken.includes('▁');      // SentencePiece
+    this.isBPE = firstToken.includes('Ġ') || Object.values(this.merges).length > 0;
+
+    // Cache for repeated encodes
+    this._encodeCache = new Map();
   }
-  onProgress({text:'Compiling WebGPU shaders…',percent:75});
 
-  // Build session options — try webgpu first, fallback to wasm
-  const gpuOpts={executionProviders:[{name:'webgpu',powerPreference:'high-performance',preferredLayout:'NHWC'}],graphOptimizationLevel:'all',enableCpuMemArena:false,enableMemPattern:false,executionMode:'sequential',logSeverityLevel:3,interOpNumThreads:1,intraOpNumThreads:1};
-  const cpuOpts={executionProviders:['wasm'],graphOptimizationLevel:'all',executionMode:'sequential',logSeverityLevel:3};
+  _buildByteMap() {
+    // GPT-2 byte-to-unicode mapping
+    const bs = [];
+    for (let i = '!'.charCodeAt(0); i <= '~'.charCodeAt(0); i++) bs.push(i);
+    for (let i = '¡'.charCodeAt(0); i <= '¬'.charCodeAt(0); i++) bs.push(i);
+    for (let i = '®'.charCodeAt(0); i <= 'ÿ'.charCodeAt(0); i++) bs.push(i);
+    const cs = [...bs];
+    let n = 0;
+    for (let b = 0; b < 256; b++) {
+      if (!bs.includes(b)) { bs.push(b); cs.push(256 + n); n++; }
+    }
+    this.byteEncoder = {};
+    bs.forEach((b, i) => { this.byteEncoder[b] = String.fromCharCode(cs[i]); });
+  }
 
-  const modelData=modelBuffers.length===1?modelBuffers[0]:(() => {const total=modelBuffers.reduce((a,b)=>a+b.byteLength,0);const m=new Uint8Array(total);let off=0;for(const b of modelBuffers){m.set(new Uint8Array(b),off);off+=b.byteLength;}return m.buffer;})();
-  onProgress({text:'Initializing session…',percent:85});
-  try{
-    session=await ort.InferenceSession.create(modelData,gpuOpts);
-  }catch(gpuErr){
-    console.warn('[GPU] WebGPU session failed, trying WASM fallback:',gpuErr.message);
-    onProgress({text:'GPU init failed — trying CPU fallback…',percent:86});
-    try{
-      session=await ort.InferenceSession.create(modelData,cpuOpts);
-    }catch(cpuErr){
-      throw new Error(`Session init failed: ${gpuErr.message}`);
+  // Encode a single word (no spaces) into BPE token IDs
+  _bpeWord(word) {
+    if (this._encodeCache.has(word)) return this._encodeCache.get(word);
+    // Convert to byte-level representation
+    let chars = Array.from(new TextEncoder().encode(word)).map(b => this.byteEncoder[b]);
+    if (this.isSPM) {
+      // SentencePiece: first char gets ▁ prefix if not already
+    }
+    if (chars.length === 0) return [];
+
+    // Build initial pairs and apply BPE merges
+    let symbols = chars.slice();
+    while (symbols.length > 1) {
+      let bestRank = Infinity, bestIdx = -1;
+      for (let i = 0; i < symbols.length - 1; i++) {
+        const pair = symbols[i] + ' ' + symbols[i+1];
+        const rank = this.merges[pair] ?? Infinity;
+        if (rank < bestRank) { bestRank = rank; bestIdx = i; }
+      }
+      if (bestIdx === -1 || bestRank === Infinity) break;
+      // Merge the best pair
+      const merged = symbols[bestIdx] + symbols[bestIdx+1];
+      symbols = [...symbols.slice(0, bestIdx), merged, ...symbols.slice(bestIdx+2)];
+    }
+
+    // Map symbols to IDs
+    const ids = symbols.map(s => this.vocab[s] ?? this.vocab['<unk>'] ?? 0);
+    this._encodeCache.set(word, ids);
+    return ids;
+  }
+
+  encode(text) {
+    if (!text) return [];
+
+    // Fast path: check for special tokens first
+    const specialKeys = Object.keys(this.specialTokens).sort((a,b) => b.length - a.length);
+
+    // Split on special tokens, encode each segment
+    const segments = this._splitSpecial(text, specialKeys);
+    const ids = [];
+    for (const seg of segments) {
+      if (this.specialTokens[seg] !== undefined) {
+        ids.push(this.specialTokens[seg]);
+        continue;
+      }
+      if (!seg) continue;
+
+      if (this.isSPM) {
+        // SentencePiece: split on whitespace, prefix with ▁
+        const words = seg.split(/(\s+)/);
+        for (let i = 0; i < words.length; i++) {
+          const w = words[i];
+          if (!w) continue;
+          if (/^\s+$/.test(w)) {
+            // Whitespace: add ▁ prefix to next word
+            continue;
+          }
+          // Prefix with ▁ if previous was whitespace or start
+          const prefix = (i > 0 && /\s/.test(words[i-1])) || i === 0 ? '▁' : '';
+          const prefixed = prefix + w;
+          // Direct vocab lookup first (most tokens are single words in SPM)
+          if (this.vocab[prefixed] !== undefined) {
+            ids.push(this.vocab[prefixed]);
+          } else {
+            ids.push(...this._bpeWord(prefixed));
+          }
+        }
+      } else {
+        // GPT-2 BPE: split on whitespace boundaries, add Ġ prefix
+        const pattern = /\s?\p{L}+|\s?\p{N}+|\s?[^\s\p{L}\p{N}]+|\s/gu;
+        const tokens = seg.match(pattern) || [seg];
+        for (const tok of tokens) {
+          // GPT-2 uses Ġ for space prefix
+          const mapped = tok.replace(/^(\s)/, (_, s) => 'Ġ');
+          if (this.vocab[mapped] !== undefined) {
+            ids.push(this.vocab[mapped]);
+          } else {
+            ids.push(...this._bpeWord(mapped));
+          }
+        }
+      }
+    }
+    return ids;
+  }
+
+  _splitSpecial(text, specials) {
+    if (specials.length === 0) return [text];
+    // Build a regex that splits on any special token
+    const escaped = specials.map(s => s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+    const re = new RegExp(`(${escaped.join('|')})`);
+    return text.split(re).filter(s => s !== undefined);
+  }
+
+  decode(ids) {
+    const tokens = ids.map(id => this.idToToken[id] || '');
+    const text = tokens.join('');
+    if (this.isSPM) {
+      // SentencePiece: replace ▁ with space
+      return text.replace(/▁/g, ' ');
+    }
+    // GPT-2 BPE: decode from byte-level unicode back to utf-8
+    try {
+      const bytes = [];
+      for (const ch of text) {
+        // Handle Ġ (space prefix)
+        if (ch === 'Ġ') { bytes.push(32); continue; }
+        if (ch === '▁') { bytes.push(32); continue; }
+        const code = this.byteDecoder[ch];
+        if (code !== undefined) bytes.push(code);
+        else {
+          // Multi-byte unicode: encode as utf-8
+          const encoded = new TextEncoder().encode(ch);
+          for (const b of encoded) bytes.push(b);
+        }
+      }
+      return new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(bytes));
+    } catch {
+      return text.replace(/Ġ/g, ' ').replace(/▁/g, ' ');
     }
   }
-  onProgress({text:'Loading tokenizer…',percent:90});
-  try{const r=await fetch(config.tokenizer);tokenizer=new SimpleTokenizer(await r.json());}
-  catch{tokenizer=new SimpleTokenizer({model:{vocab:{},merges:[]},added_tokens:[]});}
-  onProgress({text:'Preallocating KV cache…',percent:95});
-  kvCache=new KVCache(config);
-  currentModelId=modelId; modelConfig=config;
-  onProgress({text:'Ready',percent:100});
-  return{success:true,config};
-}
 
-function buildPrompt(msg,sys,family){
-  switch(family){
-    case'qwen': return`<|im_start|>system\n${sys}<|im_end|>\n<|im_start|>user\n${msg}<|im_end|>\n<|im_start|>assistant\n`;
-    case'llama': return`<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${sys}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n${msg}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`;
-    case'phi': return`<|system|>\n${sys}<|end|>\n<|user|>\n${msg}<|end|>\n<|assistant|>\n`;
-    default: return`${sys}\n\nUser: ${msg}\nAssistant: `;
+  // Decode incrementally — returns a string only when we're at a valid UTF-8 boundary
+  decodeIncremental(ids, prevText) {
+    const candidate = this.decode(ids);
+    // If the candidate ends with a replacement char, we're mid-codepoint — wait
+    if (candidate.endsWith('\uFFFD')) return { text: '', pending: true };
+    // Strip what was already yielded
+    return { text: candidate.slice(prevText.length), pending: false };
   }
+
+  get bosId() {
+    return this.data.bos_token_id
+      ?? this.specialTokens[this.data.bos_token ?? '<s>']
+      ?? 1;
+  }
+  get eosId() {
+    return this.data.eos_token_id
+      ?? this.specialTokens[this.data.eos_token ?? '</s>']
+      ?? 2;
+  }
+  get padId() { return this.data.pad_token_id ?? this.eosId; }
 }
 
-function buildFeeds(inputIds,positionId,pastLen){
-  const idsTensor=new ort.Tensor('int64',BigInt64Array.from(inputIds.map(BigInt)),[1,inputIds.length]);
-  const maskLen=pastLen+inputIds.length;
-  const maskTensor=new ort.Tensor('int64',new BigInt64Array(maskLen).fill(1n),[1,maskLen]);
-  const posTensor=new ort.Tensor('int64',BigInt64Array.from(inputIds.map((_,i)=>BigInt(positionId+i))),[1,inputIds.length]);
-  const feeds={input_ids:idsTensor,attention_mask:maskTensor,position_ids:posTensor};
-  if(kvCache&&pastLen>0){
-    for(let l=0;l<modelConfig.layers;l++){
-      const{key,value}=kvCache.buffers[l];const{kvHeads,headDim}=kvCache;
-      feeds[`past_key_values.${l}.key`]=new ort.Tensor('float32',key.slice(0,kvHeads*pastLen*headDim),[1,kvHeads,pastLen,headDim]);
-      feeds[`past_key_values.${l}.value`]=new ort.Tensor('float32',value.slice(0,kvHeads*pastLen*headDim),[1,kvHeads,pastLen,headDim]);
+// ─── Sampling ─────────────────────────────────────────────────────────────────
+// Uses a linear top-k scan (O(V)) instead of full sort (O(V log V)).
+// Applies temperature, top-k, top-p (nucleus) and repetition penalty.
+function sample(logits, opts) {
+  const { temperature = 0.7, topK = 40, topP = 0.9, repeatPenalty = 1.1, recentTokens = [] } = opts;
+
+  const V = logits.length;
+  const temp = Math.max(temperature, 1e-7);
+
+  // 1. Apply repetition penalty on recent tokens (last 64)
+  const penaltySet = new Set(recentTokens.slice(-64));
+  const penalised = new Float32Array(V);
+  for (let i = 0; i < V; i++) {
+    penalised[i] = penaltySet.has(i)
+      ? (logits[i] > 0 ? logits[i] / repeatPenalty : logits[i] * repeatPenalty)
+      : logits[i];
+  }
+
+  // 2. Temperature scaling + numerically stable softmax
+  let maxVal = -Infinity;
+  for (let i = 0; i < V; i++) if (penalised[i] > maxVal) maxVal = penalised[i];
+  let sum = 0;
+  const probs = new Float32Array(V);
+  for (let i = 0; i < V; i++) { probs[i] = Math.exp((penalised[i] - maxVal) / temp); sum += probs[i]; }
+  for (let i = 0; i < V; i++) probs[i] /= sum;
+
+  // 3. Top-k: linear scan to find the k largest (avoid full sort of 150k vocab)
+  const k = Math.min(topK, V);
+  // Partial selection using a min-heap approach (simple array for small k)
+  const heap = []; // [prob, id]
+  let heapMin = -1;
+  for (let i = 0; i < V; i++) {
+    const p = probs[i];
+    if (heap.length < k) {
+      heap.push([p, i]);
+      if (heap.length === k) {
+        heap.sort((a,b) => a[0] - b[0]);
+        heapMin = heap[0][0];
+      }
+    } else if (p > heapMin) {
+      heap[0] = [p, i];
+      // Bubble up the new minimum
+      let j = 0;
+      while (true) {
+        const l = 2*j+1, r = 2*j+2;
+        let m = j;
+        if (l < k && heap[l][0] < heap[m][0]) m = l;
+        if (r < k && heap[r][0] < heap[m][0]) m = r;
+        if (m === j) break;
+        [heap[j], heap[m]] = [heap[m], heap[j]]; j = m;
+      }
+      heapMin = heap[0][0];
     }
+  }
+  heap.sort((a,b) => b[0] - a[0]); // descending by prob
+
+  // 4. Top-p nucleus filtering
+  let cumSum = 0;
+  const nucleus = [];
+  for (const [p, id] of heap) {
+    nucleus.push([p, id]);
+    cumSum += p;
+    if (cumSum >= topP) break;
+  }
+
+  // 5. Re-normalise nucleus and sample
+  const ns = nucleus.reduce((s, [p]) => s + p, 0);
+  let rand = Math.random() * ns, acc = 0;
+  for (const [p, id] of nucleus) {
+    acc += p;
+    if (rand <= acc) return id;
+  }
+  return nucleus[0][1];
+}
+
+// ─── Feed builder ─────────────────────────────────────────────────────────────
+function buildFeeds(inputIds, positionId, pastLen) {
+  const seqLen = inputIds.length;
+  const maskLen = pastLen + seqLen;
+  const feeds = {
+    input_ids:      new ort.Tensor('int64', BigInt64Array.from(inputIds.map(BigInt)), [1, seqLen]),
+    attention_mask: new ort.Tensor('int64', new BigInt64Array(maskLen).fill(1n), [1, maskLen]),
+    position_ids:   new ort.Tensor('int64', BigInt64Array.from(inputIds.map((_, i) => BigInt(positionId + i))), [1, seqLen]),
+  };
+  if (kvCache && pastLen > 0) {
+    Object.assign(feeds, kvCache.buildFeedTensors(pastLen));
   }
   return feeds;
 }
 
-function updateKVFromResult(result,positionId){
-  if(!kvCache)return;
-  for(let l=0;l<modelConfig.layers;l++){
-    const kk=`present.${l}.key`,vk=`present.${l}.value`;
-    if(result[kk]){
-      const kd=result[kk].data,vd=result[vk].data;const{kvHeads,headDim}=kvCache;
-      const offset=(positionId+1)*headDim;
-      for(let h=0;h<kvHeads;h++){const s=h*offset,d=h*kvCache.maxLen*headDim;kvCache.buffers[l].key.set(kd.slice(s,s+offset),d);kvCache.buffers[l].value.set(vd.slice(s,s+offset),d);}
-    }
-  }
+// ─── Logit extraction ─────────────────────────────────────────────────────────
+function extractLogits(result) {
+  const key = Object.keys(result).find(k => k.includes('logit') || k === 'output' || k === 'last_hidden_state');
+  if (!key) throw new Error('No logits in model output. Keys: ' + Object.keys(result).join(', '));
+  const data = result[key].data;
+  // The last vocabSize floats correspond to the last token position
+  return data.subarray(data.length - modelConfig.vocabSize);
 }
 
-function extractLogits(result){
-  const k=Object.keys(result).find(k=>k.includes('logit')||k==='last_hidden_state'||k==='output');
-  if(!k) throw new Error('No logits in model output');
-  return result[k].data.slice(-modelConfig.vocabSize);
-}
+// ─── Prompt builder ───────────────────────────────────────────────────────────
+// Returns full formatted prompt string. System prompt is tuned per model family
+// to get concise, accurate, markdown-aware responses.
+function buildPrompt(userMsg, history, family) {
+  const sys = `You are Wayle, a sharp and helpful AI assistant running entirely on-device in the user's browser via WebGPU. You have no internet access during inference.
 
-function sample(logits,temperature,topK,topP){
-  const temp=Math.max(temperature,1e-6);
-  const scaled=new Float32Array(logits.length);for(let i=0;i<logits.length;i++)scaled[i]=logits[i]/temp;
-  let maxVal=-Infinity;for(let i=0;i<scaled.length;i++)if(scaled[i]>maxVal)maxVal=scaled[i];
-  let sum=0;const probs=new Float32Array(scaled.length);for(let i=0;i<scaled.length;i++){probs[i]=Math.exp(scaled[i]-maxVal);sum+=probs[i];}
-  for(let i=0;i<probs.length;i++)probs[i]/=sum;
-  const indexed=Array.from(probs).map((p,i)=>[i,p]).sort((a,b)=>b[1]-a[1]).slice(0,topK);
-  let cumSum=0;const nucleus=[];
-  for(const[id,p] of indexed){nucleus.push([id,p]);cumSum+=p;if(cumSum>=topP)break;}
-  const ns=nucleus.reduce((s,[,p])=>s+p,0);let rand=Math.random()*ns,acc=0;
-  for(const[id,p] of nucleus){acc+=p;if(rand<=acc)return id;}
-  return nucleus[0][0];
-}
+Guidelines:
+- Be concise but complete. Prefer short, direct answers for simple questions.
+- Use markdown formatting for code, lists, and structure when it aids clarity.
+- For code requests, always include the language identifier in fenced blocks.
+- Never fabricate URLs, citations, or external references you cannot verify.
+- If unsure, say so clearly rather than guessing.
+- Respond in the same language the user writes in.`;
 
-async function* runInference(prompt,config={}){
-  if(!session) throw new Error('No model loaded');
-  if(kvCache.needsSlide())kvCache.slide();
-  inferenceAborted=false;
-  const maxNewTokens=config.maxTokens??512,temperature=config.temperature??0.7,topP=config.topP??0.9,topK=config.topK??50;
-  const sys='You are Wayle, a helpful, concise and smart AI assistant.';
-  const fullPrompt=buildPrompt(prompt,sys,modelConfig.family);
-  let inputIds=tokenizer.encode(fullPrompt);
-  if(inputIds.length>modelConfig.context-64)inputIds=inputIds.slice(-(modelConfig.context-64));
-  const eosTokens=new Set([tokenizer.eosId,...(modelConfig.family==='qwen'?[151645,151643]:[]),...(modelConfig.family==='llama'?[128001,128009]:[])]);
-  let positionId=kvCache.currentLen,generated=0,pastLen=0;
-  for(let i=0;i<inputIds.length;i++){
-    if(inferenceAborted)return;
-    if(i%4===0)await new Promise(r=>setTimeout(r,0));
-    try{const result=await session.run(buildFeeds([inputIds[i]],positionId+i,pastLen));updateKVFromResult(result,positionId+i);pastLen=positionId+i+1;}
-    catch(e){throw new Error(`Prefill failed at token ${i}: ${e.message}`);}
-  }
-  positionId+=inputIds.length;kvCache.currentLen=positionId;
-  let lastTokenId=inputIds[inputIds.length-1],tokenBuffer=[];
-  while(generated<maxNewTokens&&!inferenceAborted){
-    const feeds=buildFeeds([lastTokenId],positionId,pastLen);
-    let result;
-    try{result=await session.run(feeds);}catch(e){throw new Error(`Decode step ${generated} failed: ${e.message}`);}
-    const logits=extractLogits(result);
-    updateKVFromResult(result,positionId);
-    pastLen=positionId+1;positionId++;kvCache.currentLen=positionId;
-    const nextToken=sample(logits,temperature,topK,topP);
-    if(eosTokens.has(nextToken))break;
-    lastTokenId=nextToken;generated++;tokenBuffer.push(nextToken);
-    if(tokenBuffer.length>=3||generated===1){const text=tokenizer.decode(tokenBuffer);if(text)yield text;tokenBuffer=[];}
-    if(generated%4===0)await new Promise(r=>setTimeout(r,0));
-    if(kvCache.needsSlide()){kvCache.slide();positionId=kvCache.currentLen;}
-  }
-  if(tokenBuffer.length>0){const text=tokenizer.decode(tokenBuffer);if(text)yield text;}
-}
-
-self.onmessage=async({data})=>{
-  const{type,id}=data;
-  switch(type){
-    case'load_model':{
-      try{const r=await loadModel(data.modelId,p=>self.postMessage({type:'load_progress',id,...p}));self.postMessage({type:'load_done',id,config:r.config});}
-      catch(e){self.postMessage({type:'load_error',id,error:e.message});}
-      break;
-    }
-    case'generate':{
-      try{
-        const gen=runInference(data.prompt,data.options);let tokenCount=0;const t0=performance.now();
-        for await(const token of gen){
-          if(inferenceAborted)break;
-          tokenCount++;const elapsed=(performance.now()-t0)/1000;
-          self.postMessage({type:'token',id,token,stats:{tokensPerSec:tokenCount/elapsed,tokenCount}});
+  // Build conversation history string
+  let historyStr = '';
+  if (history && history.length > 0) {
+    for (const turn of history) {
+      if (turn.role === 'user') {
+        switch (family) {
+          case 'qwen':   historyStr += `<|im_start|>user\n${turn.content}<|im_end|>\n`; break;
+          case 'llama':  historyStr += `<|start_header_id|>user<|end_header_id|>\n\n${turn.content}<|eot_id|>`; break;
+          case 'phi':    historyStr += `<|user|>\n${turn.content}<|end|>\n`; break;
+          default:       historyStr += `User: ${turn.content}\n`;
         }
-        self.postMessage({type:'done',id,stats:{totalTokens:tokenCount,totalMs:performance.now()-t0}});
-      }catch(e){self.postMessage({type:'generate_error',id,error:e.message});}
+      } else {
+        switch (family) {
+          case 'qwen':   historyStr += `<|im_start|>assistant\n${turn.content}<|im_end|>\n`; break;
+          case 'llama':  historyStr += `<|start_header_id|>assistant<|end_header_id|>\n\n${turn.content}<|eot_id|>`; break;
+          case 'phi':    historyStr += `<|assistant|>\n${turn.content}<|end|>\n`; break;
+          default:       historyStr += `Assistant: ${turn.content}\n`;
+        }
+      }
+    }
+  }
+
+  switch (family) {
+    case 'qwen':
+      return `<|im_start|>system\n${sys}<|im_end|>\n${historyStr}<|im_start|>user\n${userMsg}<|im_end|>\n<|im_start|>assistant\n`;
+    case 'llama':
+      return `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${sys}<|eot_id|>${historyStr}<|start_header_id|>user<|end_header_id|>\n\n${userMsg}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`;
+    case 'phi':
+      return `<|system|>\n${sys}<|end|>\n${historyStr}<|user|>\n${userMsg}<|end|>\n<|assistant|>\n`;
+    default:
+      return `${sys}\n\n${historyStr}User: ${userMsg}\nAssistant: `;
+  }
+}
+
+// ─── Model loader ─────────────────────────────────────────────────────────────
+async function fetchWithProgress(url, onProgress) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
+  const total = parseInt(res.headers.get('content-length') || '0');
+  const reader = res.body.getReader();
+  const chunks = []; let received = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value); received += value.byteLength;
+    if (total > 0) onProgress(received / total);
+  }
+  const out = new Uint8Array(received); let off = 0;
+  for (const c of chunks) { out.set(c, off); off += c.byteLength; }
+  return out.buffer;
+}
+
+async function loadModel(modelId, onProgress) {
+  const config = MODEL_REGISTRY[modelId];
+  if (!config) throw new Error(`Unknown model: ${modelId}`);
+
+  onProgress({ text: 'Checking WebGPU…', percent: 0 });
+
+  let useWebGPU = false;
+  if (self.navigator?.gpu) {
+    try {
+      const a = await navigator.gpu.requestAdapter({ powerPreference: 'high-performance' });
+      if (a) useWebGPU = true;
+    } catch(e) {}
+  }
+  if (!useWebGPU) {
+    try { const a = await navigator.gpu.requestAdapter(); if (a) useWebGPU = true; } catch(e) {}
+  }
+  if (!useWebGPU) throw new Error('NO_WEBGPU');
+
+  onProgress({ text: 'Downloading model…', percent: 2 });
+  const bufs = [];
+  for (let i = 0; i < config.files.length; i++) {
+    const buf = await fetchWithProgress(config.baseUrl + config.files[i], p => {
+      onProgress({ text: `Downloading ${config.files[i]}… ${Math.round(p*100)}%`, percent: Math.round(2 + (i/config.files.length + p/config.files.length) * 68) });
+    });
+    bufs.push(buf);
+  }
+
+  onProgress({ text: 'Compiling WebGPU shaders…', percent: 73 });
+  const modelData = bufs.length === 1 ? bufs[0] : (() => {
+    const total = bufs.reduce((s,b) => s + b.byteLength, 0);
+    const m = new Uint8Array(total); let off = 0;
+    for (const b of bufs) { m.set(new Uint8Array(b), off); off += b.byteLength; }
+    return m.buffer;
+  })();
+
+  const gpuOpts = {
+    executionProviders: [{ name:'webgpu', powerPreference:'high-performance', preferredLayout:'NHWC' }],
+    graphOptimizationLevel: 'all',
+    enableCpuMemArena: false,
+    enableMemPattern: false,
+    executionMode: 'sequential',
+    logSeverityLevel: 3,
+  };
+  const cpuOpts = {
+    executionProviders: [{ name:'wasm', numThreads: Math.min(navigator.hardwareConcurrency||2,4) }],
+    graphOptimizationLevel: 'all',
+    executionMode: 'parallel',
+    logSeverityLevel: 3,
+  };
+
+  onProgress({ text: 'Initialising session…', percent: 83 });
+  try {
+    session = await ort.InferenceSession.create(modelData, gpuOpts);
+  } catch(gpuErr) {
+    console.warn('[GPU] WebGPU failed, trying WASM:', gpuErr.message);
+    onProgress({ text: 'GPU init failed — trying CPU…', percent: 85 });
+    try { session = await ort.InferenceSession.create(modelData, cpuOpts); }
+    catch(cpuErr) { throw new Error(`Session init failed: ${gpuErr.message}`); }
+  }
+
+  onProgress({ text: 'Loading tokenizer…', percent: 91 });
+  try {
+    const r = await fetch(config.tokenizer);
+    if (!r.ok) throw new Error(`Tokenizer fetch failed: ${r.status}`);
+    tokenizer = new BPETokenizer(await r.json());
+  } catch(e) {
+    console.warn('[Tokenizer] Failed to load real tokenizer, using byte fallback:', e.message);
+    // Fallback: byte-level tokenizer (no BPE merges)
+    tokenizer = new BPETokenizer({ model: { vocab: {}, merges: [] }, added_tokens: [],
+      bos_token_id: 1, eos_token_id: 2 });
+  }
+
+  onProgress({ text: 'Preallocating KV cache…', percent: 96 });
+  kvCache = new KVCache(config);
+  currentModelId = modelId;
+  modelConfig = config;
+  onProgress({ text: 'Ready', percent: 100 });
+  return { success: true, config };
+}
+
+// ─── Inference engine ─────────────────────────────────────────────────────────
+async function* runInference(userMsg, opts = {}) {
+  if (!session) throw new Error('No model loaded');
+  if (kvCache.needsSlide()) kvCache.slide();
+  inferenceAborted = false;
+
+  const {
+    maxTokens    = 768,
+    temperature  = 0.72,
+    topP         = 0.92,
+    topK         = 45,
+    repeatPenalty= 1.12,
+    history      = [],   // [{role:'user'|'assistant', content:string}]
+  } = opts;
+
+  const eosSet = new Set([
+    tokenizer.eosId,
+    ...(EOS_TOKENS[modelConfig.family] || []),
+  ]);
+
+  // Build the full formatted prompt
+  const fullPrompt = buildPrompt(userMsg, history, modelConfig.family);
+
+  // Tokenise
+  let inputIds = tokenizer.encode(fullPrompt);
+  // Truncate from the front if too long, keeping a buffer for generation
+  const maxPrefill = modelConfig.context - maxTokens - 16;
+  if (inputIds.length > maxPrefill) inputIds = inputIds.slice(-maxPrefill);
+
+  // ── Prefill (process the whole prompt in one batched forward pass) ──────────
+  // We send the full input sequence at once. The model returns KV for all positions.
+  let positionId = kvCache.currentLen;
+  let pastLen = 0;
+
+  // Some ONNX models can't handle batch prefill with KV; try batched first, fall back to sequential.
+  let prefillResult = null;
+  try {
+    prefillResult = await session.run(buildFeeds(inputIds, positionId, pastLen));
+  } catch(e) {
+    // Batched prefill failed (model expects seq_len=1); fall back to sequential token-by-token
+    prefillResult = null;
+    for (let i = 0; i < inputIds.length; i++) {
+      if (inferenceAborted) return;
+      try {
+        const r = await session.run(buildFeeds([inputIds[i]], positionId + i, pastLen));
+        kvCache.writeStep(r, positionId + i);
+        pastLen = positionId + i + 1;
+      } catch(e2) { throw new Error(`Prefill failed at token ${i}: ${e2.message}`); }
+      // Yield control every 8 tokens so the worker stays responsive
+      if (i % 8 === 7) await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  // If batched prefill succeeded, write all KV states at once
+  if (prefillResult) {
+    for (let i = 0; i < inputIds.length; i++) {
+      kvCache.writeStep(prefillResult, positionId + i);
+    }
+    pastLen = positionId + inputIds.length;
+  }
+
+  positionId += inputIds.length;
+  kvCache.currentLen = positionId;
+
+  // ── Decode loop ──────────────────────────────────────────────────────────────
+  let lastTokenId = inputIds[inputIds.length - 1];
+  const recentTokens = [...inputIds];
+  let generated = 0;
+  // Incremental decode state — accumulate ids and track decoded text length
+  let accumIds = [];
+  let accumDecoded = '';
+
+  while (generated < maxTokens && !inferenceAborted) {
+    let result;
+    try {
+      result = await session.run(buildFeeds([lastTokenId], positionId, pastLen));
+    } catch(e) {
+      throw new Error(`Decode step ${generated} failed: ${e.message}`);
+    }
+
+    const logits = extractLogits(result);
+    kvCache.writeStep(result, positionId);
+    pastLen = positionId + 1;
+    positionId++;
+    kvCache.currentLen = positionId;
+
+    const nextToken = sample(logits, { temperature, topP, topK, repeatPenalty, recentTokens });
+
+    if (eosSet.has(nextToken)) break;
+
+    lastTokenId = nextToken;
+    recentTokens.push(nextToken);
+    generated++;
+    accumIds.push(nextToken);
+
+    // Incremental UTF-8 safe decoding: try to decode and yield as soon as we
+    // have valid text (i.e. no replacement char at the end)
+    const { text, pending } = tokenizer.decodeIncremental(accumIds, accumDecoded);
+    if (!pending && text) {
+      yield text;
+      accumDecoded += text;
+    }
+
+    // Yield control to keep UI responsive
+    if (generated % 6 === 0) await new Promise(r => setTimeout(r, 0));
+
+    // Evict old KV if we're running out of context
+    if (kvCache.needsSlide()) {
+      kvCache.slide();
+      positionId = kvCache.currentLen;
+      pastLen = positionId;
+    }
+  }
+
+  // Flush any remaining buffered tokens
+  if (accumIds.length > 0) {
+    const { text } = tokenizer.decodeIncremental(accumIds, accumDecoded);
+    if (text) yield text;
+  }
+}
+
+// ─── Message handler ──────────────────────────────────────────────────────────
+self.onmessage = async ({ data }) => {
+  const { type, id } = data;
+  switch (type) {
+    case 'load_model': {
+      try {
+        const r = await loadModel(data.modelId, p => self.postMessage({ type:'load_progress', id, ...p }));
+        self.postMessage({ type:'load_done', id, config: r.config });
+      } catch(e) { self.postMessage({ type:'load_error', id, error: e.message }); }
       break;
     }
-    case'abort':{inferenceAborted=true;self.postMessage({type:'aborted',id});break;}
-    case'reset_kv':{if(kvCache)kvCache.reset();self.postMessage({type:'kv_reset',id});break;}
-    case'unload':{session=null;kvCache=null;currentModelId=null;modelConfig=null;self.postMessage({type:'unloaded',id});break;}
+    case 'generate': {
+      try {
+        const gen = runInference(data.prompt, data.options);
+        let tokenCount = 0;
+        const t0 = performance.now();
+        for await (const token of gen) {
+          if (inferenceAborted) break;
+          tokenCount++;
+          const elapsed = (performance.now() - t0) / 1000;
+          self.postMessage({ type:'token', id, token, stats:{ tokensPerSec: elapsed > 0 ? tokenCount/elapsed : 0, tokenCount } });
+        }
+        self.postMessage({ type:'done', id, stats:{ totalTokens:tokenCount, totalMs: performance.now()-t0 } });
+      } catch(e) { self.postMessage({ type:'generate_error', id, error: e.message }); }
+      break;
+    }
+    case 'abort': {
+      inferenceAborted = true;
+      self.postMessage({ type:'aborted', id });
+      break;
+    }
+    case 'reset_kv': {
+      if (kvCache) kvCache.reset();
+      self.postMessage({ type:'kv_reset', id });
+      break;
+    }
+    case 'unload': {
+      session = null; kvCache = null; currentModelId = null; modelConfig = null;
+      self.postMessage({ type:'unloaded', id });
+      break;
+    }
   }
 };
 </script>
@@ -2198,7 +2683,20 @@ function App() {
     };
 
     if (wRef.current && engState === 'ready') {
-      const gid = wRef.current.generate(prompt, { maxTokens:512, temperature:0.7, topP:0.9, topK:40 }, {
+      // Build conversation history for multi-turn context (last 10 turns max)
+      const history = msgs
+        .filter(m => m.content && (m.role === 'user' || m.role === 'assistant'))
+        .slice(-10)
+        .map(m => ({ role: m.role, content: m.content }));
+
+      const gid = wRef.current.generate(prompt, {
+        maxTokens:    768,
+        temperature:  0.72,
+        topP:         0.92,
+        topK:         45,
+        repeatPenalty:1.12,
+        history,
+      }, {
         onToken: (tok, stats) => appendToken(tok, stats),
         onDone:  (stats) => finalize(stats?.totalMs ? stats.totalTokens/stats.totalMs*1000 : null),
         onError: (e) => {
